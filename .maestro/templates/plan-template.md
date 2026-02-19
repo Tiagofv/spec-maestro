@@ -112,28 +112,99 @@
 
 ---
 
-## 6. Testing Strategy
+## 6. Task Sizing Guidance
 
-### 6.1 Unit Tests
+When breaking down implementation into tasks, ensure all tasks are **XS** or **S** size only. M and L tasks must be split before they can be assigned.
+
+### 6.1 Size Definitions
+
+| Size   | Time Range                   | Status                   |
+| ------ | ---------------------------- | ------------------------ |
+| **XS** | 0-120 minutes (0-2 hours)    | ✅ Accepted              |
+| **S**  | 121-360 minutes (2-6 hours)  | ✅ Accepted              |
+| **M**  | 361-720 minutes (6-12 hours) | ❌ REJECTED — must split |
+| **L**  | 721+ minutes (12+ hours)     | ❌ REJECTED — must split |
+
+### 6.2 Complexity Indicators
+
+Use these keywords to estimate task size:
+
+**High Complexity (30-25 min each):**
+
+- `refactor`, `architecture`, `redesign`, `migrate`, `rewrite`
+
+**Medium Complexity (20-10 min each):**
+
+- `implement` (20), `create` (15), `build` (15), `design` (15), `integrate` (15), `configure` (10), `setup` (10)
+
+**Low Complexity (5-2 min each):**
+
+- `fix` (5), `update` (5), `add` (5), `remove` (5), `rename` (3), `typo` (2), `docs`/`documentation` (3)
+
+### 6.3 Splitting Strategies for Oversized Tasks
+
+When a task exceeds S size (360 min), apply these splitting strategies:
+
+**Split by File:**
+
+- If a task modifies multiple files, create separate tasks per file
+- Example: Instead of "Update auth middleware and user service", create two tasks
+
+**Split by Operation:**
+
+- Separate high-complexity operations into individual tasks
+- Example: "Refactor database layer and migrate user data" → two separate tasks
+
+**Split Setup from Implementation:**
+
+- Create one task for setup/configuration
+- Create another for actual implementation
+- Example: "Setup Redis and implement caching" → separate into two tasks
+
+**Split by 'And' Clauses:**
+
+- If a task description contains "and" joining multiple actions, split it
+- Example: "Add login form and implement password reset" → two separate tasks
+
+### 6.4 Ambiguity Indicators (Scope Creep Signals)
+
+These words signal vague scope — replace with specific, countable deliverables:
+
+- `etc`, `etc.`
+- `various`
+- `multiple`
+- `several`
+- `and more`
+- `and others`
+- `including but not limited`
+- `some`, `many`, `few`
+
+**Action:** When you see these terms, ask: "What exactly?" Replace with specific counts or lists.
+
+---
+
+## 7. Testing Strategy
+
+### 7.1 Unit Tests
 
 - {test category 1}
 - {test category 2}
 
-### 6.2 Integration Tests
+### 7.2 Integration Tests
 
 - {test category 1}
 
-### 6.3 End-to-End Tests
+### 7.3 End-to-End Tests
 
 {What E2E tests will be written, if any}
 
-### 6.4 Test Data
+### 7.4 Test Data
 
 {What test data/fixtures are needed}
 
 ---
 
-## 7. Risks and Mitigations
+## 8. Risks and Mitigations
 
 | Risk   | Likelihood | Impact  | Mitigation   |
 | ------ | ---------- | ------- | ------------ |
@@ -141,7 +212,7 @@
 
 ---
 
-## 8. Open Questions
+## 9. Open Questions
 
 - {question 1}
 - {question 2}
