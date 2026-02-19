@@ -1,0 +1,23 @@
+# Rust
+target/
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Beads issue tracker (local state)
+.beads/issues.jsonl
+
+# Environment
+.env
+.env.*

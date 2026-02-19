@@ -1,0 +1,24 @@
+[
+  {
+    "id": "test-project-t3n.1",
+    "title": "Test Epic: Integration Test Epic",
+    "total": 6,
+    "open": 4,
+    "closed": 1,
+    "in_progress": 1,
+    "blocked": 0,
+    "extra": {
+      "description": "Test epic for integration testing"
+    }
+  },
+  {
+    "id": "EPIC-999",
+    "title": "Another Test Epic",
+    "total": 10,
+    "open": 5,
+    "closed": 3,
+    "in_progress": 2,
+    "blocked": 0,
+    "extra": {}
+  }
+]

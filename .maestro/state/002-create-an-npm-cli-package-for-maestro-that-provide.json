@@ -1,0 +1,48 @@
+{
+  "feature_id": "002-create-an-npm-cli-package-for-maestro-that-provide",
+  "created_at": "2025-02-19T15:30:00Z",
+  "updated_at": "2025-02-19T17:50:00Z",
+  "stage": "tasks",
+  "spec_path": ".maestro/specs/002-create-an-npm-cli-package-for-maestro-that-provide/spec.md",
+  "plan_path": ".maestro/specs/002-create-an-npm-cli-package-for-maestro-that-provide/plan.md",
+  "branch": "spec/002-create-an-npm-cli-package-for-maestro-that-provide",
+  "epic_id": "agent-maestro-0a6",
+  "task_count": 19,
+  "clarification_count": 0,
+  "user_stories": 7,
+  "phases": 5,
+  "components_new": 11,
+  "components_modified": 2,
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2025-02-19T15:30:00Z",
+      "action": "created"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2025-02-19T16:45:00Z",
+      "action": "resolved 10 markers"
+    },
+    {
+      "stage": "specify",
+      "timestamp": "2025-02-19T17:00:00Z",
+      "action": "refactored for Go distribution"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2025-02-19T17:15:00Z",
+      "action": "resolved 4 markers"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2025-02-19T17:30:00Z",
+      "action": "created implementation plan"
+    },
+    {
+      "stage": "tasks",
+      "timestamp": "2025-02-19T17:50:00Z",
+      "action": "created 19 tasks"
+    }
+  ]
+}

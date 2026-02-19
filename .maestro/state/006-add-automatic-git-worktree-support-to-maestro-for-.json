@@ -1,0 +1,31 @@
+{
+  "feature_id": "006-add-automatic-git-worktree-support-to-maestro-for-",
+  "created_at": "2026-02-19T00:00:00Z",
+  "updated_at": "2026-02-19T20:00:00Z",
+  "stage": "plan",
+  "spec_path": ".maestro/specs/006-add-automatic-git-worktree-support-to-maestro-for-/spec.md",
+  "plan_path": ".maestro/specs/006-add-automatic-git-worktree-support-to-maestro-for-/plan.md",
+  "branch": "spec/006-add-automatic-git-worktree-support-to-maestro-for-",
+  "clarification_count": 0,
+  "user_stories": 5,
+  "phases": 5,
+  "components_new": 4,
+  "components_modified": 9,
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "created"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-02-19T19:00:00Z",
+      "action": "resolved 8 markers + 4 implicit gaps"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-02-19T20:00:00Z",
+      "action": "implementation plan generated (5 phases, 4 new + 9 modified components)"
+    }
+  ]
+}

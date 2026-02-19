@@ -1,0 +1,26 @@
+{
+  "feature_id": "001-we-need-to-build-a-kanban-board-on-our-tauri-ui-to",
+  "created_at": "2026-02-19T10:24:00Z",
+  "updated_at": "2026-02-19T11:30:00Z",
+  "stage": "tasks",
+  "spec_path": ".maestro/specs/001-we-need-to-build-a-kanban-board-on-our-tauri-ui-to/spec.md",
+  "plan_path": ".maestro/specs/001-we-need-to-build-a-kanban-board-on-our-tauri-ui-to/plan.md",
+  "epic_id": "agent-maestro-dws",
+  "branch": "spec/001-we-need-to-build-a-kanban-board-on-our-tauri-ui-to",
+  "clarification_count": 0,
+  "user_stories": 6,
+  "phases": 5,
+  "components_new": 7,
+  "components_modified": 4,
+  "task_count": 28,
+  "history": [
+    { "stage": "specify", "timestamp": "2026-02-19T10:24:00Z", "action": "created" },
+    { "stage": "clarify", "timestamp": "2026-02-19T10:35:00Z", "action": "resolved 17 markers" },
+    {
+      "stage": "plan",
+      "timestamp": "2026-02-19T10:45:00Z",
+      "action": "generated implementation plan"
+    },
+    { "stage": "tasks", "timestamp": "2026-02-19T11:30:00Z", "action": "created 28 bd issues" }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "feature_id": "003-create-a-maestro-research-command-that-adds-a-pre-",
+  "created_at": "2026-02-19T10:32:00Z",
+  "updated_at": "2026-02-19T10:32:00Z",
+  "stage": "specify",
+  "spec_path": ".maestro/specs/003-create-a-maestro-research-command-that-adds-a-pre-/spec.md",
+  "branch": "spec/003-create-a-maestro-research-command-that-adds-a-pre-",
+  "clarification_count": 4,
+  "user_stories": 4,
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-02-19T10:32:00Z",
+      "action": "created"
+    }
+  ]
+}

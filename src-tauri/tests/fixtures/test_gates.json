@@ -1,0 +1,34 @@
+[
+  {
+    "id": "GATE-1",
+    "issue_id": "test-project-t3n.2",
+    "gate_type": "compile",
+    "status": "approved",
+    "reason": "Compilation successful",
+    "extra": {}
+  },
+  {
+    "id": "GATE-2",
+    "issue_id": "test-project-t3n.3",
+    "gate_type": "compile",
+    "status": "pending",
+    "reason": null,
+    "extra": {}
+  },
+  {
+    "id": "GATE-3",
+    "issue_id": "test-project-t3n.4",
+    "gate_type": "review",
+    "status": "blocked",
+    "reason": "Fix required for issue #123",
+    "extra": {}
+  },
+  {
+    "id": "GATE-4",
+    "issue_id": "test-project-t3n.6",
+    "gate_type": "pm-approval",
+    "status": "pending",
+    "reason": null,
+    "extra": {}
+  }
+]

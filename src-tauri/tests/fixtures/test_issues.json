@@ -1,0 +1,93 @@
+[
+  {
+    "id": "test-project-t3n.1",
+    "title": "Test Epic: Integration Test Epic",
+    "status": "open",
+    "priority": "high",
+    "labels": ["epic"],
+    "dependencies": [],
+    "assignee": "test-user",
+    "issue_type": "Epic",
+    "extra": {
+      "epic_id": "test-project-t3n.1"
+    }
+  },
+  {
+    "id": "test-project-t3n.2",
+    "title": "Implement feature A",
+    "status": "in_progress",
+    "priority": "high",
+    "labels": ["impl", "backend"],
+    "dependencies": [],
+    "assignee": "dev-1",
+    "issue_type": "Task",
+    "extra": {
+      "epic_id": "test-project-t3n.1"
+    }
+  },
+  {
+    "id": "test-project-t3n.3",
+    "title": "Implement feature B",
+    "status": "open",
+    "priority": "medium",
+    "labels": ["impl", "backend"],
+    "dependencies": ["test-project-t3n.2"],
+    "assignee": "dev-2",
+    "issue_type": "Task",
+    "extra": {
+      "epic_id": "test-project-t3n.1"
+    }
+  },
+  {
+    "id": "test-project-t3n.4",
+    "title": "Review feature A implementation",
+    "status": "open",
+    "priority": "high",
+    "labels": ["review"],
+    "dependencies": ["test-project-t3n.2"],
+    "assignee": "reviewer-1",
+    "issue_type": "Task",
+    "extra": {
+      "epic_id": "test-project-t3n.1"
+    }
+  },
+  {
+    "id": "test-project-t3n.5",
+    "title": "Review feature B implementation",
+    "status": "open",
+    "priority": "medium",
+    "labels": ["review"],
+    "dependencies": ["test-project-t3n.3"],
+    "assignee": "reviewer-1",
+    "issue_type": "Task",
+    "extra": {
+      "epic_id": "test-project-t3n.1"
+    }
+  },
+  {
+    "id": "test-project-t3n.6",
+    "title": "PM Validation for Epic",
+    "status": "open",
+    "priority": "high",
+    "labels": ["pm-validation"],
+    "dependencies": ["test-project-t3n.4", "test-project-t3n.5"],
+    "assignee": "pm-user",
+    "issue_type": "Task",
+    "extra": {
+      "epic_id": "test-project-t3n.1"
+    }
+  },
+  {
+    "id": "test-project-t3n.7",
+    "title": "Completed task",
+    "status": "closed",
+    "priority": "low",
+    "labels": ["impl"],
+    "dependencies": [],
+    "assignee": "dev-3",
+    "issue_type": "Task",
+    "extra": {
+      "epic_id": "test-project-t3n.1"
+    }
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "feature_id": "004-expand-maestro-s-agent-support-beyond-claude-code-",
+  "created_at": "2026-02-19T10:31:00Z",
+  "updated_at": "2026-02-19T10:31:00Z",
+  "stage": "specify",
+  "spec_path": ".maestro/specs/004-expand-maestro-s-agent-support-beyond-claude-code-/spec.md",
+  "branch": "spec/004-expand-maestro-s-agent-support-beyond-claude-code-",
+  "clarification_count": 4,
+  "user_stories": 5,
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-02-19T10:31:00Z",
+      "action": "created"
+    }
+  ]
+}

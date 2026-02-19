@@ -1,0 +1,29 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for AgentMaestro",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "bd-list", "cmd": "bd", "args": ["list", "--json", "--limit", "0"] },
+        { "name": "bd-show", "cmd": "bd", "args": ["show", { "validator": "\\S+" }, "--json"] },
+        { "name": "bd-ready", "cmd": "bd", "args": ["ready", "--json"] },
+        { "name": "bd-gate-list", "cmd": "bd", "args": ["gate", "list", "--json"] },
+        { "name": "bd-gate-resolve", "cmd": "bd", "args": ["gate", "resolve", { "validator": "\\S+" }] },
+        { "name": "bd-activity-follow", "cmd": "bd", "args": ["activity", "--follow", "--json"] },
+        { "name": "bd-daemon-start", "cmd": "bd", "args": ["daemon", "start", "--local"] },
+        { "name": "bd-daemon-status", "cmd": "bd", "args": ["daemon", "status"] },
+        { "name": "bd-status", "cmd": "bd", "args": ["status", "--json"] }
+      ]
+    },
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "http://localhost:*" }]
+    },
+    "fs:allow-read",
+    "fs:allow-watch",
+    "notification:default"
+  ]
+}

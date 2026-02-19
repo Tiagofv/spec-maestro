@@ -1,0 +1,44 @@
+# .maestro/config.yaml
+# Maestro Configuration — Edit this file to customize behavior
+
+# Project metadata
+project:
+  name: "my-project"
+  description: "Project description"
+  # Base branch for PR comparisons and diff analysis
+  base_branch: main
+
+# Agent routing — maps task labels to agent identifiers
+# Agents are spawned via Task() with subagent_type set to these values
+agent_routing:
+  backend: general # Go/Python/backend implementation
+  frontend: general # React/TypeScript/frontend implementation
+  test: general # Test writing
+  fix: general # Fix tasks from reviews
+  refactor: general # Code improvement
+  review: general # Code review
+  pm-validation: general # PM feature validation
+
+# Compile gate — stack-specific build+lint commands
+# Maestro reads the 'stack' field and runs the corresponding command
+compile_gate:
+  go: "go build ./... && go vet ./..."
+  node: "npm run build && npm run lint"
+  python: "python -m py_compile **/*.py && ruff check ."
+  rust: "cd src-tauri && cargo check && cargo test"
+  # The stack to use for this project (must match a key above)
+  stack: rust
+
+# Size mapping — converts T-shirt sizes to minutes for bd estimates
+size_mapping:
+  XS: 120 # 2 hours
+  S: 360 # 6 hours
+  M: 720 # 12 hours
+  L: 1200 # 20 hours
+
+# Review sizing — review tasks get smaller estimates
+review_sizing:
+  XS: 120 # XS impl -> XS review
+  S: 120 # S impl -> XS review
+  M: 360 # M impl -> S review
+  L: 360 # L impl -> S review
