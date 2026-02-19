@@ -192,9 +192,9 @@ describe("TaskCard", () => {
     });
 
     it("handles special characters in title", () => {
-      const issue = createMockIssue({ title: "Task with <special> & "characters"" });
+      const issue = createMockIssue({ title: 'Task with <special> & "characters"' });
       render(<TaskCard issue={issue} />);
-      expect(screen.getByText("Task with <special> & "characters"")).toBeInTheDocument();
+      expect(screen.getByText('Task with <special> & "characters"')).toBeInTheDocument();
     });
 
     it("handles assignee with special characters", () => {

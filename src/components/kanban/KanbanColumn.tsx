@@ -21,6 +21,8 @@ export function KanbanColumn({ id, label, color, issues, onTaskClick }: KanbanCo
 
   return (
     <div
+      role="region"
+      aria-label={`${label} column, ${issues.length} task${issues.length !== 1 ? "s" : ""}`}
       className={`flex-1 min-w-[280px] max-w-[400px] flex flex-col transition-all duration-300 ease-out ${isOver ? "scale-[1.01]" : ""}`}
     >
       {/* Column header */}
@@ -30,6 +32,7 @@ export function KanbanColumn({ id, label, color, issues, onTaskClick }: KanbanCo
         <div className="flex items-center justify-between">
           <span className="font-medium text-sm">{label}</span>
           <span
+            aria-label={`${issues.length} task${issues.length !== 1 ? "s" : ""}`}
             className={`text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg)] transition-transform duration-200 ${isOver ? "scale-110" : ""}`}
           >
             {issues.length}
@@ -40,6 +43,9 @@ export function KanbanColumn({ id, label, color, issues, onTaskClick }: KanbanCo
       {/* Column content */}
       <div
         ref={setNodeRef}
+        aria-live="polite"
+        aria-atomic="false"
+        aria-relevant="additions removals"
         className={`flex-1 border border-[var(--color-border)] border-t-0 rounded-b-lg p-3 space-y-3 min-h-[200px] transition-all duration-200 ease-out relative ${
           isOver
             ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/50 column-active"

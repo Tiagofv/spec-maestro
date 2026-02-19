@@ -15,15 +15,7 @@ const POLL_INTERVAL_MS = 30_000;
 
 type DotColor = "green" | "yellow" | "red";
 
-function StatusDot({
-  color,
-  label,
-  tooltip,
-}: {
-  color: DotColor;
-  label: string;
-  tooltip: string;
-}) {
+function StatusDot({ color, label, tooltip }: { color: DotColor; label: string; tooltip: string }) {
   const colorClass =
     color === "green"
       ? "bg-[var(--color-success,#22c55e)]"
@@ -33,12 +25,8 @@ function StatusDot({
 
   return (
     <div className="relative group flex items-center gap-1.5" title={tooltip}>
-      <span
-        className={`inline-block w-2 h-2 rounded-full ${colorClass}`}
-      />
-      <span className="text-xs text-[var(--color-text-secondary)]">
-        {label}
-      </span>
+      <span className={`inline-block w-2 h-2 rounded-full ${colorClass}`} />
+      <span className="text-xs text-[var(--color-text-secondary)]">{label}</span>
     </div>
   );
 }
@@ -83,11 +71,7 @@ export function ConnectionStatus({ onHealthError }: ConnectionStatusProps) {
   }, []);
 
   // Derive statuses
-  const bdColor: DotColor = health
-    ? health.bd_available
-      ? "green"
-      : "red"
-    : "red";
+  const bdColor: DotColor = health ? (health.bd_available ? "green" : "red") : "red";
 
   const bdTooltip = health
     ? health.bd_available
@@ -95,11 +79,7 @@ export function ConnectionStatus({ onHealthError }: ConnectionStatusProps) {
       : "bd not found"
     : "Checking...";
 
-  const ocColor: DotColor = health
-    ? health.opencode_available
-      ? "green"
-      : "red"
-    : "red";
+  const ocColor: DotColor = health ? (health.opencode_available ? "green" : "red") : "red";
 
   const ocTooltip = health
     ? health.opencode_available

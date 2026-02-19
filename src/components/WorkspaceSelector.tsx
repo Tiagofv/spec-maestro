@@ -21,11 +21,7 @@ export function WorkspaceSelector() {
   );
 
   if (workspaces.length === 0) {
-    return (
-      <span className="text-sm text-[var(--color-text-secondary)]">
-        No workspaces
-      </span>
-    );
+    return <span className="text-sm text-[var(--color-text-secondary)]">No workspaces</span>;
   }
 
   return (

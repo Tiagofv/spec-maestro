@@ -184,7 +184,7 @@ impl BdClient {
     ///
     /// Corresponds to `bd list --json`.
     pub async fn list_issues(&self) -> BdResult<Vec<Issue>> {
-        let json = self.run_bd_json(&["list"], &[]).await?;
+        let json = self.run_bd_json(&["list", "--limit", "0"], &[]).await?;
 
         // Handle both array and wrapped responses
         let issues = if json.as_array().is_some() {

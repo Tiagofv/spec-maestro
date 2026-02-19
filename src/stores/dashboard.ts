@@ -32,6 +32,9 @@ export interface DashboardState {
   kanbanFilters: KanbanFilters;
   showCompleted: boolean;
 
+  // Computed
+  filteredIssues: Issue[];
+
   // Actions
   setError: (error: string | null) => void;
   setLoading: (loading: boolean) => void;
@@ -96,6 +99,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   kanbanFilters: INITIAL_KANBAN_FILTERS,
   showCompleted: false,
 
+  // Computed — derived from issues + active filters
+  filteredIssues: [],
+
   // -----------------------------------------------------------------------
   // UI Actions
   // -----------------------------------------------------------------------
@@ -131,7 +137,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       const issues = await tauri.listIssues();
-      set({ issues, isLoading: false });
+      const { kanbanFilters, showCompleted } = get();
+      set({
+        issues,
+        isLoading: false,
+        filteredIssues: getFilteredIssues(issues, kanbanFilters, showCompleted),
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       set({ error: message, isLoading: false });
@@ -156,7 +167,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       set({ selectedWorkspace: workspace, error: null });
       // Fetch issues for the newly selected workspace
       const issues = await tauri.listIssues();
-      set({ issues });
+      const { kanbanFilters, showCompleted } = get();
+      set({ issues, filteredIssues: getFilteredIssues(issues, kanbanFilters, showCompleted) });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       set({ selectedWorkspace: workspace, error: message });
@@ -175,16 +187,32 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   // -----------------------------------------------------------------------
   // Filter Actions
   // -----------------------------------------------------------------------
-  setKanbanFilters: (kanbanFilters) => set({ kanbanFilters }),
-
-  updateKanbanFilters: (partial) =>
+  setKanbanFilters: (kanbanFilters) =>
     set((state) => ({
-      kanbanFilters: { ...state.kanbanFilters, ...partial },
+      kanbanFilters,
+      filteredIssues: getFilteredIssues(state.issues, kanbanFilters, state.showCompleted),
     })),
 
-  clearKanbanFilters: () => set({ kanbanFilters: INITIAL_KANBAN_FILTERS }),
+  updateKanbanFilters: (partial) =>
+    set((state) => {
+      const kanbanFilters = { ...state.kanbanFilters, ...partial };
+      return {
+        kanbanFilters,
+        filteredIssues: getFilteredIssues(state.issues, kanbanFilters, state.showCompleted),
+      };
+    }),
 
-  setShowCompleted: (showCompleted) => set({ showCompleted }),
+  clearKanbanFilters: () =>
+    set((state) => ({
+      kanbanFilters: INITIAL_KANBAN_FILTERS,
+      filteredIssues: getFilteredIssues(state.issues, INITIAL_KANBAN_FILTERS, state.showCompleted),
+    })),
+
+  setShowCompleted: (showCompleted) =>
+    set((state) => ({
+      showCompleted,
+      filteredIssues: getFilteredIssues(state.issues, state.kanbanFilters, showCompleted),
+    })),
 
   // -----------------------------------------------------------------------
   // Event handler — dispatches DashboardEvent from Tauri Channel
@@ -195,12 +223,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         const updated = event.issue;
         set((state) => {
           const idx = state.issues.findIndex((i) => i.id === updated.id);
-          if (idx >= 0) {
-            const issues = [...state.issues];
-            issues[idx] = updated;
-            return { issues };
-          }
-          return { issues: [...state.issues, updated] };
+          const issues =
+            idx >= 0
+              ? state.issues.map((i, j) => (j === idx ? updated : i))
+              : [...state.issues, updated];
+          return {
+            issues,
+            filteredIssues: getFilteredIssues(issues, state.kanbanFilters, state.showCompleted),
+          };
         });
         break;
       }

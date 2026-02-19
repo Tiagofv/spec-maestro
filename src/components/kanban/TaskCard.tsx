@@ -1,5 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { KeyboardEvent } from "react";
 import type { Issue } from "../../types";
 
 // ---------------------------------------------------------------------------
@@ -63,11 +64,23 @@ export function TaskCard({ issue, onClick, isDragging: isDraggingProp }: TaskCar
     onClick?.(issue);
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick?.(issue);
+    }
+  };
+
   const displayAssignee = issue.assignee ?? issue.owner ?? "Unassigned";
+  const isClickable = !!onClick;
 
   return (
     <div
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      aria-label={isClickable ? `Open task: ${issue.title}` : undefined}
       onClick={handleClick}
+      onKeyDown={isClickable ? handleKeyDown : undefined}
       className={`
         p-3 rounded-lg bg-[var(--color-bg)] border border-[var(--color-border)]
         cursor-pointer
@@ -75,6 +88,7 @@ export function TaskCard({ issue, onClick, isDragging: isDraggingProp }: TaskCar
         hover:border-[var(--color-primary)]/50 hover:shadow-md hover:bg-[var(--color-surface)]
         hover:-translate-y-0.5 hover:scale-[1.02]
         active:scale-[0.98]
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
         ${isDraggingProp ? "opacity-90 rotate-2 scale-105 shadow-xl ring-2 ring-[var(--color-primary)]/30" : ""}
       `}
     >

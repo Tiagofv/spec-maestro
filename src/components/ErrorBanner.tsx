@@ -26,13 +26,7 @@ interface ErrorBannerProps {
 // Individual banner item
 // ---------------------------------------------------------------------------
 
-function BannerItem({
-  error,
-  onDismiss,
-}: {
-  error: BannerError;
-  onDismiss: (id: string) => void;
-}) {
+function BannerItem({ error, onDismiss }: { error: BannerError; onDismiss: (id: string) => void }) {
   const isWarning = error.severity === "warning";
 
   // Auto-dismiss warnings after 10 seconds
@@ -57,9 +51,7 @@ function BannerItem({
       }}
     >
       {/* Icon */}
-      <span className="shrink-0 text-base">
-        {isWarning ? "\u26A0" : "\u26D4"}
-      </span>
+      <span className="shrink-0 text-base">{isWarning ? "\u26A0" : "\u26D4"}</span>
 
       {/* Message */}
       <span className="flex-1 truncate">{error.message}</span>
@@ -120,11 +112,7 @@ export function useErrorBanner() {
   const [errors, setErrors] = useState<BannerError[]>([]);
 
   const addError = useCallback(
-    (
-      message: string,
-      severity: ErrorSeverity = "error",
-      retryFn?: () => void,
-    ) => {
+    (message: string, severity: ErrorSeverity = "error", retryFn?: () => void) => {
       const id = `err-${++nextId}`;
       setErrors((prev) => [...prev, { id, message, severity, retryFn }]);
       return id;

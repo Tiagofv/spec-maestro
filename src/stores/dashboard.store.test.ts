@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useDashboardStore, getFilteredIssues } from "./dashboard";
-import type { Issue, KanbanFilters } from "../types";
+import type { Issue } from "../types";
 
 // Mock tauri commands
 vi.mock("../lib/tauri", () => ({

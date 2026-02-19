@@ -63,14 +63,19 @@ export function getHealthStatus(): Promise<HealthStatus> {
 // issue management commands
 // ---------------------------------------------------------------------------
 
-export function updateIssueStatus(issueId: string, status: string): Promise<void> {
-  return invoke<void>("update_issue_status", { issueId, status });
+export function updateIssueStatus(id: string, status: string): Promise<void> {
+  return invoke<void>("update_issue_status", { id, status });
 }
 
-export function assignIssue(issueId: string, assignee: string): Promise<void> {
-  return invoke<void>("assign_issue", { issueId, assignee });
+export function assignIssue(id: string, assignee: string): Promise<void> {
+  return invoke<void>("assign_issue", { id, assignee });
 }
 
 export function createIssue(issueData: CreateIssueRequest): Promise<Issue> {
-  return invoke<Issue>("create_issue", issueData);
+  return invoke<Issue>("create_issue", {
+    title: issueData.title,
+    description: issueData.description,
+    labels: issueData.labels,
+    parentId: issueData.parentId,
+  });
 }

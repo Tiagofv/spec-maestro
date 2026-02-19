@@ -18,9 +18,7 @@ export function BootSplash() {
   return (
     <div className="flex items-center justify-center h-screen bg-[var(--color-bg)]">
       <div className="w-80 text-center">
-        <h1 className="text-3xl font-bold mb-6 text-[var(--color-text)]">
-          AgentMaestro
-        </h1>
+        <h1 className="text-3xl font-bold mb-6 text-[var(--color-text)]">AgentMaestro</h1>
 
         {/* Progress bar */}
         <div className="w-full h-2 bg-[var(--color-border)] rounded-full overflow-hidden mb-4">
@@ -31,9 +29,7 @@ export function BootSplash() {
         </div>
 
         {/* Step label */}
-        <p className="text-sm text-[var(--color-text-secondary)] mb-1">
-          {bootState.currentLabel}
-        </p>
+        <p className="text-sm text-[var(--color-text-secondary)] mb-1">{bootState.currentLabel}</p>
         <p className="text-xs text-[var(--color-text-secondary)]">
           Step {bootState.step} / {bootState.totalSteps}
         </p>
@@ -41,9 +37,7 @@ export function BootSplash() {
         {/* Error */}
         {bootState.error && (
           <div className="mt-4 p-3 bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-md">
-            <p className="text-sm text-[var(--color-error)]">
-              {bootState.error}
-            </p>
+            <p className="text-sm text-[var(--color-error)]">{bootState.error}</p>
           </div>
         )}
 

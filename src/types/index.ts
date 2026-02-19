@@ -134,11 +134,8 @@ export interface KanbanFilters {
 export interface CreateIssueRequest {
   title: string;
   description?: string;
-  status?: string;
-  priority?: number;
   labels?: string[];
-  assignee?: string;
-  [key: string]: unknown;
+  parentId?: string;
 }
 
 export interface UpdateIssueStatusRequest {

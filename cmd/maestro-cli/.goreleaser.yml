@@ -1,0 +1,76 @@
+version: 2
+
+project_name: maestro
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/spec-maestro/maestro-cli/internal/version.Version={{.Version}}
+      - -X github.com/spec-maestro/maestro-cli/internal/version.Commit={{.Commit}}
+      - -X github.com/spec-maestro/maestro-cli/internal/version.Date={{.Date}}
+    main: .
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: spec-maestro
+    name: maestro-cli
+
+brews:
+  - name: maestro
+    homepage: "https://github.com/spec-maestro/maestro-cli"
+    description: "Maestro CLI - manage maestro projects"
+    license: "MIT"
+    repository:
+      owner: spec-maestro
+      name: homebrew-maestro
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    install: |
+      bin.install "maestro"
+    test: |
+      system "#{bin}/maestro --version"

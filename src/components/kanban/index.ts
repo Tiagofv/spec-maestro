@@ -1,8 +1,12 @@
 export { KanbanColumn } from "./KanbanColumn";
-export { TaskCard } from "./TaskCard";
+export { TaskCard, SortableTaskCard } from "./TaskCard";
 export { TaskDetailModal } from "./TaskDetailModal";
 export { AssigneeSelector, InlineAssigneeSelector } from "./AssigneeSelector";
+export { QuickCreateModal } from "./QuickCreateModal";
+export { ErrorState } from "./ErrorState";
 export type { KanbanColumnProps } from "./KanbanColumn";
-export type { TaskCardProps } from "./TaskCard";
+export type { TaskCardProps, SortableTaskCardProps } from "./TaskCard";
 export type { TaskDetailModalProps } from "./TaskDetailModal";
 export type { AssigneeSelectorProps, InlineAssigneeSelectorProps } from "./AssigneeSelector";
+export type { QuickCreateModalProps } from "./QuickCreateModal";
+export type { ErrorStateProps } from "./ErrorState";
