@@ -2,7 +2,8 @@
   "feature_id": "007-we-need-to-customize-our-maestro-flow-on-the-plann",
   "created_at": "2026-02-19",
   "updated_at": "2026-02-19",
-  "stage": "tasks",
+  "stage": "complete",
+  "completed_at": "2026-02-19",
   "spec_path": ".maestro/specs/007-we-need-to-customize-our-maestro-flow-on-the-plann/spec.md",
   "plan_path": ".maestro/specs/007-we-need-to-customize-our-maestro-flow-on-the-plann/plan.md",
   "epic_id": "agent-maestro-08v",
@@ -10,8 +11,8 @@
   "clarification_count": 0,
   "user_stories": 3,
   "phases": 4,
-  "components_new": 5,
-  "components_modified": 2,
+  "components_new": 7,
+  "components_modified": 1,
   "task_count": 53,
   "implementation_tasks": 26,
   "review_tasks": 26,
@@ -28,6 +29,7 @@
       "stage": "tasks",
       "timestamp": "2026-02-19",
       "action": "created 53 tasks in epic agent-maestro-08v"
-    }
+    },
+    { "stage": "complete", "timestamp": "2026-02-19", "action": "implemented on main branch" }
   ]
 }
