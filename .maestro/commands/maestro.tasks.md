@@ -28,6 +28,7 @@ Read:
 - The plan: `.maestro/specs/{feature_id}/plan.md`
 - The config: `.maestro/config.yaml`
 - The state: `.maestro/state/{feature_id}.json`
+- `worktree_path` — from state.json (may be absent for pre-worktree features)
 
 ## Step 3: Idempotency Check
 
@@ -114,6 +115,16 @@ TASK_ID=$(bd_create_task \
   "$EPIC_ID" \
   "{assignee}")
 ```
+
+**Worktree context:** If `worktree_path` is set in state.json, append the following section to every task description:
+
+```
+## Worktree
+Work in worktree: {worktree_path}
+All file operations and git commands should be executed from this directory.
+```
+
+If `worktree_path` is null or absent (pre-worktree feature), omit this section.
 
 Store task IDs for dependency wiring.
 

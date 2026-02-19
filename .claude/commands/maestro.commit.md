@@ -10,6 +10,24 @@ argument-hint: [--auto to skip confirmation]
 
 Create layer-separated commits.
 
+## Step 0: Worktree Detection
+
+Source the worktree detection script to determine context:
+
+```bash
+source .maestro/scripts/worktree-detect.sh
+```
+
+If `MAESTRO_IN_WORKTREE` is `true`, show a notice before proceeding:
+
+```
+Note: You are inside a maestro worktree for feature: {MAESTRO_WORKTREE_FEATURE}
+Commits will be made on the worktree branch.
+Main repository: {MAESTRO_MAIN_REPO}
+```
+
+Continue with the normal commit flow. Git commands work naturally inside worktrees — no special handling needed.
+
 ## Step 1: Check Staged Changes
 
 ```bash

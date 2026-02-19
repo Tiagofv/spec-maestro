@@ -43,6 +43,8 @@ The script outputs JSON with the created paths. Parse it to get:
 - `feature_id` — the NNN-slug identifier (e.g., `001-webhook-system`)
 - `spec_dir` — the full path to the spec directory
 - `branch` — the git branch name
+- `worktree_name` — the human-readable worktree directory name
+- `worktree_path` — the relative path where the worktree will be created (e.g., `.worktrees/my-feature`)
 
 If the script fails, show the error and stop.
 
@@ -130,6 +132,10 @@ Create or update the state file at `.maestro/state/{feature_id}.json`:
   "stage": "specify",
   "spec_path": "{spec_dir}/spec.md",
   "branch": "{branch}",
+  "worktree_name": "{worktree_name}",
+  "worktree_path": "{worktree_path}",
+  "worktree_branch": "{branch}",
+  "worktree_created": false,
   "clarification_count": 0,
   "user_stories": 0,
   "history": [{ "stage": "specify", "timestamp": "{ISO}", "action": "created" }]
@@ -149,6 +155,7 @@ Show the user:
 
 1. A summary of what was created:
    - Branch name
+   - Worktree name: {worktree_name} (will be created at {worktree_path} during /maestro.implement)
    - Spec file path
    - Number of user stories
    - Number of clarification markers found

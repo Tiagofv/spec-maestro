@@ -38,7 +38,23 @@ If `$ARGUMENTS` contains a feature ID, use it. Otherwise, find the most recent f
 
 - If no state file exists → tell the user to run `/maestro.specify` first and stop
 - If no `epic_id` exists → tell the user to run `/maestro.tasks` first to create the bd epic and stop
-- If the current git branch doesn't match the feature branch → switch to it: `git checkout {branch}`
+- If the state has `worktree_path` (worktree-enabled feature): set up worktree (Step 1b) instead of switching branches
+- If the state has no `worktree_path` (pre-worktree feature): switch branch: `git checkout {branch}`
+
+## Step 1b: Worktree Setup
+
+If the state file contains `worktree_path` and `worktree_created` fields:
+
+1. Read `worktree_name`, `worktree_path`, `worktree_branch`, `worktree_created` from state.json
+2. If `worktree_created` is `false`:
+   - Run: `bash .maestro/scripts/worktree-create.sh {worktree_name} {worktree_branch}`
+   - If successful, update state.json: set `worktree_created` to `true`
+   - If it fails with "worktree already exists", treat as already created (idempotent)
+3. If `worktree_created` is `true`:
+   - Verify the worktree directory still exists on disk
+   - If missing, re-run `worktree-create.sh` as in step 2 above
+
+**Backward compatibility:** If state.json has no `worktree_path` field (pre-worktree feature), skip this step entirely and proceed with the original `git checkout {branch}` logic.
 
 ## Step 2: Get Ready Tasks
 
@@ -185,6 +201,12 @@ Task(
   ## Constitution Constraints
   {relevant sections from constitution}
 
+  ## Worktree Context
+  {If worktree_path is set:}
+  Work in directory: {worktree_path}
+  All file read/write operations and git commands must be performed from this worktree directory.
+  The compile gate is run as: bash .maestro/scripts/compile-gate.sh {worktree_path}
+
   ## Instructions
   1. Read the referenced files
   2. Implement the changes following any code examples provided
@@ -199,7 +221,8 @@ Task(
      - When in doubt, ADD a new case/handler rather than replacing an
        existing one
   4. After implementing, you MUST run the compile gate:
-     bash .maestro/scripts/compile-gate.sh
+     bash .maestro/scripts/compile-gate.sh {worktree_path}
+     (If no worktree_path, run: bash .maestro/scripts/compile-gate.sh)
   5. If the compile gate fails, fix the errors and re-run until it passes
   6. Do NOT report your work as complete until the gate passes
   7. Ensure all acceptance criteria are met
@@ -360,6 +383,15 @@ Next Steps:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+**Worktree Cleanup (if worktree-enabled feature):**
+
+If `worktree_path` is set in state.json:
+
+1. Run: `bash .maestro/scripts/worktree-cleanup.sh {worktree_path}`
+2. Update state.json: set `worktree_created` to `false`
+3. Add to Next Steps:
+   - "Open PR: Branch `{worktree_branch}` → `{base_branch}` (run `git push origin {worktree_branch}` first)"
 
 **Update the state file** to reflect completion:
 

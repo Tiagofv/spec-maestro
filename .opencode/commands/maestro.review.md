@@ -50,6 +50,8 @@ DONE | files: x.go,y.go | pattern: consumer | ref: z.go
 
 Parse the `files:` field to get the list of modified files.
 
+**Worktree context:** Look up the feature's state.json using the epic ID from the task. If the state has `worktree_path` set, store it as `{worktree_path}` for use in Step 3 and Step 5.
+
 If the implementation task is not closed (no close_reason):
 
 - Tell the user the implementation must complete before review
@@ -75,6 +77,10 @@ For MEDIUM RISK files, check the diff size:
 ```bash
 git diff HEAD~1 -- {file} | wc -l
 ```
+
+If `worktree_path` is set, run the diff from within the worktree:
+git -C {worktree_path} diff HEAD~1 -- {file} | wc -l
+Otherwise use the standard form.
 
 If the diff is 50 lines or fewer, downgrade MEDIUM to LOW for that file.
 
@@ -138,6 +144,12 @@ Task(
 
   ## Files to Review
   {file list with full paths — only HIGH and qualifying MEDIUM risk files}
+
+  ## Worktree Context
+  {If worktree_path is set:}
+  The implementation was done in worktree: {worktree_path}
+  Run git diff commands from within that directory using: git -C {worktree_path} diff HEAD~1 -- {file}
+  {Otherwise:} Run git diff commands normally.
 
   ## FEATURE REGRESSION CHECK (DO THIS FIRST)
 
