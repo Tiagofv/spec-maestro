@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { KanbanBoard } from "../../views/KanbanBoard";
 import { AssigneeSelector } from "../../components/kanban/AssigneeSelector";
 import { TaskCard } from "../../components/kanban/TaskCard";
-import { useDashboardStore } from "../../stores/dashboard";
+import { useDashboardStore, getFilteredIssues } from "../../stores/dashboard";
 import * as tauri from "../../lib/tauri";
 import type { Issue, DashboardEvent } from "../../types";
 
@@ -61,8 +61,11 @@ vi.mock("../../lib/tauri", () => ({
 
 describe("Kanban Flows Integration Tests", () => {
   beforeEach(() => {
+    const kanbanFilters = {};
+    const showCompleted = true;
     useDashboardStore.setState({
       issues: mockIssues,
+      filteredIssues: getFilteredIssues(mockIssues, kanbanFilters, showCompleted),
       workspaces: [],
       selectedWorkspace: null,
       daemonStatus: null,
@@ -76,8 +79,8 @@ describe("Kanban Flows Integration Tests", () => {
         currentLabel: "Initializing...",
         completed: true,
       },
-      kanbanFilters: {},
-      showCompleted: true,
+      kanbanFilters,
+      showCompleted,
     });
 
     vi.clearAllMocks();

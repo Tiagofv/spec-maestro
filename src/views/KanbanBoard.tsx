@@ -19,6 +19,7 @@ import { useDashboardStore } from "../stores/dashboard";
 import { TaskDetailModal } from "../components/kanban/TaskDetailModal";
 import { QuickCreateModal } from "../components/kanban/QuickCreateModal";
 import { KanbanColumn } from "../components/kanban/KanbanColumn";
+import { BoardFilters } from "../components/kanban/BoardFilters";
 import * as tauri from "../lib/tauri";
 import type { Issue } from "../types";
 
@@ -113,10 +114,21 @@ function priorityColor(p: number | string | null): string {
 
 export function KanbanBoard() {
   const issues = useDashboardStore((s) => s.issues);
+  const filteredIssues = useDashboardStore((s) => s.filteredIssues);
   const isLoading = useDashboardStore((s) => s.isLoading);
   const error = useDashboardStore((s) => s.error);
   const fetchIssues = useDashboardStore((s) => s.fetchIssues);
   const setError = useDashboardStore((s) => s.setError);
+
+  // Derive unique assignees from all issues for the filter bar
+  const allAssignees = useMemo(() => {
+    const set = new Set<string>();
+    for (const issue of issues) {
+      if (issue.assignee) set.add(issue.assignee);
+      if (issue.owner) set.add(issue.owner);
+    }
+    return Array.from(set).sort();
+  }, [issues]);
 
   // Task detail modal state
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
@@ -127,12 +139,12 @@ export function KanbanBoard() {
 
   // Drag-and-drop state
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [localIssues, setLocalIssues] = useState<Issue[]>(issues);
+  const [localIssues, setLocalIssues] = useState<Issue[]>(filteredIssues);
 
-  // Sync local issues with store issues (when not dragging)
+  // Sync local issues with filtered issues from store (when not dragging)
   useEffect(() => {
-    if (!activeId) setLocalIssues(issues);
-  }, [issues, activeId]);
+    if (!activeId) setLocalIssues(filteredIssues);
+  }, [filteredIssues, activeId]);
 
   // Sensors for drag-and-drop
   const sensors = useSensors(
@@ -364,6 +376,9 @@ export function KanbanBoard() {
           </button>
         </div>
       </div>
+
+      {/* Filters */}
+      <BoardFilters assignees={allAssignees} />
 
       {/* Error banner */}
       {error && (

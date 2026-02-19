@@ -4,10 +4,19 @@ import { KanbanBoard } from "./KanbanBoard";
 import type { Issue } from "../types";
 
 // Store state that can be modified between tests
+// filteredIssues is a computed getter that returns issues (mirrors store behaviour)
 let storeState: {
   issues: Issue[];
+  readonly filteredIssues: Issue[];
   isLoading: boolean;
   error: string | null;
+  fetchIssues: ReturnType<typeof vi.fn>;
+  setError: ReturnType<typeof vi.fn>;
+  kanbanFilters: { assignee?: string[]; search?: string };
+  showCompleted: boolean;
+  updateKanbanFilters: ReturnType<typeof vi.fn>;
+  clearKanbanFilters: ReturnType<typeof vi.fn>;
+  setShowCompleted: ReturnType<typeof vi.fn>;
 };
 
 // Mock the dashboard store
@@ -18,16 +27,33 @@ vi.mock("../stores/dashboard", () => ({
 // Mock tauri commands
 vi.mock("../lib/tauri", () => ({
   updateIssueStatus: vi.fn(),
+  assignIssue: vi.fn(),
+  createIssue: vi.fn(),
 }));
 
 describe("KanbanBoard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    storeState = {
-      issues: [],
+    // Use Object.defineProperty so filteredIssues always mirrors issues
+    // (tests can override it explicitly if testing filter logic)
+    const base = {
+      issues: [] as Issue[],
       isLoading: false,
-      error: null,
+      error: null as string | null,
+      fetchIssues: vi.fn(),
+      setError: vi.fn(),
+      kanbanFilters: {} as { assignee?: string[]; search?: string },
+      showCompleted: false,
+      updateKanbanFilters: vi.fn(),
+      clearKanbanFilters: vi.fn(),
+      setShowCompleted: vi.fn(),
     };
+    storeState = Object.defineProperty(base, "filteredIssues", {
+      get() {
+        return this.issues;
+      },
+      configurable: true,
+    }) as typeof storeState;
   });
 
   describe("rendering", () => {

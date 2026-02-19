@@ -220,6 +220,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   handleEvent: (event) => {
     switch (event.type) {
       case "IssueUpdated": {
+        // Handles all issue mutations: status changes, assignee changes, etc.
         const updated = event.issue;
         set((state) => {
           const idx = state.issues.findIndex((i) => i.id === updated.id);

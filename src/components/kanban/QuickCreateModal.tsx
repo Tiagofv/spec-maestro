@@ -137,7 +137,28 @@ export function QuickCreateModal({ isOpen, onClose, onCreated }: QuickCreateModa
     };
 
     try {
-      const created = await tauri.createIssue(request);
+      let created = await tauri.createIssue(request);
+
+      // Apply status if not the default "open"
+      if (form.status && form.status !== "open") {
+        try {
+          await tauri.updateIssueStatus(created.id, form.status);
+          created = { ...created, status: form.status };
+        } catch {
+          // Non-fatal: issue was created, status update failed
+        }
+      }
+
+      // Apply assignee if provided
+      if (form.assignee.trim()) {
+        try {
+          await tauri.assignIssue(created.id, form.assignee.trim());
+          created = { ...created, assignee: form.assignee.trim() };
+        } catch {
+          // Non-fatal: issue was created, assignee update failed
+        }
+      }
+
       onCreated?.(created);
       onClose();
     } catch (err) {

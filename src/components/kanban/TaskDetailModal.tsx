@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import type { Issue } from "../../types";
+import { AssigneeSelector } from "./AssigneeSelector";
+import * as tauri from "../../lib/tauri";
 
 // ---------------------------------------------------------------------------
 // Priority helpers (mirrored from TaskCard)
@@ -95,14 +97,45 @@ export interface TaskDetailModalProps {
   issue: Issue | null;
   isOpen: boolean;
   onClose: () => void;
+  onAssigned?: (issueId: string, assignee: string | null) => void;
 }
 
-export function TaskDetailModal({ issue, isOpen, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({ issue, isOpen, onClose, onAssigned }: TaskDetailModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const [isRendered, setIsRendered] = useState(false);
+  const [assignee, setAssignee] = useState<string | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
+  // Sync local assignee state when issue changes
+  useEffect(() => {
+    setAssignee(issue?.assignee ?? issue?.owner ?? null);
+    setAssignError(null);
+  }, [issue]);
+
+  const handleAssigneeChange = useCallback(
+    async (newAssignee: string | null) => {
+      if (!issue) return;
+      setIsAssigning(true);
+      setAssignError(null);
+      try {
+        if (newAssignee) {
+          await tauri.assignIssue(issue.id, newAssignee);
+        }
+        setAssignee(newAssignee);
+        onAssigned?.(issue.id, newAssignee);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setAssignError(`Failed to assign: ${message}`);
+      } finally {
+        setIsAssigning(false);
+      }
+    },
+    [issue, onAssigned],
+  );
 
   // Store the previously focused element when modal opens
   useEffect(() => {
@@ -168,7 +201,6 @@ export function TaskDetailModal({ issue, isOpen, onClose }: TaskDetailModalProps
     return null;
   }
 
-  const displayAssignee = issue.assignee ?? issue.owner ?? "Unassigned";
   const displayDescription =
     typeof issue.description === "string" ? issue.description : "No description provided";
 
@@ -265,11 +297,17 @@ export function TaskDetailModal({ issue, isOpen, onClose }: TaskDetailModalProps
               Assignee
             </h3>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center text-sm font-medium text-[var(--color-primary)]">
-                {displayAssignee.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-[var(--color-text)]">{displayAssignee}</span>
+              <AssigneeSelector
+                value={assignee}
+                onChange={handleAssigneeChange}
+                disabled={isAssigning}
+                aria-label="Change assignee"
+              />
+              {isAssigning && (
+                <span className="text-xs text-[var(--color-text-secondary)]">Saving...</span>
+              )}
             </div>
+            {assignError && <p className="mt-1 text-xs text-[var(--color-error)]">{assignError}</p>}
           </div>
 
           {/* Labels */}
