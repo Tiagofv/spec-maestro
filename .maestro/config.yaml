@@ -42,3 +42,79 @@ review_sizing:
   S: 120 # S impl -> XS review
   M: 360 # M impl -> S review
   L: 360 # L impl -> S review
+
+# Planner configuration — enhanced planning phase settings
+planner:
+  # Analyzer scope configuration
+  analyzer:
+    # Directories to scan for pattern analysis
+    scope:
+      directories:
+        - src
+        - lib
+        - app
+      # Patterns to include
+      include_patterns:
+        - "*.py"
+        - "*.ts"
+        - "*.tsx"
+        - "*.js"
+        - "*.jsx"
+        - "*.go"
+        - "*.rs"
+      # Patterns to exclude from analysis
+      exclude_patterns:
+        - "**/test/**"
+        - "**/*.spec.*"
+        - "**/*.test.*"
+        - "node_modules/**"
+        - ".git/**"
+        - "__pycache__/**"
+        - "dist/**"
+        - "build/**"
+        - "target/**"
+        - ".venv/**"
+        - "venv/**"
+
+  # Pattern detection settings
+  patterns:
+    # Minimum confidence score for patterns (0.0-1.0)
+    min_confidence: 0.7
+    # Maximum patterns to extract per file
+    max_patterns_per_file: 10
+    # Maximum file size to analyze (bytes)
+    max_file_size: 1048576 # 1MB
+
+  # Caching configuration
+  cache:
+    # Enable pattern caching
+    enabled: true
+    # Cache time-to-live in minutes
+    ttl_minutes: 60
+    # Cache directory
+    cache_dir: .maestro/cache/patterns
+    # Maximum cache size in MB
+    max_cache_size_mb: 100
+
+  # Performance tuning
+  performance:
+    # Number of parallel workers for file scanning
+    parallel_workers: 4
+    # Timeout for pattern analysis in seconds
+    timeout_seconds: 300
+    # Enable incremental analysis (only changed files)
+    incremental: false
+
+  # Task sizing constraints
+  task_sizing:
+    # Enforce XS/S only sizing
+    enforce_xs_s_only: true
+    # XS task limit in minutes
+    xs_max_minutes: 120
+    # S task limit in minutes
+    s_max_minutes: 360
+    # Complexity scoring weights
+    complexity_weights:
+      high: 30
+      medium: 15
+      low: 5
