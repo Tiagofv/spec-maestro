@@ -73,6 +73,52 @@ func TestFetchRef(t *testing.T) {
 	}
 }
 
+func TestFetchRef_Errors(t *testing.T) {
+	tests := []struct {
+		name           string
+		statusCode     int
+		responseBody   string
+		expectedErrMsg string
+	}{
+		{
+			name:           "404 not found",
+			statusCode:     http.StatusNotFound,
+			responseBody:   `{"message":"Not Found"}`,
+			expectedErrMsg: "resource not found",
+		},
+		{
+			name:           "403 forbidden",
+			statusCode:     http.StatusForbidden,
+			responseBody:   `{"message":"Forbidden"}`,
+			expectedErrMsg: "rate limited",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tt.statusCode)
+				w.Write([]byte(tt.responseBody))
+			}))
+			defer server.Close()
+
+			client := NewClient("owner", "repo", "")
+			client.httpClient = server.Client()
+			client.baseURL = server.URL
+
+			_, err := client.FetchRef("main")
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+
+			if !strings.Contains(err.Error(), tt.expectedErrMsg) {
+				t.Errorf("expected error containing '%s', got: %v", tt.expectedErrMsg, err)
+			}
+		})
+	}
+}
+
 func TestFetchTree(t *testing.T) {
 	treeResp := TreeResponse{
 		SHA:       "tree-sha-456",
@@ -115,6 +161,38 @@ func TestFetchTree(t *testing.T) {
 
 	if len(tree.Tree) != 2 {
 		t.Errorf("expected 2 tree entries, got %d", len(tree.Tree))
+	}
+
+	if tree.Truncated {
+		t.Error("expected truncated to be false")
+	}
+}
+
+func TestFetchTree_EmptyTree(t *testing.T) {
+	treeResp := TreeResponse{
+		SHA:       "tree-sha-empty",
+		URL:       "https://api.github.com/repos/owner/repo/git/trees/tree-sha-empty",
+		Truncated: false,
+		Tree:      []TreeEntry{},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(treeResp)
+	}))
+	defer server.Close()
+
+	client := NewClient("owner", "repo", "")
+	client.httpClient = server.Client()
+	client.baseURL = server.URL
+
+	tree, err := client.FetchTree("tree-sha-empty")
+	if err != nil {
+		t.Fatalf("FetchTree failed: %v", err)
+	}
+
+	if len(tree.Tree) != 0 {
+		t.Errorf("expected 0 tree entries, got %d", len(tree.Tree))
 	}
 
 	if tree.Truncated {
@@ -178,6 +256,52 @@ func TestDownloadBlob(t *testing.T) {
 	expected := "Hello, World!"
 	if string(content) != expected {
 		t.Errorf("expected content '%s', got '%s'", expected, string(content))
+	}
+}
+
+func TestDownloadBlob_Errors(t *testing.T) {
+	tests := []struct {
+		name           string
+		statusCode     int
+		responseBody   string
+		expectedErrMsg string
+	}{
+		{
+			name:           "404 not found",
+			statusCode:     http.StatusNotFound,
+			responseBody:   `{"message":"Not Found"}`,
+			expectedErrMsg: "resource not found",
+		},
+		{
+			name:           "500 internal server error",
+			statusCode:     http.StatusInternalServerError,
+			responseBody:   `{"message":"Internal Server Error"}`,
+			expectedErrMsg: "unexpected status: 500",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tt.statusCode)
+				w.Write([]byte(tt.responseBody))
+			}))
+			defer server.Close()
+
+			client := NewClient("owner", "repo", "")
+			client.httpClient = server.Client()
+			client.baseURL = server.URL
+
+			_, err := client.DownloadBlob("blob-sha-1")
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+
+			if !strings.Contains(err.Error(), tt.expectedErrMsg) {
+				t.Errorf("expected error containing '%s', got: %v", tt.expectedErrMsg, err)
+			}
+		})
 	}
 }
 
