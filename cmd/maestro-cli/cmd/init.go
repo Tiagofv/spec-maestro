@@ -115,9 +115,12 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if err := installRequiredStarterAssets(client, os.Stdin, os.Stdout); err != nil {
+		return fmt.Errorf("installing required starter assets: %w", err)
+	}
+
 	// Create minimal .maestro/ structure if not created by asset extraction
 	for _, dir := range []string{
-		filepath.Join(maestroDir, "scripts"),
 		filepath.Join(maestroDir, "specs"),
 		filepath.Join(maestroDir, "state"),
 	} {
@@ -181,4 +184,56 @@ func selectInitAgentDirs(withOpenCode, withClaude bool, r io.Reader, w io.Writer
 	}
 
 	return agents.PromptAgentSelection(r, w, agents.KnownAgentDirs())
+}
+
+func installRequiredStarterAssets(client *ghclient.Client, r io.Reader, w io.Writer) error {
+	required := agents.RequiredStarterAssetDirs()
+	conflicting := findExistingDirectories(required)
+	action := agents.ConflictOverwrite
+
+	if len(conflicting) > 0 {
+		if !isInteractiveStdin() {
+			return fmt.Errorf("detected existing starter assets in non-interactive mode (%s). rerun interactively to choose overwrite/backup/cancel", strings.Join(conflicting, ", "))
+		}
+
+		var err error
+		action, err = agents.PromptConflictResolution(r, w, conflicting)
+		if err != nil {
+			return fmt.Errorf("prompting for conflict resolution: %w", err)
+		}
+	}
+
+	result, err := agents.InstallRequiredAssets(required, action, func(dir string) (map[string][]byte, error) {
+		return fetchAgentDirWithRefFallback(client, dir, "main")
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(result.Installed) > 0 {
+		fmt.Fprintf(w, "Installed required starter assets: %s\n", strings.Join(result.Installed, ", "))
+	}
+	for _, backup := range result.Backups {
+		fmt.Fprintf(w, "Backup created: %s\n", backup)
+	}
+
+	return nil
+}
+
+func findExistingDirectories(dirs []string) []string {
+	conflicting := make([]string, 0, len(dirs))
+	for _, dir := range dirs {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			conflicting = append(conflicting, dir)
+		}
+	}
+	return conflicting
+}
+
+func isInteractiveStdin() bool {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+	return (info.Mode() & os.ModeCharDevice) != 0
 }

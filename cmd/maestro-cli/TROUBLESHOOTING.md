@@ -45,6 +45,12 @@ mkdir -p ~/bin && mv maestro ~/bin/ && export PATH="$HOME/bin:$PATH"
 2. Authenticate with `gh auth login` or set `GH_TOKEN`/`GITHUB_TOKEN` for better rate limits
 3. Download manually from https://github.com/spec-maestro/maestro-cli/releases
 
+### Required starter asset conflicts in non-interactive mode
+
+**Error:** `detected existing starter assets in non-interactive mode`
+
+**Fix:** Re-run `maestro init` in an interactive shell so you can choose one global conflict action (overwrite, backup, or cancel).
+
 ## Getting Help
 
 - File an issue: https://github.com/spec-maestro/maestro-cli/issues

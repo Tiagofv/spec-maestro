@@ -14,7 +14,8 @@ maestro init
 
 - Checks if `.maestro/` already exists (prompts overwrite/backup/cancel)
 - Downloads the latest maestro assets from GitHub releases
-- Creates the `.maestro/` directory structure
+- Installs required starter assets: `.maestro/scripts`, `.maestro/skills`, `.maestro/templates`
+- Creates the `.maestro/` directory structure (`specs/`, `state/`)
 - Generates `AGENTS.md` with quick reference
 - Updates `.maestro/config.yaml` with CLI version
 
