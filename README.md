@@ -5,7 +5,7 @@ A spec-driven development kit delivered as slash commands and skills for AI codi
 Maestro gives AI agents (Claude Code, OpenCode, Cursor, Copilot) a structured pipeline:
 
 ```
-specify → clarify → plan → tasks → implement → review → pm-validate → analyze
+specify → clarify → research → plan → tasks → implement → review → pm-validate → analyze
 ```
 
 Each stage produces an artifact that feeds the next. The agent never skips ahead.
@@ -118,6 +118,7 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
 | `/maestro.init`                  | Initialize maestro in the project                                         |
 | `/maestro.specify <description>` | Generate a feature spec from plain language                               |
 | `/maestro.clarify`               | Resolve `[NEEDS CLARIFICATION]` markers in the spec                       |
+| `/maestro.research`              | Run pre-planning research and produce readiness artifacts                 |
 | `/maestro.plan`                  | Generate an implementation plan from the spec                             |
 | `/maestro.tasks`                 | Break the plan into bd issues with dependencies                           |
 | `/maestro.implement`             | Implement all tasks — loops through ready tasks, reviews, and PM validate |
@@ -134,6 +135,9 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
 
 /maestro.clarify
     └── resolves [NEEDS CLARIFICATION] markers in spec.md
+
+/maestro.research
+    └── .maestro/specs/001-add-user-authentication/research/*.md
 
 /maestro.plan
     └── .maestro/specs/001-add-user-authentication/plan.md
@@ -154,6 +158,7 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
 │   ├── maestro.init.md
 │   ├── maestro.specify.md
 │   ├── maestro.clarify.md
+│   ├── maestro.research.md
 │   ├── maestro.plan.md
 │   ├── maestro.tasks.md
 │   ├── maestro.implement.md
@@ -161,10 +166,11 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
 │   ├── maestro.pm-validate.md
 │   ├── maestro.commit.md
 │   └── maestro.analyze.md
-├── templates/          # Templates for specs, plans, reviews
+├── templates/          # Templates for specs, plans, reviews, research
 │   ├── spec-template.md
 │   ├── plan-template.md
 │   ├── review-template.md
+│   ├── research-template.md
 │   └── constitution-template.md
 ├── skills/             # SKILL.md files — source of truth (copied to agent dirs by init)
 │   ├── constitution/SKILL.md
