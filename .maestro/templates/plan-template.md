@@ -114,7 +114,7 @@
 
 ## 6. Task Sizing Guidance
 
-When breaking down implementation into tasks, ensure all tasks are **XS** or **S** size only. M and L tasks must be split before they can be assigned.
+When breaking down implementation into tasks, ensure all tasks are **XS** or **S** size only. **M** and **L** tasks must be split before they can be assigned.
 
 ### 6.1 Size Definitions
 
@@ -122,24 +122,26 @@ When breaking down implementation into tasks, ensure all tasks are **XS** or **S
 | ------ | ---------------------------- | ------------------------ |
 | **XS** | 0-120 minutes (0-2 hours)    | ✅ Accepted              |
 | **S**  | 121-360 minutes (2-6 hours)  | ✅ Accepted              |
-| **M**  | 361-720 minutes (6-12 hours) | ❌ REJECTED — must split |
-| **L**  | 721+ minutes (12+ hours)     | ❌ REJECTED — must split |
+| **M**  | 361-720 minutes (6-12 hours) | ❌ REJECTED - must split |
+| **L**  | 721+ minutes (12+ hours)     | ❌ REJECTED - must split |
 
 ### 6.2 Complexity Indicators
 
-Use these keywords to estimate task size:
+Use these keywords and weights to estimate task size:
 
-**High Complexity (30-25 min each):**
+**High Complexity (25-30 points):**
 
 - `refactor`, `architecture`, `redesign`, `migrate`, `rewrite`
 
-**Medium Complexity (20-10 min each):**
+**Medium Complexity (10-20 points):**
 
 - `implement` (20), `create` (15), `build` (15), `design` (15), `integrate` (15), `configure` (10), `setup` (10)
 
-**Low Complexity (5-2 min each):**
+**Low Complexity (2-5 points):**
 
-- `fix` (5), `update` (5), `add` (5), `remove` (5), `rename` (3), `typo` (2), `docs`/`documentation` (3)
+- `fix` (5), `update` (5), `add` (5), `remove` (5), `rename` (3), `typo` (2), `docs` (3), `documentation` (3)
+
+Estimated minutes are computed from complexity score (approximately `score * 3`, bounded to 15-1440 minutes).
 
 ### 6.3 Splitting Strategies for Oversized Tasks
 
@@ -168,12 +170,13 @@ When a task exceeds S size (360 min), apply these splitting strategies:
 
 ### 6.4 Ambiguity Indicators (Scope Creep Signals)
 
-These words signal vague scope — replace with specific, countable deliverables:
+These words and patterns signal vague scope - replace with specific, countable deliverables:
 
 - `etc`, `etc.`
 - `various`
 - `multiple`
 - `several`
+- `...`
 - `and more`
 - `and others`
 - `including but not limited`

@@ -82,11 +82,14 @@ impl DaemonManager {
     /// # Example
     ///
     /// ```no_run
+    /// # use agent_maestro::bd::DaemonManager;
     /// # use std::path::PathBuf;
-    /// # let workspace = PathBuf::from("/path/to/workspace");
+    /// # async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+    /// let workspace = PathBuf::from("/path/to/workspace");
     /// let manager = DaemonManager::new(workspace.clone())?;
     /// manager.ensure_running(&workspace).await?;
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn ensure_running(&self, _workspace: &Path) -> BdResult<()> {
         let client = BdClient::with_bd_path(self.workspace.clone(), self.bd_path.clone())?;
@@ -141,12 +144,15 @@ impl DaemonManager {
     /// # Example
     ///
     /// ```no_run
+    /// # use agent_maestro::bd::DaemonManager;
     /// # use std::path::PathBuf;
-    /// # let workspace = PathBuf::from("/path/to/workspace");
+    /// # async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+    /// let workspace = PathBuf::from("/path/to/workspace");
     /// let manager = DaemonManager::new(workspace)?;
     /// let status = manager.status().await?;
     /// println!("Daemon running: {}", status.running);
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn status(&self) -> BdResult<DaemonStatus> {
         let client = BdClient::with_bd_path(self.workspace.clone(), self.bd_path.clone())?;
@@ -160,11 +166,14 @@ impl DaemonManager {
     /// # Example
     ///
     /// ```no_run
+    /// # use agent_maestro::bd::DaemonManager;
     /// # use std::path::PathBuf;
-    /// # let workspace = PathBuf::from("/path/to/workspace");
+    /// # async fn demo() -> Result<(), Box<dyn std::error::Error>> {
+    /// let workspace = PathBuf::from("/path/to/workspace");
     /// let manager = DaemonManager::new(workspace)?;
     /// manager.stop().await?;
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn stop(&self) -> BdResult<()> {
         // Validate bd path is accessible before stopping
