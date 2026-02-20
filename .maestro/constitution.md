@@ -12,7 +12,6 @@
 
 Modular monolith with clear separation between:
 
-- Planner: Task analysis and pattern matching
 - Orchestrator: Workflow coordination
 - Agents: Specialized task executors
 
@@ -109,7 +108,6 @@ All code changes require review before merge.
 
 - All task IDs must be validated before processing
 - State transitions must be logged
-- Pattern matches must have confidence scores
 - Constitution rules take precedence over code patterns
 
 ### 4.2 Integration Patterns
@@ -150,4 +148,5 @@ All code changes require review before merge.
 
 | Date       | Change                       | Author |
 | ---------- | ---------------------------- | ------ |
+| 2026-02-19 | Removed Planner from core architecture (feature 008) | Maestro |
 | 2024-02-19 | Initial constitution created | System |

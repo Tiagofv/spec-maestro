@@ -58,6 +58,7 @@ impl ActivityStream {
     /// # Example
     ///
     /// ```no_run
+    /// # use agent_maestro::bd::ActivityStream;
     /// # use std::path::PathBuf;
     /// # use tokio::sync::mpsc::unbounded_channel;
     /// let (tx, mut rx) = unbounded_channel();
