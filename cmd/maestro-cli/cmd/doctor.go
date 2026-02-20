@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spec-maestro/maestro-cli/pkg/agents"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +37,7 @@ type checkResult struct {
 	ok      bool
 	message string
 	fix     string
+	isWarn  bool // true if this is a warning (doesn't affect exit code)
 }
 
 func runDoctor(cmd *cobra.Command, args []string) error {
@@ -76,17 +78,42 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		})
 	}
 
+	// Check optional agent directories (warnings only)
+	knownAgentDirs := agents.KnownAgentDirs()
+	installedAgentDirs := agents.DetectInstalled(".")
+	installedMap := make(map[string]bool)
+	for _, dir := range installedAgentDirs {
+		installedMap[dir] = true
+	}
+
+	for _, dir := range knownAgentDirs {
+		isInstalled := installedMap[dir]
+		results = append(results, checkResult{
+			name:    dir + "/",
+			ok:      isInstalled,
+			message: map[bool]string{true: "found (optional)", false: "not found (optional)"}[isInstalled],
+			fix:     fmt.Sprintf("Optional: Run 'maestro init' to add %s/ agent directory", dir),
+			isWarn:  true, // Mark as warning, doesn't affect exit code
+		})
+	}
+
 	// Print results
 	allOK := true
 	for _, r := range results {
 		if r.ok {
 			fmt.Printf("✓ %-30s %s\n", r.name, r.message)
 		} else {
-			fmt.Printf("✗ %-30s %s\n", r.name, r.message)
+			// Warnings use ⚠ symbol and don't affect exit code
+			symbol := "✗"
+			if r.isWarn {
+				symbol = "⚠"
+			} else {
+				allOK = false
+			}
+			fmt.Printf("%s %-30s %s\n", symbol, r.name, r.message)
 			if r.fix != "" {
 				fmt.Printf("  Fix: %s\n", r.fix)
 			}
-			allOK = false
 		}
 	}
 
