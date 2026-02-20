@@ -67,6 +67,8 @@ maestro version   # Show version information
 maestro remove    # Remove maestro from the current project
 ```
 
+`maestro init` installs required starter assets by default: `.maestro/scripts`, `.maestro/skills`, and `.maestro/templates`.
+
 ## Shell Completion
 
 ```bash
