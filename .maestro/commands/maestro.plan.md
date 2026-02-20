@@ -47,11 +47,12 @@ Use the following mapping table to assign agents to tasks based on file patterns
 | Pattern      | Agent   |
 |--------------|---------|
 | *.go         | general |
-| *.ts,*.tsx   | general |
+| *.ts         | general |
+| *.tsx        | general |
 | *.py         | general |
 | *            | general |
 
-**Instructions:** When generating tasks, match each task's target files against this table. The first matching pattern determines the agent assignee for that task. Users can customize this table by editing it directly (e.g., changing `*.go` to `golang-expert-payments` for specialized Go development).
+**Instructions:** When generating tasks, match each task's target files against this table **in order from top to bottom**. The **first matching pattern** determines the agent assignee for that task. Users can customize this table by editing it directly (e.g., changing `*.go` to `golang-expert-payments` for specialized Go development).
 
 ## Step 5: Generate the Plan
 
