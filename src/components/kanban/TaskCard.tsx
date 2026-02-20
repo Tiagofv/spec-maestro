@@ -49,6 +49,11 @@ function priorityColor(p: number | string | null): string {
   }
 }
 
+function issueEpicId(issue: Issue): string {
+  const epicId = issue.epic_id;
+  return typeof epicId === "string" ? epicId : "no-epic";
+}
+
 // ---------------------------------------------------------------------------
 // TaskCard
 // ---------------------------------------------------------------------------
@@ -76,6 +81,8 @@ export function TaskCard({ issue, onClick, isDragging: isDraggingProp }: TaskCar
 
   return (
     <div
+      data-id={issue.id}
+      data-epic-id={issueEpicId(issue)}
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
       aria-label={isClickable ? `Open task: ${issue.title}` : undefined}
@@ -140,7 +147,14 @@ export function SortableTaskCard({ issue, onClick }: SortableTaskCardProps) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      data-id={issue.id}
+      data-epic-id={issueEpicId(issue)}
+      {...attributes}
+      {...listeners}
+    >
       <TaskCard issue={issue} onClick={onClick} isDragging={isDragging} />
     </div>
   );

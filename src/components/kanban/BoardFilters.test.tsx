@@ -1,21 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { BoardFilters } from "./BoardFilters";
-import type { KanbanFilters } from "../../types";
+import type { EpicStatus, KanbanFilters } from "../../types";
 
 // Mock the dashboard store
 const mockStore: {
   kanbanFilters: KanbanFilters;
   showCompleted: boolean;
+  filteredEpics: EpicStatus[];
+  showClosedEpics: boolean;
   updateKanbanFilters: ReturnType<typeof vi.fn>;
   clearKanbanFilters: ReturnType<typeof vi.fn>;
   setShowCompleted: ReturnType<typeof vi.fn>;
+  setShowClosedEpics: ReturnType<typeof vi.fn>;
 } = {
   kanbanFilters: {},
   showCompleted: false,
+  filteredEpics: [],
+  showClosedEpics: false,
   updateKanbanFilters: vi.fn(),
   clearKanbanFilters: vi.fn(),
   setShowCompleted: vi.fn(),
+  setShowClosedEpics: vi.fn(),
 };
 
 vi.mock("../../stores/dashboard", () => ({
@@ -27,6 +33,8 @@ describe("BoardFilters", () => {
     vi.clearAllMocks();
     mockStore.kanbanFilters = {};
     mockStore.showCompleted = false;
+    mockStore.filteredEpics = [];
+    mockStore.showClosedEpics = false;
   });
 
   describe("rendering", () => {

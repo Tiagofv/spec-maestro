@@ -4,6 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   Issue,
+  EpicStatus,
   Workspace,
   CacheStats,
   OpencodeStatusResponse,
@@ -17,6 +18,14 @@ import type {
 
 export function listIssues(): Promise<Issue[]> {
   return invoke<Issue[]>("list_issues");
+}
+
+export function listEpics(): Promise<EpicStatus[]> {
+  return invoke<EpicStatus[]>("list_epics");
+}
+
+export function getEpicStatus(epicId: string): Promise<EpicStatus> {
+  return invoke<EpicStatus>("get_epic_status", { epicId });
 }
 
 export function listWorkspaces(): Promise<Workspace[]> {

@@ -1,4 +1,5 @@
 import { useDashboardStore } from "../../stores/dashboard";
+import { EpicFilter } from "./EpicFilter";
 
 // ---------------------------------------------------------------------------
 // BoardFilters
@@ -14,6 +15,9 @@ export function BoardFilters({ assignees = [] }: BoardFiltersProps) {
   const updateKanbanFilters = useDashboardStore((s) => s.updateKanbanFilters);
   const clearKanbanFilters = useDashboardStore((s) => s.clearKanbanFilters);
   const setShowCompleted = useDashboardStore((s) => s.setShowCompleted);
+  const epics = useDashboardStore((s) => s.filteredEpics);
+  const showClosedEpics = useDashboardStore((s) => s.showClosedEpics);
+  const setShowClosedEpics = useDashboardStore((s) => s.setShowClosedEpics);
 
   const handleAssigneeChange = (assignee: string) => {
     const currentAssignees = kanbanFilters.assignee || [];
@@ -32,13 +36,23 @@ export function BoardFilters({ assignees = [] }: BoardFiltersProps) {
     updateKanbanFilters({ search });
   };
 
+  const handleEpicSelect = (epicId: string) => {
+    const selected = kanbanFilters.epic || [];
+    if (selected.includes(epicId)) {
+      updateKanbanFilters({ epic: selected.filter((id) => id !== epicId) });
+      return;
+    }
+    updateKanbanFilters({ epic: [...selected, epicId] });
+  };
+
   const handleShowCompletedChange = (show: boolean) => {
     setShowCompleted(show);
   };
 
   const hasActiveFilters =
     (kanbanFilters.assignee && kanbanFilters.assignee.length > 0) ||
-    (kanbanFilters.search && kanbanFilters.search.length > 0);
+    (kanbanFilters.search && kanbanFilters.search.length > 0) ||
+    (kanbanFilters.epic && kanbanFilters.epic.length > 0);
 
   return (
     <div className="flex items-center gap-4 p-4 border-b border-[var(--color-border)]">
@@ -88,6 +102,15 @@ export function BoardFilters({ assignees = [] }: BoardFiltersProps) {
         />
         <span className="text-sm text-[var(--color-text-secondary)]">Show completed</span>
       </label>
+
+      {/* Epic filter */}
+      <EpicFilter
+        epics={epics}
+        selectedEpics={kanbanFilters.epic || []}
+        showClosed={showClosedEpics}
+        onEpicSelect={handleEpicSelect}
+        onShowClosedChange={setShowClosedEpics}
+      />
 
       {/* Clear filters */}
       {hasActiveFilters && (

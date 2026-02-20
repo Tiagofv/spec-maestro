@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type {
   Issue,
+  EpicStatus,
   Workspace,
   DaemonStatus,
   BootState,
@@ -31,6 +32,11 @@ export interface DashboardState {
   // Filters
   kanbanFilters: KanbanFilters;
   showCompleted: boolean;
+  showClosedEpics: boolean;
+  viewMode: "status" | "epic";
+  epics: EpicStatus[];
+  filteredEpics: EpicStatus[];
+  epicCollapseState: Record<string, boolean>;
 
   // Computed
   filteredIssues: Issue[];
@@ -59,6 +65,12 @@ export interface DashboardState {
   updateKanbanFilters: (partial: Partial<KanbanFilters>) => void;
   clearKanbanFilters: () => void;
   setShowCompleted: (show: boolean) => void;
+  setShowClosedEpics: (show: boolean) => void;
+  setViewMode: (mode: "status" | "epic") => void;
+  fetchEpics: () => Promise<void>;
+  toggleEpicCollapse: (epicId: string) => void;
+  collapseAllEpics: () => void;
+  expandAllEpics: () => void;
 
   // Event handling
   handleEvent: (event: DashboardEvent) => void;
@@ -74,6 +86,51 @@ const INITIAL_BOOT_STATE: BootState = {
   currentLabel: "Initializing...",
   completed: false,
 };
+
+const VIEW_MODE_KEY = "kanban-view-mode";
+const EPIC_COLLAPSE_KEY = "kanban-epic-collapse";
+const SHOW_CLOSED_EPICS_KEY = "kanban-show-closed-epics";
+
+function readViewMode(): "status" | "epic" {
+  if (typeof window === "undefined") return "status";
+  const saved = window.localStorage.getItem(VIEW_MODE_KEY);
+  return saved === "epic" ? "epic" : "status";
+}
+
+function readShowClosedEpics(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(SHOW_CLOSED_EPICS_KEY) === "true";
+}
+
+function readEpicCollapseState(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  const saved = window.localStorage.getItem(EPIC_COLLAPSE_KEY);
+  if (!saved) return {};
+  try {
+    const parsed = JSON.parse(saved) as Record<string, boolean>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function persist(key: string, value: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(key, value);
+}
+
+function filterClosedEpics(epics: EpicStatus[], showClosedEpics: boolean): EpicStatus[] {
+  if (showClosedEpics) return epics;
+  return epics.filter((epic) => epic.total !== epic.closed);
+}
+
+function getIssueEpicId(issue: Issue): string | undefined {
+  const epicId = issue.epic_id;
+  if (typeof epicId === "string" && epicId.length > 0) {
+    return epicId;
+  }
+  return undefined;
+}
 
 // ---------------------------------------------------------------------------
 // Store
@@ -98,6 +155,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   // Filters
   kanbanFilters: INITIAL_KANBAN_FILTERS,
   showCompleted: false,
+  showClosedEpics: readShowClosedEpics(),
+  viewMode: readViewMode(),
+  epics: [],
+  filteredEpics: [],
+  epicCollapseState: readEpicCollapseState(),
 
   // Computed — derived from issues + active filters
   filteredIssues: [],
@@ -146,6 +208,20 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       set({ error: message, isLoading: false });
+    }
+  },
+
+  fetchEpics: async () => {
+    try {
+      const epics = await tauri.listEpics();
+      const showClosedEpics = get().showClosedEpics;
+      set({
+        epics,
+        filteredEpics: filterClosedEpics(epics, showClosedEpics),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ error: message });
     }
   },
 
@@ -213,6 +289,50 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       showCompleted,
       filteredIssues: getFilteredIssues(state.issues, state.kanbanFilters, showCompleted),
     })),
+
+  setShowClosedEpics: (showClosedEpics) =>
+    set((state) => {
+      persist(SHOW_CLOSED_EPICS_KEY, String(showClosedEpics));
+      return {
+        showClosedEpics,
+        filteredEpics: filterClosedEpics(state.epics, showClosedEpics),
+      };
+    }),
+
+  setViewMode: (viewMode) => {
+    persist(VIEW_MODE_KEY, viewMode);
+    set({ viewMode });
+  },
+
+  toggleEpicCollapse: (epicId) =>
+    set((state) => {
+      const epicCollapseState = {
+        ...state.epicCollapseState,
+        [epicId]: !state.epicCollapseState[epicId],
+      };
+      persist(EPIC_COLLAPSE_KEY, JSON.stringify(epicCollapseState));
+      return { epicCollapseState };
+    }),
+
+  collapseAllEpics: () =>
+    set((state) => {
+      const epicCollapseState = state.filteredEpics.reduce<Record<string, boolean>>((acc, epic) => {
+        acc[epic.id] = true;
+        return acc;
+      }, { ...state.epicCollapseState });
+      persist(EPIC_COLLAPSE_KEY, JSON.stringify(epicCollapseState));
+      return { epicCollapseState };
+    }),
+
+  expandAllEpics: () =>
+    set((state) => {
+      const epicCollapseState = state.filteredEpics.reduce<Record<string, boolean>>((acc, epic) => {
+        acc[epic.id] = false;
+        return acc;
+      }, { ...state.epicCollapseState });
+      persist(EPIC_COLLAPSE_KEY, JSON.stringify(epicCollapseState));
+      return { epicCollapseState };
+    }),
 
   // -----------------------------------------------------------------------
   // Event handler — dispatches DashboardEvent from Tauri Channel
@@ -307,6 +427,14 @@ export function getFilteredIssues(
       if (filters.labels && filters.labels.length > 0) {
         const hasMatchingLabel = filters.labels.some((label) => issue.labels.includes(label));
         if (!hasMatchingLabel) {
+          return false;
+        }
+      }
+
+      // Filter by epic if set
+      if (filters.epic && filters.epic.length > 0) {
+        const epicId = getIssueEpicId(issue);
+        if (!epicId || !filters.epic.includes(epicId)) {
           return false;
         }
       }
