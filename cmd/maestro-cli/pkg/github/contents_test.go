@@ -1,7 +1,11 @@
 package github
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -232,4 +236,81 @@ func TestTreeResponse_Structure(t *testing.T) {
 	if len(decoded.Tree) != 2 || decoded.Truncated != false {
 		t.Errorf("roundtrip failed: got %+v, want %+v", decoded, resp)
 	}
+}
+
+func TestFetchAgentDir_FallbackToArchiveOnRateLimit(t *testing.T) {
+	archive := buildTestTarGz(t, map[string]string{
+		"repo-main/.opencode/config.yaml": "name: opencode\n",
+		"repo-main/.opencode/skills/a.md": "skill\n",
+		"repo-main/.claude/ignore.txt":    "ignore\n",
+	})
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/repos/owner/repo/git/ref/heads/main":
+			w.Header().Set("X-RateLimit-Remaining", "0")
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(`{"message":"API rate limit exceeded"}`))
+		case "/owner/repo/tar.gz/refs/heads/main":
+			w.Header().Set("Content-Type", "application/gzip")
+			_, _ = w.Write(archive)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient("owner", "repo", "")
+	client.httpClient = server.Client()
+	client.baseURL = server.URL
+	client.codeloadURL = server.URL
+
+	files, err := client.FetchAgentDir(".opencode", "main")
+	if err != nil {
+		t.Fatalf("FetchAgentDir failed: %v", err)
+	}
+
+	if len(files) != 2 {
+		t.Fatalf("expected 2 files from .opencode, got %d", len(files))
+	}
+	if string(files["config.yaml"]) != "name: opencode\n" {
+		t.Fatalf("unexpected config.yaml content: %q", string(files["config.yaml"]))
+	}
+	if string(files["skills/a.md"]) != "skill\n" {
+		t.Fatalf("unexpected skills/a.md content: %q", string(files["skills/a.md"]))
+	}
+	if _, found := files["ignore.txt"]; found {
+		t.Fatal("expected .claude file not to be included")
+	}
+}
+
+func buildTestTarGz(t *testing.T, files map[string]string) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gz)
+
+	for name, content := range files {
+		header := &tar.Header{
+			Name: name,
+			Mode: 0644,
+			Size: int64(len(content)),
+		}
+		if err := tw.WriteHeader(header); err != nil {
+			t.Fatalf("write header %s: %v", name, err)
+		}
+		if _, err := io.WriteString(tw, content); err != nil {
+			t.Fatalf("write file %s: %v", name, err)
+		}
+	}
+
+	if err := tw.Close(); err != nil {
+		t.Fatalf("close tar writer: %v", err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatalf("close gzip writer: %v", err)
+	}
+
+	return buf.Bytes()
 }

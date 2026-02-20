@@ -82,9 +82,10 @@ maestro completion fish | source
 
 ## Environment Variables
 
-| Variable       | Description                                               |
-| -------------- | --------------------------------------------------------- |
-| `GITHUB_TOKEN` | GitHub personal access token (for higher API rate limits) |
+| Variable       | Description                                        |
+| -------------- | -------------------------------------------------- |
+| `GITHUB_TOKEN` | Optional GitHub token (for higher API rate limits) |
+| `GH_TOKEN`     | Optional GitHub token (alternative env var)        |
 
 ## License
 

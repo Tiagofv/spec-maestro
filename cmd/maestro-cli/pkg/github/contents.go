@@ -1,8 +1,13 @@
 package github
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
+	"path"
 	"strings"
 )
 
@@ -88,7 +93,7 @@ func (c *Client) FetchTree(treeSHA string) (*TreeResponse, error) {
 	}
 
 	if treeResp.Truncated {
-		return nil, fmt.Errorf("tree response truncated: repository too large. Set GITHUB_TOKEN environment variable for authenticated requests with higher limits, or file an issue at https://github.com/anomalyco/agent-maestro")
+		return nil, fmt.Errorf("tree response truncated: repository too large. Authenticate with `gh auth login` or set GITHUB_TOKEN/GH_TOKEN for higher limits, or file an issue at https://github.com/anomalyco/agent-maestro")
 	}
 
 	return &treeResp, nil
@@ -121,12 +126,18 @@ func (c *Client) FetchAgentDir(dirName string, ref string) (map[string][]byte, e
 	// Get the tree SHA for the ref
 	treeSHA, err := c.FetchRef(ref)
 	if err != nil {
+		if isRateLimitedError(err) {
+			return c.fetchAgentDirFromArchive(dirName, ref)
+		}
 		return nil, fmt.Errorf("fetching agent dir: %w", err)
 	}
 
 	// Fetch the full tree
 	tree, err := c.FetchTree(treeSHA)
 	if err != nil {
+		if isRateLimitedError(err) {
+			return c.fetchAgentDirFromArchive(dirName, ref)
+		}
 		return nil, fmt.Errorf("fetching agent dir: %w", err)
 	}
 
@@ -150,6 +161,97 @@ func (c *Client) FetchAgentDir(dirName string, ref string) (map[string][]byte, e
 			relativePath := strings.TrimPrefix(entry.Path, prefix)
 			files[relativePath] = content
 		}
+	}
+
+	if len(files) == 0 {
+		return nil, fmt.Errorf("fetching agent dir: no files found in directory %s", dirName)
+	}
+
+	return files, nil
+}
+
+func isRateLimitedError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "rate limited")
+}
+
+func (c *Client) fetchAgentDirFromArchive(dirName string, ref string) (map[string][]byte, error) {
+	archiveURL := fmt.Sprintf("%s/%s/%s/tar.gz/refs/heads/%s", c.codeloadURL, c.owner, c.repo, ref)
+	req, err := http.NewRequest("GET", archiveURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("fetching agent dir: creating archive request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching agent dir: downloading archive: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		archiveURL = fmt.Sprintf("%s/%s/%s/tar.gz/%s", c.codeloadURL, c.owner, c.repo, ref)
+		req, err = http.NewRequest("GET", archiveURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("fetching agent dir: creating archive request: %w", err)
+		}
+		resp, err = c.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("fetching agent dir: downloading archive: %w", err)
+		}
+		defer resp.Body.Close()
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetching agent dir: archive download failed: unexpected status: %d", resp.StatusCode)
+	}
+
+	gzReader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("fetching agent dir: reading archive: %w", err)
+	}
+	defer gzReader.Close()
+
+	tarReader := tar.NewReader(gzReader)
+	prefix := strings.TrimSuffix(dirName, "/") + "/"
+	files := make(map[string][]byte)
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("fetching agent dir: reading archive entry: %w", err)
+		}
+
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+
+		entryPath := header.Name
+		slash := strings.Index(entryPath, "/")
+		if slash == -1 || slash+1 >= len(entryPath) {
+			continue
+		}
+
+		repoRelative := entryPath[slash+1:]
+		if !strings.HasPrefix(repoRelative, prefix) {
+			continue
+		}
+
+		rel := strings.TrimPrefix(repoRelative, prefix)
+		if rel == "" || strings.Contains(rel, "..") {
+			continue
+		}
+		rel = path.Clean(rel)
+
+		content, err := io.ReadAll(tarReader)
+		if err != nil {
+			return nil, fmt.Errorf("fetching agent dir: reading file %s: %w", rel, err)
+		}
+		files[rel] = content
 	}
 
 	if len(files) == 0 {

@@ -6,9 +6,13 @@
 
 **Error:** `GitHub API rate limited (remaining: 0)`
 
-**Fix:** Set `GITHUB_TOKEN` environment variable:
+**Fix:** For public repos, try again (the CLI now falls back to archive download for agent directories). If you still hit limits on release APIs, authenticate with GitHub CLI or set a token:
 
 ```bash
+gh auth login
+# OR
+export GH_TOKEN=ghp_your_token
+# OR
 export GITHUB_TOKEN=ghp_your_token
 maestro init
 ```
@@ -38,7 +42,7 @@ mkdir -p ~/bin && mv maestro ~/bin/ && export PATH="$HOME/bin:$PATH"
 **Fix:**
 
 1. Check internet connection
-2. Try with `GITHUB_TOKEN` for better rate limits
+2. Authenticate with `gh auth login` or set `GH_TOKEN`/`GITHUB_TOKEN` for better rate limits
 3. Download manually from https://github.com/spec-maestro/maestro-cli/releases
 
 ## Getting Help

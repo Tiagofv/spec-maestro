@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"os/exec"
+	"strings"
 	"time"
 )
 
 const (
-	defaultBaseURL = "https://api.github.com"
-	apiVersion     = "2022-11-28"
+	defaultBaseURL     = "https://api.github.com"
+	defaultCodeloadURL = "https://codeload.github.com"
+	apiVersion         = "2022-11-28"
 )
 
 // Release represents a GitHub release.
@@ -29,22 +33,60 @@ type Asset struct {
 
 // Client is a GitHub API client.
 type Client struct {
-	httpClient *http.Client
-	baseURL    string
-	token      string
-	owner      string
-	repo       string
+	httpClient  *http.Client
+	baseURL     string
+	codeloadURL string
+	token       string
+	owner       string
+	repo        string
 }
 
 // NewClient creates a new GitHub client.
 func NewClient(owner, repo, token string) *Client {
 	return &Client{
-		httpClient: &http.Client{Timeout: 30 * time.Second},
-		baseURL:    defaultBaseURL,
-		token:      token,
-		owner:      owner,
-		repo:       repo,
+		httpClient:  &http.Client{Timeout: 30 * time.Second},
+		baseURL:     defaultBaseURL,
+		codeloadURL: defaultCodeloadURL,
+		token:       token,
+		owner:       owner,
+		repo:        repo,
 	}
+}
+
+// ResolveToken resolves a GitHub token from explicit input, environment,
+// or the local gh CLI auth session.
+func ResolveToken(explicit string) string {
+	if token := strings.TrimSpace(explicit); token != "" {
+		return token
+	}
+
+	for _, envKey := range []string{"GITHUB_TOKEN", "GH_TOKEN"} {
+		if token := strings.TrimSpace(os.Getenv(envKey)); token != "" {
+			return token
+		}
+	}
+
+	if token, err := lookupTokenWithGHCLI(); err == nil {
+		return token
+	}
+
+	return ""
+}
+
+var ghTokenCommand = func() ([]byte, error) {
+	return exec.Command("gh", "auth", "token").Output()
+}
+
+func lookupTokenWithGHCLI() (string, error) {
+	output, err := ghTokenCommand()
+	if err != nil {
+		return "", err
+	}
+	token := strings.TrimSpace(string(output))
+	if token == "" {
+		return "", fmt.Errorf("empty token from gh auth token")
+	}
+	return token, nil
 }
 
 // FetchLatestRelease fetches the latest release from GitHub.
@@ -83,7 +125,7 @@ func (c *Client) doGet(url string, target interface{}) error {
 	}
 	if resp.StatusCode == http.StatusForbidden {
 		remaining := resp.Header.Get("X-RateLimit-Remaining")
-		return fmt.Errorf("GitHub API rate limited (remaining: %s). Set GITHUB_TOKEN environment variable for higher limits", remaining)
+		return fmt.Errorf("GitHub API rate limited (remaining: %s). Authenticate with `gh auth login` or set GITHUB_TOKEN/GH_TOKEN for higher limits", remaining)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status: %d", resp.StatusCode)

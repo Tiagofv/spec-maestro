@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/spec-maestro/maestro-cli/internal/version"
+	"github.com/spec-maestro/maestro-cli/pkg/agents"
 	"github.com/spec-maestro/maestro-cli/pkg/assets"
 	"github.com/spec-maestro/maestro-cli/pkg/config"
 	"github.com/spec-maestro/maestro-cli/pkg/fs"
@@ -25,12 +27,19 @@ var initCmd = &cobra.Command{
 }
 
 const (
-	githubOwner = "spec-maestro"
-	githubRepo  = "maestro-cli"
+	githubOwner = "Tiagofv"
+	githubRepo  = "spec-maestro"
+)
+
+var (
+	initWithOpenCode bool
+	initWithClaude   bool
 )
 
 func init() {
 	rootCmd.AddCommand(initCmd)
+	initCmd.Flags().BoolVar(&initWithOpenCode, "with-opencode", false, "Install .opencode agent config directory")
+	initCmd.Flags().BoolVar(&initWithClaude, "with-claude", false, "Install .claude agent config directory")
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
@@ -75,7 +84,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Fetch latest release
 	fmt.Println("Fetching latest release...")
-	token := os.Getenv("GITHUB_TOKEN")
+	token := ghclient.ResolveToken(os.Getenv("GITHUB_TOKEN"))
 	client := ghclient.NewClient(githubOwner, githubRepo, token)
 
 	release, err := client.FetchLatestRelease()
@@ -132,6 +141,44 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("writing AGENTS.md: %w", err)
 	}
 
+	selectedAgentDirs, err := selectInitAgentDirs(initWithOpenCode, initWithClaude, os.Stdin, os.Stdout)
+	if err != nil {
+		return fmt.Errorf("installing agent configs: selecting agent directories: %w", err)
+	}
+
+	if len(selectedAgentDirs) > 0 {
+		action, conflicting, err := handleAgentConflicts(selectedAgentDirs)
+		if err != nil {
+			return fmt.Errorf("installing agent configs: %w", err)
+		}
+
+		if err := applyConflictAction(action, conflicting); err != nil {
+			return fmt.Errorf("installing agent configs: %w", err)
+		}
+
+		if action != agents.ConflictCancel {
+			if err := fetchAndInstallAgentDirs(client, selectedAgentDirs); err != nil {
+				return fmt.Errorf("installing agent configs: %w", err)
+			}
+		}
+	}
+
 	fmt.Println("✓ Maestro initialized successfully!")
 	return nil
+}
+
+func selectInitAgentDirs(withOpenCode, withClaude bool, r io.Reader, w io.Writer) ([]string, error) {
+	selected := make([]string, 0, 2)
+	if withOpenCode {
+		selected = append(selected, ".opencode")
+	}
+	if withClaude {
+		selected = append(selected, ".claude")
+	}
+
+	if len(selected) > 0 {
+		return selected, nil
+	}
+
+	return agents.PromptAgentSelection(r, w, agents.KnownAgentDirs())
 }

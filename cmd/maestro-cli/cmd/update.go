@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -39,7 +40,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	// Fetch latest release
 	fmt.Println("Checking for updates...")
-	token := os.Getenv("GITHUB_TOKEN")
+	token := ghclient.ResolveToken(os.Getenv("GITHUB_TOKEN"))
 	client := ghclient.NewClient(githubOwner, githubRepo, token)
 
 	release, err := client.FetchLatestRelease()
@@ -252,8 +253,8 @@ func fetchAndInstallAgentDirs(client *ghclient.Client, selected []string) error 
 	for _, dir := range selected {
 		fmt.Printf("Fetching %s from GitHub...\n", dir)
 
-		// Fetch the directory content from GitHub
-		content, err := client.FetchAgentDir(dir, "main")
+		// Fetch the directory content from GitHub (default branch fallback)
+		content, err := fetchAgentDirWithRefFallback(client, dir, "main")
 		if err != nil {
 			return fmt.Errorf("fetching %s: %w", dir, err)
 		}
@@ -267,4 +268,32 @@ func fetchAndInstallAgentDirs(client *ghclient.Client, selected []string) error 
 	}
 
 	return nil
+}
+
+func fetchAgentDirWithRefFallback(client *ghclient.Client, dir string, primaryRef string) (map[string][]byte, error) {
+	refs := []string{primaryRef}
+	if primaryRef == "main" {
+		refs = append(refs, "master")
+	}
+
+	var lastErr error
+	for _, ref := range refs {
+		content, err := client.FetchAgentDir(dir, ref)
+		if err == nil {
+			return content, nil
+		}
+
+		lastErr = err
+		if strings.Contains(strings.ToLower(err.Error()), "resource not found") {
+			continue
+		}
+
+		return nil, err
+	}
+
+	if lastErr == nil {
+		return nil, fmt.Errorf("no refs attempted")
+	}
+
+	return nil, fmt.Errorf("tried refs %v: %w", refs, lastErr)
 }
