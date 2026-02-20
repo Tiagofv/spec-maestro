@@ -1,0 +1,68 @@
+{
+  "feature_id": "011-maestro-cli-needs-to-copy-opencode-and-claude-can-",
+  "created_at": "2026-02-19T00:00:00Z",
+  "updated_at": "2026-02-19T23:30:00Z",
+  "stage": "complete",
+  "spec_path": ".maestro/specs/011-maestro-cli-needs-to-copy-opencode-and-claude-can-/spec.md",
+  "plan_path": ".maestro/specs/011-maestro-cli-needs-to-copy-opencode-and-claude-can-/plan.md",
+  "branch": "feat/maestro-cli-needs-to-copy-opencode-and-claude-can-",
+  "worktree_name": "maestro-cli-needs-to-copy-opencode-and-claude-can-",
+  "worktree_path": ".worktrees/maestro-cli-needs-to-copy-opencode-and-claude-can-",
+  "worktree_branch": "feat/maestro-cli-needs-to-copy-opencode-and-claude-can-",
+  "worktree_created": false,
+  "clarification_count": 0,
+  "user_stories": 5,
+  "phases": 4,
+  "components_new": 4,
+  "components_modified": 4,
+  "epic_id": "agent-maestro-1w5",
+  "task_count": 25,
+  "progress": {
+    "completed": 29,
+    "total": 29,
+    "percentage": 100
+  },
+  "completed_at": "2026-02-19T23:30:00Z",
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "created"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "resolved 6 markers"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "created"
+    },
+    {
+      "stage": "tasks",
+      "timestamp": "2026-02-19T20:06:13Z",
+      "action": "created epic and 25 tasks"
+    },
+    {
+      "stage": "tasks",
+      "timestamp": "2026-02-19T20:59:21Z",
+      "action": "created feature worktree"
+    },
+    {
+      "stage": "implement",
+      "timestamp": "2026-02-19T21:20:56Z",
+      "action": "executed initial implementation/review batches; 15/27 tasks closed; fix task agent-maestro-1w5.6.1 blocked on compile-gate parsing"
+    },
+    {
+      "stage": "implement",
+      "timestamp": "2026-02-19T23:00:00Z",
+      "action": "reopened epic and all tasks for reimplementation from scratch"
+    },
+    {
+      "stage": "complete",
+      "timestamp": "2026-02-19T23:30:00Z",
+      "action": "all 29 tasks completed, PM validation PASSED, PR #3 created"
+    }
+  ]
+}
