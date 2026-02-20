@@ -22,12 +22,12 @@ agent_routing:
 # Compile gate — stack-specific build+lint commands
 # Maestro reads the 'stack' field and runs the corresponding command
 compile_gate:
-  go: "go build ./... && go vet ./..."
+  go: "cd cmd/maestro-cli && go build ./... && go vet ./... && go test ./..."
   node: "npm run build && npm run lint"
   python: "python -m py_compile **/*.py && ruff check ."
   rust: "cd src-tauri && cargo check && cargo test"
   # The stack to use for this project (must match a key above)
-  stack: rust
+  stack: go
 
 # Size mapping — converts T-shirt sizes to minutes for bd estimates
 size_mapping:
