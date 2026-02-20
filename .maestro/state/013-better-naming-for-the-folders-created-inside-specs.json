@@ -1,0 +1,28 @@
+{
+  "feature_id": "013-better-naming-for-the-folders-created-inside-specs",
+  "created_at": "2024-02-19T18:20:00Z",
+  "updated_at": "2024-02-20T00:30:00Z",
+  "stage": "tasks",
+  "spec_path": ".maestro/specs/013-better-naming-for-the-folders-created-inside-specs/spec.md",
+  "plan_path": ".maestro/specs/013-better-naming-for-the-folders-created-inside-specs/plan.md",
+  "epic_id": "agent-maestro-91r",
+  "branch": "feat/better-naming-for-the-folders-created-inside-specs",
+  "worktree_name": "better-naming-for-the-folders-created-inside-specs",
+  "worktree_path": ".worktrees/better-naming-for-the-folders-created-inside-specs",
+  "worktree_branch": "feat/better-naming-for-the-folders-created-inside-specs",
+  "worktree_created": false,
+  "clarification_count": 0,
+  "user_stories": 3,
+  "phases": 3,
+  "components_new": 1,
+  "components_modified": 1,
+  "task_count": 21,
+  "history": [
+    { "stage": "specify", "timestamp": "2024-02-19T18:20:00Z", "action": "created" },
+    { "stage": "clarify", "timestamp": "2024-02-19T18:35:00Z", "action": "resolved 4 markers" },
+    { "stage": "plan", "timestamp": "2024-02-19T18:45:00Z", "action": "created implementation plan" },
+    { "stage": "tasks", "timestamp": "2024-02-20T00:30:00Z", "action": "created 21 tasks" }
+  ]
+}
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "feature_id": "010-create-a-new-modal-on-the-frontend-to-create-tasks",
+  "created_at": "2026-02-19T00:00:00.000Z",
+  "updated_at": "2026-02-19T00:00:00.000Z",
+  "stage": "specify",
+  "spec_path": ".maestro/specs/010-create-a-new-modal-on-the-frontend-to-create-tasks/spec.md",
+  "branch": "feat/create-a-new-modal-on-the-frontend-to-create-tasks",
+  "worktree_name": "create-a-new-modal-on-the-frontend-to-create-tasks",
+  "worktree_path": ".worktrees/create-a-new-modal-on-the-frontend-to-create-tasks",
+  "worktree_branch": "feat/create-a-new-modal-on-the-frontend-to-create-tasks",
+  "worktree_created": false,
+  "clarification_count": 7,
+  "user_stories": 4,
+  "history": [{ "stage": "specify", "timestamp": "2026-02-19T00:00:00.000Z", "action": "created" }]
+}
