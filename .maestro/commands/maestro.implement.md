@@ -127,6 +127,8 @@ Batch 3 (parallel): [T004, T005]    — independent modules
 
 ## Step 3: Route by Label
 
+**Note:** Labels determine the **handler type** (implementation, review, or PM-validation) — they do NOT determine which agent is used. The agent is read from the task's assignee field, which was set during `/maestro.plan`.
+
 For each ready task, inspect its labels to determine which handler to invoke.
 
 **Routing table:**
@@ -180,9 +182,22 @@ Read files mentioned in the task description, plus:
 
 ### 4d: Spawn implementation agent
 
+**Agent Resolution:**
+
+1. Read the task's assignee from `bd show {task_id} --json`
+2. If assignee is empty, null, or not set → use `general`
+3. If assignee is set but doesn't match any available subagent_type → use `general` and log a warning:
+   ```
+   Warning: Agent "{assignee}" not found. Falling back to "general" for task {task_id}.
+   ```
+4. Log the agent routing decision:
+   ```
+   Agent: {task_id} ({title}) → {resolved_agent} [assignee: {original_assignee}]
+   ```
+
 ```
 Task(
-  subagent_type="{assignee from task}",
+  subagent_type="{resolved_agent}",
   description="Implement: {task_title}",
   prompt="Implement the following task:
 
@@ -410,10 +425,12 @@ If `worktree_path` is set in state.json:
 
 2. **Parallel when possible** — Execute independent tasks across different modules in parallel using multiple Task() calls in a single message. Max 3 concurrent.
 
-3. **Route by label** — Always check the task label to determine the correct handler. Never assume a task type.
+3. **Route by label for handler type** — Labels determine the handler type (implementation, review, or PM-validation). They do NOT determine the agent. Never assume a task type.
 
 4. **Compile gate is mandatory** — Every implementation task must pass the compile gate before being considered done. Delegated to sub-agents.
 
 5. **Fix tasks need reviews** — When a review finds CRITICAL gaps, it creates a fix task AND a review task. Both must execute in order.
 
 6. **Structured close reasons** — Every task close uses the pipe-delimited format: `DONE | files: ... | pattern: ...`. This feeds post-epic learning.
+
+7. **Agent from assignee** — The agent (subagent_type) is always read from the task's assignee field. If the assignee is empty or invalid, fall back to `general`. Never read agent_routing from config.yaml.
