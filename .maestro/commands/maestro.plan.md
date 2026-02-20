@@ -40,6 +40,20 @@ Check for unresolved `[NEEDS CLARIFICATION]` markers:
 
 Read `.maestro/templates/plan-template.md`.
 
+## Step 4b: File-Pattern-to-Agent Mapping
+
+Use the following mapping table to assign agents to tasks based on file patterns:
+
+| Pattern      | Agent   |
+|--------------|---------|
+| *.go         | general |
+| *.ts         | general |
+| *.tsx        | general |
+| *.py         | general |
+| *            | general |
+
+**Instructions:** When generating tasks, match each task's target files against this table **in order from top to bottom**. The **first matching pattern** determines the agent assignee for that task. Users can customize this table by editing it directly (e.g., changing `*.go` to `golang-expert-payments` for specialized Go development).
+
 ## Step 5: Generate the Plan
 
 Fill in the template based on the spec and constitution.
@@ -51,6 +65,9 @@ Fill in the template based on the spec and constitution.
 3. **Identify risks early** — Especially regression risks in modified components
 4. **Phases should be deliverable** — Each phase produces something testable
 5. **Testing is not optional** — Every component needs a testing strategy
+6. **Assign agent per task** — For each task, match its target files against the File-Pattern-to-Agent Mapping table. Set the matched agent as the task's assignee. If no pattern matches, use `general`.
+7. **Split multi-agent tasks** — If a task touches files matching different agent patterns (e.g., both `.go` and `.ts` files), split it into separate tasks — one per agent pattern. Set dependencies between split tasks if they share interfaces.
+8. **Show agent assignments** — In the plan output, every task must include an `Assignee` field showing which agent will implement it.
 
 If the spec is too vague to make architectural decisions, add items to "Open Questions" section and flag them.
 

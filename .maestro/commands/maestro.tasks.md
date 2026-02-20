@@ -26,7 +26,7 @@ If `$ARGUMENTS` contains a feature ID, use it. Otherwise, find the most recent f
 Read:
 
 - The plan: `.maestro/specs/{feature_id}/plan.md`
-- The config: `.maestro/config.yaml`
+- The config: `.maestro/config.yaml` (Note: `agent_routing` is no longer used. Assignees come from the plan.)
 - The state: `.maestro/state/{feature_id}.json`
 - `worktree_path` — from state.json (may be absent for pre-worktree features)
 
@@ -66,8 +66,8 @@ Read from `.maestro/config.yaml`:
 For each task:
 
 1. Convert size to minutes using `size_mapping`
-2. Determine assignee using `agent_routing[label]`
-3. Determine review assignee using `agent_routing.review`
+2. Read assignee from the plan's task table (the Assignee field set during `/maestro.plan`). If no assignee is specified in the plan, default to `general`.
+3. For review tasks: read the review assignee from the plan if specified, otherwise default to `general`.
 4. Calculate review size using `review_sizing`
 
 ## Step 6: Generate Task Table

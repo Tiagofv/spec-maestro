@@ -97,8 +97,8 @@
 
 - **Goal:** {what this phase achieves}
 - **Tasks:**
-  - {task 1}
-  - {task 2}
+  - {task 1} — Assignee: {agent}
+  - {task 2} — Assignee: {agent}
 - **Deliverable:** {what can be demonstrated/tested}
 
 ### Phase 2: {Name}
@@ -106,8 +106,8 @@
 - **Goal:** {what this phase achieves}
 - **Dependencies:** {what must be done first}
 - **Tasks:**
-  - {task 1}
-  - {task 2}
+  - {task 1} — Assignee: {agent}
+  - {task 2} — Assignee: {agent}
 - **Deliverable:** {what can be demonstrated/tested}
 
 ---
@@ -124,6 +124,8 @@ When breaking down implementation into tasks, ensure all tasks are **XS** or **S
 | **S**  | 121-360 minutes (2-6 hours)  | ✅ Accepted              |
 | **M**  | 361-720 minutes (6-12 hours) | ❌ REJECTED — must split |
 | **L**  | 721+ minutes (12+ hours)     | ❌ REJECTED — must split |
+
+**Agent Assignment:** Every task must have an assignee (agent name). The assignee is determined by matching the task's target files against the file-pattern-to-agent mapping table in `maestro.plan.md`. If no pattern matches, the assignee defaults to `general`.
 
 ### 6.2 Complexity Indicators
 
