@@ -57,10 +57,11 @@ func (c *Client) FetchReleaseByTag(tag string) (*Release, error) {
 	return c.fetchRelease(url)
 }
 
-func (c *Client) fetchRelease(url string) (*Release, error) {
+// doGet performs a GET request and decodes the JSON response.
+func (c *Client) doGet(url string, target interface{}) error {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return fmt.Errorf("creating request: %w", err)
 	}
 
 	req.Header.Set("Accept", "application/vnd.github+json")
@@ -71,26 +72,33 @@ func (c *Client) fetchRelease(url string) (*Release, error) {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching release: %w", err)
+		return fmt.Errorf("executing request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("release not found")
+		return fmt.Errorf("resource not found")
 	}
 	if resp.StatusCode == http.StatusForbidden {
 		remaining := resp.Header.Get("X-RateLimit-Remaining")
-		return nil, fmt.Errorf("GitHub API rate limited (remaining: %s). Set GITHUB_TOKEN for higher limits", remaining)
+		return fmt.Errorf("GitHub API rate limited (remaining: %s). Set GITHUB_TOKEN environment variable for higher limits", remaining)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
 
+	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+		return fmt.Errorf("decoding response: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Client) fetchRelease(url string) (*Release, error) {
 	var release Release
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		return nil, fmt.Errorf("decoding response: %w", err)
+	if err := c.doGet(url, &release); err != nil {
+		return nil, fmt.Errorf("fetching release: %w", err)
 	}
-
 	return &release, nil
 }
 
