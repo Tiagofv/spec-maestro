@@ -36,6 +36,42 @@ Check for unresolved `[NEEDS CLARIFICATION]` markers:
 - If found, warn the user and suggest running `/maestro.clarify` first
 - Offer to proceed anyway with assumptions noted
 
+## Step 3b: Validate Research Readiness
+
+Read research metadata from `.maestro/state/{feature_id}.json` with additive compatibility:
+
+- Missing research fields are valid legacy state (`research_ready=false`)
+- Use `research_artifacts` and `research_artifact_pointers` when available
+- Do not fail only because research fields are missing
+
+Resolve and read synthesis before planning:
+
+1. Resolve synthesis path in this order:
+   - `research_artifact_pointers.synthesis` (if present)
+   - matching entry in `research_artifacts` for `research/synthesis.md` (if present)
+   - default `.maestro/specs/{feature_id}/research/synthesis.md`
+2. If synthesis exists, read it and extract:
+   - readiness verdict (`ready` or `not_ready`)
+   - minimum quality signals:
+     - recommendation entries with Decision, Rationale, Alternatives, Confidence
+     - ambiguity classification (blocker vs non-blocker)
+     - at least 3 external approach comparisons with trade-offs
+     - preferred direction
+     - explicit missing minimum items when verdict is `not_ready`
+3. If synthesis is missing/unreadable or required signals are missing, treat research as incomplete (`planning_research_ready=false`) without hard failure.
+
+Consider research ready only when all are true:
+
+- `research_ready=true` in state
+- synthesis verdict is `ready`
+- synthesis minimum quality signals are present
+
+If research is incomplete by this gate, require this exact acknowledgement phrase before planning:
+
+`I acknowledge proceeding without complete research`
+
+If the phrase is missing/incorrect, stop and suggest `/maestro.research {feature_id}`.
+
 ## Step 4: Read the Plan Template
 
 Read `.maestro/templates/plan-template.md`.
@@ -73,7 +109,14 @@ Update `.maestro/state/{feature_id}.json`:
 - Add `plan_path` field
 - Add `phases` count
 - Add `components_new` and `components_modified` counts
+- Preserve existing research metadata fields (`research_path`, `research_artifacts`, `research_artifact_pointers`, `research_ready`, `research_parallel_agents_default`, `research_parallel_agents_max`, `research_parallel_agents_used`)
+- If bypass path was used, set `research_bypass_acknowledged` to `true`
 - Add history entry
+
+State update rules:
+
+- Additive only; never remove existing fields
+- Append history only; do not rewrite prior entries
 
 ## Step 9: Report and Next Steps
 
@@ -85,7 +128,9 @@ Show the user:
    - Existing components to modify
    - Key risks identified
 2. Any open questions that need resolution
-3. Suggest: "Review the plan, then run `/maestro.tasks` to break it into bd issues."
+3. Whether planning proceeded via research-ready path or bypass acknowledgement path
+4. Research readiness evidence source (state metadata and synthesis path/verdict)
+5. Suggest: "Review the plan, then run `/maestro.tasks` to break it into bd issues."
 
 ---
 
