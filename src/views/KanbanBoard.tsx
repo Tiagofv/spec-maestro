@@ -19,7 +19,9 @@ import { useDashboardStore } from "../stores/dashboard";
 import { TaskDetailModal } from "../components/kanban/TaskDetailModal";
 import { QuickCreateModal } from "../components/kanban/QuickCreateModal";
 import { KanbanColumn } from "../components/kanban/KanbanColumn";
+import { EpicView } from "../components/kanban/EpicView";
 import { BoardFilters } from "../components/kanban/BoardFilters";
+import { ViewModeToggle } from "../components/kanban/ViewModeToggle";
 import * as tauri from "../lib/tauri";
 import type { Issue } from "../types";
 
@@ -108,6 +110,11 @@ function priorityColor(p: number | string | null): string {
   }
 }
 
+function issueEpicId(issue: Issue): string {
+  const epicId = issue.epic_id;
+  return typeof epicId === "string" ? epicId : "no-epic";
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -119,6 +126,14 @@ export function KanbanBoard() {
   const error = useDashboardStore((s) => s.error);
   const fetchIssues = useDashboardStore((s) => s.fetchIssues);
   const setError = useDashboardStore((s) => s.setError);
+  const viewMode = useDashboardStore((s) => s.viewMode);
+  const setViewMode = useDashboardStore((s) => s.setViewMode);
+  const epics = useDashboardStore((s) => s.filteredEpics);
+  const fetchEpics = useDashboardStore((s) => s.fetchEpics);
+  const epicCollapseState = useDashboardStore((s) => s.epicCollapseState);
+  const toggleEpicCollapse = useDashboardStore((s) => s.toggleEpicCollapse);
+  const collapseAllEpics = useDashboardStore((s) => s.collapseAllEpics);
+  const expandAllEpics = useDashboardStore((s) => s.expandAllEpics);
 
   // Derive unique assignees from all issues for the filter bar
   const allAssignees = useMemo(() => {
@@ -145,6 +160,12 @@ export function KanbanBoard() {
   useEffect(() => {
     if (!activeId) setLocalIssues(filteredIssues);
   }, [filteredIssues, activeId]);
+
+  useEffect(() => {
+    if (viewMode === "epic" && epics.length === 0) {
+      void fetchEpics();
+    }
+  }, [viewMode, epics.length, fetchEpics]);
 
   // Sensors for drag-and-drop
   const sensors = useSensors(
@@ -249,9 +270,11 @@ export function KanbanBoard() {
 
       const issueId = active.id as string;
       const columnId = over.id as string;
+      const normalizedColumnId = columnId.includes(":") ? columnId.split(":")[1] : columnId;
+      const targetEpicId = columnId.includes(":") ? columnId.split(":")[0] : null;
 
       // Find the target column
-      const targetColumn = COLUMNS.find((c) => c.id === columnId);
+      const targetColumn = COLUMNS.find((c) => c.id === normalizedColumnId);
       if (!targetColumn) {
         setActiveId(null);
         return;
@@ -260,6 +283,12 @@ export function KanbanBoard() {
       // Find the issue
       const issue = localIssues.find((i) => i.id === issueId);
       if (!issue) {
+        setActiveId(null);
+        return;
+      }
+
+      if (targetEpicId && issueEpicId(issue) !== targetEpicId) {
+        setError("Cross-epic drag and drop is blocked.");
         setActiveId(null);
         return;
       }
@@ -301,6 +330,8 @@ export function KanbanBoard() {
       <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
         <h2 className="text-lg font-semibold text-[var(--color-text)]">Kanban Board</h2>
         <div className="flex items-center gap-2">
+          <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
+
           {/* Create Task button */}
           <button
             onClick={() => setIsCreateModalOpen(true)}
@@ -421,26 +452,39 @@ export function KanbanBoard() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex gap-4 h-full min-w-fit">
-              {COLUMNS.map((column) => {
-                const colIssues = columnsData.get(column.id) || [];
-                return (
-                  <SortableContext
-                    key={column.id}
-                    items={columnItemIds.get(column.id) || []}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <KanbanColumn
-                      id={column.id}
-                      label={column.label}
-                      color={column.color}
-                      issues={colIssues}
-                      onTaskClick={handleTaskClick}
-                    />
-                  </SortableContext>
-                );
-              })}
-            </div>
+            {viewMode === "epic" ? (
+              <EpicView
+                issues={localIssues}
+                epics={epics}
+                collapseState={epicCollapseState}
+                onToggleCollapse={toggleEpicCollapse}
+                onCollapseAll={collapseAllEpics}
+                onExpandAll={expandAllEpics}
+                onDragEnd={handleDragEnd}
+                onTaskClick={handleTaskClick}
+              />
+            ) : (
+              <div className="flex gap-4 h-full min-w-fit">
+                {COLUMNS.map((column) => {
+                  const colIssues = columnsData.get(column.id) || [];
+                  return (
+                    <SortableContext
+                      key={column.id}
+                      items={columnItemIds.get(column.id) || []}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <KanbanColumn
+                        id={column.id}
+                        label={column.label}
+                        color={column.color}
+                        issues={colIssues}
+                        onTaskClick={handleTaskClick}
+                      />
+                    </SortableContext>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Drag overlay - shows the item being dragged */}
             <DragOverlay>

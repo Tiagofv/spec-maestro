@@ -20,6 +20,17 @@ export interface Issue {
   [key: string]: unknown; // serde(flatten) extra
 }
 
+export interface EpicStatus {
+  id: string;
+  title: string;
+  total: number;
+  open: number;
+  closed: number;
+  in_progress: number;
+  blocked: number;
+  [key: string]: unknown;
+}
+
 export interface DaemonStatus {
   running: boolean;
   pid: number | null;
@@ -129,6 +140,7 @@ export interface KanbanFilters {
   priority?: number[];
   labels?: string[];
   search?: string;
+  epic?: string[];
 }
 
 export interface CreateIssueRequest {

@@ -9,6 +9,9 @@ vi.mock("@dnd-kit/core", () => ({
     isOver: false,
     setNodeRef: vi.fn(),
   }),
+  useDndContext: () => ({
+    active: null,
+  }),
 }));
 
 vi.mock("./TaskCard", () => ({

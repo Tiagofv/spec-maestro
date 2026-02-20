@@ -1,4 +1,4 @@
-import { useDroppable } from "@dnd-kit/core";
+import { useDndContext, useDroppable } from "@dnd-kit/core";
 import type { Issue } from "../../types";
 import { SortableTaskCard } from "./TaskCard";
 
@@ -18,6 +18,13 @@ export function KanbanColumn({ id, label, color, issues, onTaskClick }: KanbanCo
   const { isOver, setNodeRef } = useDroppable({
     id: id,
   });
+  const { active } = useDndContext();
+
+  const targetEpicId = id.includes(":") ? id.split(":")[0] : null;
+  const activeEpicId = active
+    ? document.querySelector(`[data-id="${String(active.id)}"]`)?.getAttribute("data-epic-id")
+    : null;
+  const invalidDrop = Boolean(isOver && targetEpicId && activeEpicId && targetEpicId !== activeEpicId);
 
   return (
     <div
@@ -47,9 +54,11 @@ export function KanbanColumn({ id, label, color, issues, onTaskClick }: KanbanCo
         aria-atomic="false"
         aria-relevant="additions removals"
         className={`flex-1 border border-[var(--color-border)] border-t-0 rounded-b-lg p-3 space-y-3 min-h-[200px] transition-all duration-200 ease-out relative ${
-          isOver
-            ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/50 column-active"
-            : "bg-[var(--color-surface)]/50"
+          invalidDrop
+            ? "bg-red-500/10 border-red-500/50"
+            : isOver
+              ? "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/50 column-active"
+              : "bg-[var(--color-surface)]/50"
         }`}
       >
         {/* Drop indicator line */}
