@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -56,18 +57,19 @@ func TestFetchRef(t *testing.T) {
 
 	client := NewClient("owner", "repo", "")
 	client.httpClient = server.Client()
+	client.baseURL = server.URL
 
-	// Temporarily override baseURL for testing
-	oldBaseURL := baseURL
-	defer func() { _ = oldBaseURL }()
-
-	// Use reflection or create a test-specific method to override baseURL
-	// For now, we'll test the logic by mocking the server
 	treeSHA, err := client.FetchRef("main")
-	if err == nil {
-		// The test will fail because baseURL is hardcoded
-		// This is expected - we're just checking the structure compiles
-		t.Logf("treeSHA: %s (note: test uses hardcoded baseURL)", treeSHA)
+	if err != nil {
+		t.Fatalf("FetchRef failed: %v", err)
+	}
+
+	if treeSHA != "tree-sha-456" {
+		t.Errorf("expected tree SHA 'tree-sha-456', got '%s'", treeSHA)
+	}
+
+	if callCount != 2 {
+		t.Errorf("expected 2 API calls, got %d", callCount)
 	}
 }
 
@@ -104,11 +106,19 @@ func TestFetchTree(t *testing.T) {
 
 	client := NewClient("owner", "repo", "")
 	client.httpClient = server.Client()
+	client.baseURL = server.URL
 
 	tree, err := client.FetchTree("tree-sha-456")
-	if err == nil {
-		// The test will fail because baseURL is hardcoded
-		t.Logf("tree entries: %d (note: test uses hardcoded baseURL)", len(tree.Tree))
+	if err != nil {
+		t.Fatalf("FetchTree failed: %v", err)
+	}
+
+	if len(tree.Tree) != 2 {
+		t.Errorf("expected 2 tree entries, got %d", len(tree.Tree))
+	}
+
+	if tree.Truncated {
+		t.Error("expected truncated to be false")
 	}
 }
 
@@ -128,11 +138,16 @@ func TestFetchTree_Truncated(t *testing.T) {
 
 	client := NewClient("owner", "repo", "")
 	client.httpClient = server.Client()
+	client.baseURL = server.URL
 
-	// Test will fail due to hardcoded baseURL, but we're verifying the error handling logic
 	_, err := client.FetchTree("tree-sha-456")
 	if err == nil {
-		t.Log("Expected truncation error (note: test uses hardcoded baseURL)")
+		t.Fatal("expected truncation error, got nil")
+	}
+
+	expectedMsg := "tree response truncated"
+	if !strings.Contains(err.Error(), expectedMsg) {
+		t.Errorf("expected error containing '%s', got: %v", expectedMsg, err)
 	}
 }
 
@@ -153,11 +168,16 @@ func TestDownloadBlob(t *testing.T) {
 
 	client := NewClient("owner", "repo", "")
 	client.httpClient = server.Client()
+	client.baseURL = server.URL
 
 	content, err := client.DownloadBlob("blob-sha-1")
-	if err == nil {
-		// The test will fail because baseURL is hardcoded
-		t.Logf("content: %s (note: test uses hardcoded baseURL)", string(content))
+	if err != nil {
+		t.Fatalf("DownloadBlob failed: %v", err)
+	}
+
+	expected := "Hello, World!"
+	if string(content) != expected {
+		t.Errorf("expected content '%s', got '%s'", expected, string(content))
 	}
 }
 

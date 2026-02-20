@@ -61,7 +61,7 @@ type BlobResponse struct {
 // FetchRef fetches a git reference and returns the tree SHA.
 func (c *Client) FetchRef(ref string) (treeSHA string, err error) {
 	// Get the ref (e.g., "main" -> full commit SHA)
-	url := fmt.Sprintf("%s/repos/%s/%s/git/ref/heads/%s", baseURL, c.owner, c.repo, ref)
+	url := fmt.Sprintf("%s/repos/%s/%s/git/ref/heads/%s", c.baseURL, c.owner, c.repo, ref)
 	var refResp RefResponse
 	if err := c.doGet(url, &refResp); err != nil {
 		return "", fmt.Errorf("fetching ref: %w", err)
@@ -70,7 +70,7 @@ func (c *Client) FetchRef(ref string) (treeSHA string, err error) {
 	commitSHA := refResp.Object.SHA
 
 	// Get the commit to extract the tree SHA
-	url = fmt.Sprintf("%s/repos/%s/%s/git/commits/%s", baseURL, c.owner, c.repo, commitSHA)
+	url = fmt.Sprintf("%s/repos/%s/%s/git/commits/%s", c.baseURL, c.owner, c.repo, commitSHA)
 	var commitResp CommitResponse
 	if err := c.doGet(url, &commitResp); err != nil {
 		return "", fmt.Errorf("fetching commit: %w", err)
@@ -81,7 +81,7 @@ func (c *Client) FetchRef(ref string) (treeSHA string, err error) {
 
 // FetchTree fetches a git tree with all entries recursively.
 func (c *Client) FetchTree(treeSHA string) (*TreeResponse, error) {
-	url := fmt.Sprintf("%s/repos/%s/%s/git/trees/%s?recursive=1", baseURL, c.owner, c.repo, treeSHA)
+	url := fmt.Sprintf("%s/repos/%s/%s/git/trees/%s?recursive=1", c.baseURL, c.owner, c.repo, treeSHA)
 	var treeResp TreeResponse
 	if err := c.doGet(url, &treeResp); err != nil {
 		return nil, fmt.Errorf("fetching tree: %w", err)
@@ -96,7 +96,7 @@ func (c *Client) FetchTree(treeSHA string) (*TreeResponse, error) {
 
 // DownloadBlob downloads a git blob and decodes its content.
 func (c *Client) DownloadBlob(sha string) ([]byte, error) {
-	url := fmt.Sprintf("%s/repos/%s/%s/git/blobs/%s", baseURL, c.owner, c.repo, sha)
+	url := fmt.Sprintf("%s/repos/%s/%s/git/blobs/%s", c.baseURL, c.owner, c.repo, sha)
 	var blobResp BlobResponse
 	if err := c.doGet(url, &blobResp); err != nil {
 		return nil, fmt.Errorf("downloading blob: %w", err)

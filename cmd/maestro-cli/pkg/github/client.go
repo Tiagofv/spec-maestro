@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	baseURL    = "https://api.github.com"
-	apiVersion = "2022-11-28"
+	defaultBaseURL = "https://api.github.com"
+	apiVersion     = "2022-11-28"
 )
 
 // Release represents a GitHub release.
@@ -30,6 +30,7 @@ type Asset struct {
 // Client is a GitHub API client.
 type Client struct {
 	httpClient *http.Client
+	baseURL    string
 	token      string
 	owner      string
 	repo       string
@@ -39,6 +40,7 @@ type Client struct {
 func NewClient(owner, repo, token string) *Client {
 	return &Client{
 		httpClient: &http.Client{Timeout: 30 * time.Second},
+		baseURL:    defaultBaseURL,
 		token:      token,
 		owner:      owner,
 		repo:       repo,
@@ -47,13 +49,13 @@ func NewClient(owner, repo, token string) *Client {
 
 // FetchLatestRelease fetches the latest release from GitHub.
 func (c *Client) FetchLatestRelease() (*Release, error) {
-	url := fmt.Sprintf("%s/repos/%s/%s/releases/latest", baseURL, c.owner, c.repo)
+	url := fmt.Sprintf("%s/repos/%s/%s/releases/latest", c.baseURL, c.owner, c.repo)
 	return c.fetchRelease(url)
 }
 
 // FetchReleaseByTag fetches a specific release by tag.
 func (c *Client) FetchReleaseByTag(tag string) (*Release, error) {
-	url := fmt.Sprintf("%s/repos/%s/%s/releases/tags/%s", baseURL, c.owner, c.repo, tag)
+	url := fmt.Sprintf("%s/repos/%s/%s/releases/tags/%s", c.baseURL, c.owner, c.repo, tag)
 	return c.fetchRelease(url)
 }
 
