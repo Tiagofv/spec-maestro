@@ -91,24 +91,62 @@
 
 ---
 
-## 5. Implementation Phases
+## 5. Implementation Tasks
 
-### Phase 1: {Name}
+<!--
+FORMAT VALIDATION RULES:
+1. Each task MUST be wrapped in TASK:BEGIN/TASK:END markers
+2. Task ID format: T### (e.g., T001, T002) - sequential numbering
+3. Size MUST be one of: XS, S (M and L are rejected - must split)
+4. Assignee MUST be a valid agent name from maestro.plan.md
+5. Dependencies MUST reference valid task IDs (comma-separated for multiple)
+6. Files to modify must use relative paths from repository root
+7. All checkboxes in Acceptance Criteria must be unchecked initially
+-->
 
-- **Goal:** {what this phase achieves}
-- **Tasks:**
-  - {task 1} — Assignee: {agent}
-  - {task 2} — Assignee: {agent}
-- **Deliverable:** {what can be demonstrated/tested}
+<!-- TASK:BEGIN id=T001 -->
+### T001: {Task Title}
 
-### Phase 2: {Name}
+**Metadata:**
+- **Label:** {component-area}
+- **Size:** {XS|S}
+- **Assignee:** {agent-name}
+- **Dependencies:** {TXXX, TYYY or None}
 
-- **Goal:** {what this phase achieves}
-- **Dependencies:** {what must be done first}
-- **Tasks:**
-  - {task 1} — Assignee: {agent}
-  - {task 2} — Assignee: {agent}
-- **Deliverable:** {what can be demonstrated/tested}
+**Description:**
+{Clear, specific description of what this task accomplishes. Avoid ambiguity words like "etc", "various", "multiple". Use specific, countable deliverables.}
+
+**Files to Modify:**
+- `{path/to/file1.ext}`
+- `{path/to/file2.ext}`
+
+**Acceptance Criteria:**
+- [ ] {Specific, verifiable criterion 1}
+- [ ] {Specific, verifiable criterion 2}
+- [ ] {Specific, verifiable criterion 3}
+
+<!-- TASK:END -->
+
+<!-- TASK:BEGIN id=T002 -->
+### T002: {Task Title}
+
+**Metadata:**
+- **Label:** {component-area}
+- **Size:** {XS|S}
+- **Assignee:** {agent-name}
+- **Dependencies:** T001
+
+**Description:**
+{Clear, specific description of what this task accomplishes. This task depends on T001.}
+
+**Files to Modify:**
+- `{path/to/file3.ext}`
+
+**Acceptance Criteria:**
+- [ ] {Specific, verifiable criterion 1}
+- [ ] {Specific, verifiable criterion 2}
+
+<!-- TASK:END -->
 
 ---
 
