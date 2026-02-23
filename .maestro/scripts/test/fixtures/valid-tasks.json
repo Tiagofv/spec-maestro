@@ -1,0 +1,45 @@
+{
+  "feature_id": "feat-123",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Setup project structure",
+      "description": "Create initial directory structure",
+      "label": "setup",
+      "size": "XS",
+      "assignee": "developer1"
+    },
+    {
+      "id": "task-2",
+      "title": "Implement authentication",
+      "description": "Add user login functionality",
+      "label": "backend",
+      "size": "M",
+      "assignee": "developer2"
+    },
+    {
+      "id": "task-3",
+      "title": "Create database schema",
+      "description": "Design and create tables",
+      "label": "database",
+      "size": "S",
+      "assignee": "developer1"
+    },
+    {
+      "id": "task-4",
+      "title": "Write API documentation",
+      "description": "Document all endpoints",
+      "label": "docs",
+      "size": "S",
+      "assignee": "developer3"
+    },
+    {
+      "id": "task-5",
+      "title": "Setup CI/CD pipeline",
+      "description": "Configure automated testing and deployment",
+      "label": "devops",
+      "size": "L",
+      "assignee": "developer2"
+    }
+  ]
+}
