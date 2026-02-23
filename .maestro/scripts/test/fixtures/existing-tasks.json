@@ -1,0 +1,29 @@
+{
+  "feature_id": "feat-789",
+  "tasks": [
+    {
+      "id": "task-exist-1",
+      "title": "Existing task one",
+      "description": "This task already exists",
+      "label": "setup",
+      "size": "XS",
+      "assignee": "developer1"
+    },
+    {
+      "id": "task-exist-2",
+      "title": "Existing task two",
+      "description": "This task also exists",
+      "label": "backend",
+      "size": "S",
+      "assignee": "developer2"
+    },
+    {
+      "id": "task-new-1",
+      "title": "New task to create",
+      "description": "This is a new task",
+      "label": "frontend",
+      "size": "M",
+      "assignee": "developer3"
+    }
+  ]
+}
