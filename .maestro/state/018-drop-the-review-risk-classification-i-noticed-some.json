@@ -1,0 +1,102 @@
+{
+  "feature_id": "018-drop-the-review-risk-classification-i-noticed-some",
+  "created_at": "2026-02-23T10:46:00Z",
+  "updated_at": "2026-02-23T10:58:00Z",
+  "stage": "tasks",
+  "spec_path": ".maestro/specs/018-drop-the-review-risk-classification-i-noticed-some/spec.md",
+  "plan_path": ".maestro/specs/018-drop-the-review-risk-classification-i-noticed-some/plan.md",
+  "branch": "feat/drop-the-review-risk-classification-i-noticed-some",
+  "worktree_name": "drop-the-review-risk-classification-i-noticed-some",
+  "worktree_path": ".worktrees/drop-the-review-risk-classification-i-noticed-some",
+  "worktree_branch": "feat/drop-the-review-risk-classification-i-noticed-some",
+  "worktree_created": false,
+  "clarification_count": 0,
+  "user_stories": 3,
+  "phases": 3,
+  "components_new": 0,
+  "components_modified": 2,
+  "research_path": ".maestro/specs/018-drop-the-review-risk-classification-i-noticed-some/research",
+  "research_artifacts": [
+    "research/technology-options.md",
+    "research/pattern-catalog.md",
+    "research/pitfall-register.md",
+    "research/competitive-analysis.md",
+    "research/synthesis.md"
+  ],
+  "research_artifact_pointers": {
+    "technology_options": "research/technology-options.md",
+    "pattern_catalog": "research/pattern-catalog.md",
+    "pitfall_register": "research/pitfall-register.md",
+    "competitive_analysis": "research/competitive-analysis.md",
+    "synthesis": "research/synthesis.md"
+  },
+  "research_ready": true,
+  "research_completed_at": "2026-02-23T10:53:00Z",
+  "research_bypass_acknowledged": false,
+  "research_parallel_agents_default": 2,
+  "research_parallel_agents_max": 5,
+  "research_parallel_agents_used": 2,
+  "tasks": [
+    {
+      "id": "agent-maestro-bbh",
+      "title": "Remove Step 3 (Risk Classification) from maestro.review.md",
+      "phase": 1,
+      "size": "XS"
+    },
+    {
+      "id": "agent-maestro-cjy",
+      "title": "Add pattern matching for auto-generated files",
+      "phase": 1,
+      "size": "XS"
+    },
+    {
+      "id": "agent-maestro-1ob",
+      "title": "Update Step 5 to pass all non-auto-generated files",
+      "phase": 1,
+      "size": "XS"
+    },
+    {
+      "id": "agent-maestro-4js",
+      "title": "Update Step 8 to document skipped auto-generated files",
+      "phase": 1,
+      "size": "XS"
+    },
+    {
+      "id": "agent-maestro-ygd",
+      "title": "Verify no references to review-routing.md exist",
+      "phase": 2,
+      "size": "XS"
+    },
+    {
+      "id": "agent-maestro-2d2",
+      "title": "Delete review-routing.md cookbook file",
+      "phase": 2,
+      "size": "XS"
+    },
+    {
+      "id": "agent-maestro-ftb",
+      "title": "Test entgo pattern with actual generated files",
+      "phase": 3,
+      "size": "S"
+    },
+    {
+      "id": "agent-maestro-e2l",
+      "title": "Test protobuf pattern with actual .pb.go files",
+      "phase": 3,
+      "size": "S"
+    },
+    {
+      "id": "agent-maestro-9a7",
+      "title": "Verify domain files are now reviewed",
+      "phase": 3,
+      "size": "S"
+    }
+  ],
+  "history": [
+    { "stage": "specify", "timestamp": "2026-02-23T10:46:00Z", "action": "created" },
+    { "stage": "clarify", "timestamp": "2026-02-23T10:50:00Z", "action": "resolved 5 markers" },
+    { "stage": "research", "timestamp": "2026-02-23T10:53:00Z", "action": "completed" },
+    { "stage": "plan", "timestamp": "2026-02-23T10:55:00Z", "action": "created" },
+    { "stage": "tasks", "timestamp": "2026-02-23T10:58:00Z", "action": "created 9 tasks" }
+  ]
+}
