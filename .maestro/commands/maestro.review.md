@@ -58,43 +58,46 @@ If the implementation task is not closed (no close_reason):
 - Show the implementation task status
 - Stop
 
-## Step 3: Risk Classification
+## Step 3: Filter Auto-Generated Files
 
-Read the risk classification cookbook:
+Check each file from Step 2 to identify auto-generated files that should be skipped:
 
-```bash
-cat .maestro/cookbook/review-routing.md
-```
+**Auto-generated file patterns:**
 
-Classify each file from Step 2 according to the risk levels:
+- **entgo**: Files in `ent/` directories (path contains `/ent/` or starts with `ent/`)
+- **protobuf**: Files ending with `.pb.go`
 
-- **HIGH RISK**: Always review (business logic, handlers, data access, auth, payments, API endpoints, migrations)
-- **MEDIUM RISK**: Review if >50 lines changed (wiring, middleware, DTOs, adapters, build scripts)
-- **LOW RISK**: Skip review (generated code, pure structs, type definitions, constants, test fixtures, docs, import-only)
-
-For MEDIUM RISK files, check the diff size:
+**Detection logic:**
 
 ```bash
-git diff HEAD~1 -- {file} | wc -l
+# Check if file is entgo generated
+if echo "{file}" | grep -qE "(^ent/|/ent/)"; then
+    # This is an entgo generated file - skip
+fi
+
+# Check if file is protobuf generated
+if echo "{file}" | grep -qE "\.pb\.go$"; then
+    # This is a protobuf generated file - skip
+fi
 ```
 
-If `worktree_path` is set, run the diff from within the worktree:
-git -C {worktree_path} diff HEAD~1 -- {file} | wc -l
-Otherwise use the standard form.
+**Skip auto-generated files:**
 
-If the diff is 50 lines or fewer, downgrade MEDIUM to LOW for that file.
-
-**If ALL files are LOW RISK:**
-
-Close the review task as skipped and stop:
+Close the review task for auto-generated files:
 
 ```bash
-bd close $ARGUMENTS --reason "SKIPPED | risk: low | files: {comma-separated list}"
+bd close $ARGUMENTS --reason "SKIPPED | auto-generated: {type} | files: {comma-separated list}"
 ```
 
-Report to the user that all files were low risk and the review was skipped.
+Where `{type}` is either `entgo` or `protobuf`.
 
-Otherwise, proceed with the files classified as HIGH or MEDIUM (with >50 lines changed).
+**Proceed with remaining files:**
+
+Review all files that don't match the auto-generated patterns. Domain files, interfaces, constants, and all other file types should be reviewed.
+
+**Document skipped files:**
+
+Maintain a list of skipped auto-generated files for the final report (see Step 7).
 
 ## Step 4: Load Conventions
 
@@ -122,7 +125,7 @@ Local conventions take precedence over global ones. When there's a conflict, the
 Spawn a sub-agent with the reviewer type from the task's assignee field. The sub-agent receives:
 
 - The conventions from Step 4
-- The file list from Step 3 (only HIGH and qualifying MEDIUM files)
+- The file list from Step 3 (all files except auto-generated)
 - The review template schema
 - Explicit instructions to check for feature regression FIRST
 
@@ -143,7 +146,7 @@ Task(
   Local conventions take precedence over global ones.
 
   ## Files to Review
-  {file list with full paths — only HIGH and qualifying MEDIUM risk files}
+  {file list with full paths — all files except auto-generated (entgo and protobuf)}
 
   ## Worktree Context
   {If worktree_path is set:}
@@ -248,8 +251,10 @@ bd create \
 
   ## Instructions
   Fix this issue while maintaining all existing functionality.
-  After fixing, run compile gate: bash .maestro/scripts/compile-gate.sh"
+  After fixing, run compile gate: bash .maestro/scripts/compile-gate.sh {worktree_path}"
 ```
+
+If `worktree_path` is not set, run: `bash .maestro/scripts/compile-gate.sh`
 
 ### 7b: Implement the Fix
 
@@ -267,17 +272,19 @@ After all fixes are implemented, go back to **Step 5** and re-run the review.
 
 **Fix-Review Loop:** This loop continues until the review returns PASS or MINOR. There is no maximum iteration count — the code must be correct before proceeding.
 
-If the same issue recurs 3 times, escalate to the user with context about what's been tried.
+If the same issue recurs 3 times, escalate to the user with context what's been tried.
 
 ## Step 8: Report Results
 
 Show the user:
 
 1. **Review verdict**: PASS, MINOR, or CRITICAL (with resolution)
-2. **Issues found** (if any): List each issue with file, line, cause, and description
-3. **Fix tasks created** (if any): List each fix task ID and status
-4. **Next ready tasks**: Run `bd ready` and show available work
-5. **Completion check**: If all review tasks for the current feature are complete, suggest: "All reviews complete. Run `/maestro.pm-validate` to validate the feature."
+2. **Files reviewed**: List all files that were reviewed
+3. **Files skipped** (if any): List auto-generated files that were skipped (entgo, protobuf) with reasons
+4. **Issues found** (if any): List each issue with file, line, cause, and description
+5. **Fix tasks created** (if any): List each fix task ID and status
+6. **Next ready tasks**: Run `bd ready` and show available work
+7. **Completion check**: If all review tasks for the current feature are complete, suggest: "All reviews complete. Run `/maestro.pm-validate` to validate the feature."
 
 ---
 
