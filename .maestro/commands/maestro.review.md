@@ -70,8 +70,8 @@ Check each file from Step 2 to identify auto-generated files that should be skip
 **Detection logic:**
 
 ```bash
-# Check if file is entgo generated
-if echo "{file}" | grep -qE "(^ent/|/ent/)"; then
+# Check if file is entgo generated (but NOT in ent/schema/)
+if echo "{file}" | grep -qE "(^ent/|/ent/)" && ! echo "{file}" | grep -qE "(^ent/schema/|/ent/schema/)"; then
     # This is an entgo generated file - skip
 fi
 
