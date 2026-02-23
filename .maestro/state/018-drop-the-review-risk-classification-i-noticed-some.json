@@ -1,8 +1,9 @@
 {
   "feature_id": "018-drop-the-review-risk-classification-i-noticed-some",
   "created_at": "2026-02-23T10:46:00Z",
-  "updated_at": "2026-02-23T13:00:00Z",
-  "stage": "implement",
+  "updated_at": "2026-02-23T13:30:00Z",
+  "stage": "complete",
+  "completed_at": "2026-02-23T13:30:00Z",
   "spec_path": ".maestro/specs/018-drop-the-review-risk-classification-i-noticed-some/spec.md",
   "plan_path": ".maestro/specs/018-drop-the-review-risk-classification-i-noticed-some/plan.md",
   "epic_id": "agent-maestro-anv",
@@ -103,6 +104,11 @@
       "stage": "implement",
       "timestamp": "2026-02-23T13:00:00Z",
       "action": "epic created, tasks linked"
+    },
+    {
+      "stage": "complete",
+      "timestamp": "2026-02-23T13:30:00Z",
+      "action": "all tasks implemented and pushed"
     }
   ]
 }
