@@ -119,6 +119,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("installing required starter assets: %w", err)
 	}
 
+	// Install required root files (constitution.md, etc.)
+	if err := installRequiredStarterFiles(client); err != nil {
+		return fmt.Errorf("installing required starter files: %w", err)
+	}
+
 	// Create minimal .maestro/ structure if not created by asset extraction
 	for _, dir := range []string{
 		filepath.Join(maestroDir, "specs"),
@@ -218,6 +223,72 @@ func installRequiredStarterAssets(client *ghclient.Client, r io.Reader, w io.Wri
 	}
 
 	return nil
+}
+
+func installRequiredStarterFiles(client *ghclient.Client) error {
+	requiredFiles := agents.RequiredStarterAssetFiles()
+	if len(requiredFiles) == 0 {
+		return nil
+	}
+
+	for _, filePath := range requiredFiles {
+		// Check if file already exists
+		if _, err := os.Stat(filePath); err == nil {
+			// File exists, skip
+			continue
+		}
+
+		// Fetch file from GitHub
+		content, err := fetchFileWithRefFallback(client, filePath, "main")
+		if err != nil {
+			// Log warning but don't fail - files might not be critical
+			fmt.Fprintf(os.Stderr, "Warning: could not fetch %s: %v\n", filePath, err)
+			continue
+		}
+
+		// Ensure parent directory exists
+		dir := filepath.Dir(filePath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("creating directory for %s: %w", filePath, err)
+		}
+
+		// Write file
+		if err := os.WriteFile(filePath, content, 0644); err != nil {
+			return fmt.Errorf("writing %s: %w", filePath, err)
+		}
+
+		fmt.Printf("Installed: %s\n", filePath)
+	}
+
+	return nil
+}
+
+func fetchFileWithRefFallback(client *ghclient.Client, filePath string, primaryRef string) ([]byte, error) {
+	refs := []string{primaryRef}
+	if primaryRef == "main" {
+		refs = append(refs, "master")
+	}
+
+	var lastErr error
+	for _, ref := range refs {
+		content, err := client.FetchFile(filePath, ref)
+		if err == nil {
+			return content, nil
+		}
+
+		lastErr = err
+		if strings.Contains(strings.ToLower(err.Error()), "resource not found") {
+			continue
+		}
+
+		return nil, err
+	}
+
+	if lastErr == nil {
+		return nil, fmt.Errorf("no refs attempted")
+	}
+
+	return nil, fmt.Errorf("tried refs %v: %w", refs, lastErr)
 }
 
 func findExistingDirectories(dirs []string) []string {

@@ -120,6 +120,105 @@ func (c *Client) DownloadBlob(sha string) ([]byte, error) {
 	return decoded, nil
 }
 
+// FetchFile fetches a single file from the repository at the specified path and ref.
+// Returns the file content as bytes.
+func (c *Client) FetchFile(filePath string, ref string) ([]byte, error) {
+	// Get the tree SHA for the ref
+	treeSHA, err := c.FetchRef(ref)
+	if err != nil {
+		if isRateLimitedError(err) {
+			return c.fetchFileFromArchive(filePath, ref)
+		}
+		return nil, fmt.Errorf("fetching file: %w", err)
+	}
+
+	// Fetch the full tree
+	tree, err := c.FetchTree(treeSHA)
+	if err != nil {
+		if isRateLimitedError(err) {
+			return c.fetchFileFromArchive(filePath, ref)
+		}
+		return nil, fmt.Errorf("fetching file: %w", err)
+	}
+
+	// Find the file in the tree
+	for _, entry := range tree.Tree {
+		if entry.Type == "blob" && entry.Path == filePath {
+			return c.DownloadBlob(entry.SHA)
+		}
+	}
+
+	return nil, fmt.Errorf("fetching file: file not found: %s", filePath)
+}
+
+func (c *Client) fetchFileFromArchive(filePath string, ref string) ([]byte, error) {
+	archiveURL := fmt.Sprintf("%s/%s/%s/tar.gz/refs/heads/%s", c.codeloadURL, c.owner, c.repo, ref)
+	req, err := http.NewRequest("GET", archiveURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("fetching file from archive: creating request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching file from archive: downloading: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		archiveURL = fmt.Sprintf("%s/%s/%s/tar.gz/%s", c.codeloadURL, c.owner, c.repo, ref)
+		req, err = http.NewRequest("GET", archiveURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("fetching file from archive: creating request: %w", err)
+		}
+		resp, err = c.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("fetching file from archive: downloading: %w", err)
+		}
+		defer resp.Body.Close()
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetching file from archive: download failed: unexpected status: %d", resp.StatusCode)
+	}
+
+	gzReader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("fetching file from archive: reading gzip: %w", err)
+	}
+	defer gzReader.Close()
+
+	tarReader := tar.NewReader(gzReader)
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("fetching file from archive: reading entry: %w", err)
+		}
+
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+
+		entryPath := header.Name
+		slash := strings.Index(entryPath, "/")
+		if slash == -1 || slash+1 >= len(entryPath) {
+			continue
+		}
+
+		repoRelative := entryPath[slash+1:]
+		if repoRelative != filePath {
+			continue
+		}
+
+		return io.ReadAll(tarReader)
+	}
+
+	return nil, fmt.Errorf("fetching file from archive: file not found: %s", filePath)
+}
+
 // FetchAgentDir fetches all files from a specific directory in the repository.
 // Returns a map of relative path (within dirName) to file content.
 func (c *Client) FetchAgentDir(dirName string, ref string) (map[string][]byte, error) {
