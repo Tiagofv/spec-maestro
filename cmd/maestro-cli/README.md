@@ -57,6 +57,21 @@ go build -o maestro .
 sudo mv maestro /usr/local/bin/
 ```
 
+### Updating from Source
+
+If you installed from source and want to update to the latest version:
+
+```bash
+cd /path/to/maestro-cli/cmd/maestro-cli
+make install
+```
+
+Or with a specific version:
+
+```bash
+VERSION=v0.1.0 make install
+```
+
 ## Usage
 
 ```bash

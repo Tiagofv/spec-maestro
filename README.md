@@ -111,6 +111,38 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
 
 **Skills** are prefixed with `maestro-` when copied (e.g., `.maestro/skills/review/` becomes `.claude/skills/maestro-review/`) to avoid collisions with any agent-native skills you may have.
 
+## CLI (Optional)
+
+For those who prefer a native CLI over slash commands, maestro provides `maestro-cli`:
+
+### Installation
+
+**Homebrew (macOS/Linux)**
+
+```bash
+brew tap spec-maestro/maestro
+brew install maestro
+```
+
+**From Source** (requires Go 1.23+)
+
+```bash
+git clone https://github.com/spec-maestro/maestro-cli
+cd maestro-cli/cmd/maestro-cli
+make install
+```
+
+### Updating
+
+To update the CLI to the latest version:
+
+```bash
+cd /path/to/maestro-cli/cmd/maestro-cli
+make install
+```
+
+See [cmd/maestro-cli/README.md](cmd/maestro-cli/README.md) for full CLI documentation.
+
 ## Commands
 
 | Command                          | What it does                                                              |
