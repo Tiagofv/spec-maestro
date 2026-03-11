@@ -28,6 +28,7 @@ SLUG=$(echo "$DESCRIPTION" \
   | sed 's/^-//;s/-$//')
 
 # --- Word-boundary truncation (10-40 chars) ---
+DUPLICATE_INFO=""
 if [ ${#SLUG} -gt 40 ]; then
   TRUNCATED="${SLUG:0:40}"
   LAST_HYPHEN=$(echo "$TRUNCATED" | rev | cut -d'-' -f2- | rev)
@@ -37,6 +38,18 @@ if [ ${#SLUG} -gt 40 ]; then
     SLUG="${TRUNCATED:0:40}"
   fi
   SLUG=$(echo "$SLUG" | sed 's/-$//')
+fi
+
+# --- Scan for potential duplicates ---
+if [ -d "$SPECS_DIR" ]; then
+  EXISTING_DUPLICATES=$(ls -1 "$SPECS_DIR" 2>/dev/null \
+    | grep -E "^[0-9]+-${SLUG}(-[a-z0-9-]*)?$" \
+    || true)
+  if [ -n "$EXISTING_DUPLICATES" ]; then
+    DUPLICATE_COUNT=$(echo "$EXISTING_DUPLICATES" | wc -l | tr -d ' ')
+    DUPLICATE_LIST=$(echo "$EXISTING_DUPLICATES" | tr '\n' ',' | sed 's/,$//')
+    DUPLICATE_INFO=",\"duplicate_count\":${DUPLICATE_COUNT},\"duplicates\":\"${DUPLICATE_LIST}\""
+  fi
 fi
 
 # --- Find next feature number ---
@@ -67,5 +80,5 @@ mkdir -p "$SPEC_DIR"
 
 # --- Output JSON ---
 cat <<EOF
-{"feature_id":"${FEATURE_ID}","spec_dir":"${SPEC_DIR}","branch":"${BRANCH}","slug":"${SLUG}","worktree_name":"${WORKTREE_NAME}","worktree_path":"${WORKTREE_PATH}"}
+{"feature_id":"${FEATURE_ID}","spec_dir":"${SPEC_DIR}","branch":"${BRANCH}","slug":"${SLUG}","worktree_name":"${WORKTREE_NAME}","worktree_path":"${WORKTREE_PATH}"${DUPLICATE_INFO}}
 EOF
