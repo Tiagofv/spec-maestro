@@ -14,13 +14,28 @@ DESCRIPTION="${1:?Usage: create-feature.sh \"Feature description\"}"
 SPECS_DIR=".maestro/specs"
 
 # --- Derive slug from description ---
-# Lowercase, replace non-alphanumeric with hyphens, trim, truncate at 50 chars
+# Extract key words (remove articles, prepositions), then generate slug
 SLUG=$(echo "$DESCRIPTION" \
   | tr '[:upper:]' '[:lower:]' \
+  | tr '[:space:]' '\n' \
+  | grep -vE '^(a|an|the|and|or|but|for|nor|on|at|to|from|in|into|with|by|of|is|are|was|were|be|been|being|over|under|above|below|through|about|around|before|after|since|until|while|during)$' \
+  | grep -vE '^[[:space:]]*$' \
+  | tr '\n' ' ' \
   | sed 's/[^a-z0-9]/-/g' \
   | sed 's/--*/-/g' \
-  | sed 's/^-//;s/-$//' \
-  | cut -c1-50)
+  | sed 's/^-//;s/-$//')
+
+# --- Word-boundary truncation (10-40 chars) ---
+if [ ${#SLUG} -gt 40 ]; then
+  TRUNCATED="${SLUG:0:40}"
+  LAST_HYPHEN=$(echo "$TRUNCATED" | rev | cut -d'-' -f2- | rev)
+  if [ ${#LAST_HYPHEN} -ge 10 ]; then
+    SLUG="$LAST_HYPHEN"
+  else
+    SLUG="${TRUNCATED:0:40}"
+  fi
+  SLUG=$(echo "$SLUG" | sed 's/-$//')
+fi
 
 # --- Find next feature number ---
 NEXT_NUM=1
