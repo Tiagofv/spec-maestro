@@ -1,0 +1,9 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Test task",
+      "description": "Missing feature_id field"
+    }
+  ]
+}

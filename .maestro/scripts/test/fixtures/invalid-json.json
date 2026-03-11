@@ -1,0 +1,11 @@
+{
+  "feature_id": "feat-123",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Invalid task",
+      "description": "This JSON is malformed
+      "label": "test"
+    }
+  ]
+}

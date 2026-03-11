@@ -1,0 +1,41 @@
+{
+  "feature_id": "feat-456",
+  "tasks": [
+    {
+      "id": "task-a",
+      "title": "Base task",
+      "description": "Foundation task",
+      "label": "core",
+      "size": "XS",
+      "assignee": "developer1",
+      "dependencies": []
+    },
+    {
+      "id": "task-b",
+      "title": "Dependent task 1",
+      "description": "Depends on base",
+      "label": "feature",
+      "size": "S",
+      "assignee": "developer2",
+      "dependencies": ["task-a"]
+    },
+    {
+      "id": "task-c",
+      "title": "Dependent task 2",
+      "description": "Depends on base",
+      "label": "feature",
+      "size": "M",
+      "assignee": "developer3",
+      "dependencies": ["task-a"]
+    },
+    {
+      "id": "task-d",
+      "title": "Multi-dependent task",
+      "description": "Depends on multiple tasks",
+      "label": "integration",
+      "size": "L",
+      "assignee": "developer1",
+      "dependencies": ["task-b", "task-c"]
+    }
+  ]
+}

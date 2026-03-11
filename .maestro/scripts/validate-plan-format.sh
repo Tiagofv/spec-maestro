@@ -1,170 +1,143 @@
 #!/usr/bin/env bash
-# Validate plan.md follows parseable task format
+# Validate plan.md follows the parseable format
 # Usage: validate-plan-format.sh <plan.md-path>
-# Exit 0 = valid, exit 1 = invalid with error messages
+# Exit 0 = valid, exit 1 = invalid
 
 set -euo pipefail
 
 PLAN_FILE="${1:-}"
-ERRORS=0
 
+# Check file argument
 if [[ -z "$PLAN_FILE" ]]; then
-  echo "FAIL: No plan file specified" >&2
-  echo "Usage: validate-plan-format.sh <plan.md-path>" >&2
-  exit 1
+    echo "ERROR: No plan.md file path provided" >&2
+    echo "Usage: validate-plan-format.sh <plan.md-path>" >&2
+    exit 1
 fi
 
 if [[ ! -f "$PLAN_FILE" ]]; then
-  echo "FAIL: Plan file not found: $PLAN_FILE" >&2
-  exit 1
+    echo "ERROR: File not found: $PLAN_FILE" >&2
+    exit 1
 fi
 
 echo "=== Validating Plan Format: $PLAN_FILE ===" >&2
 
-# Extract task IDs - only match actual task blocks (with TASK:END)
-extract_task_ids() {
-  # Read file and find blocks that have both BEGIN and END
-  awk '
-    /<!-- TASK:BEGIN id=T[0-9]{3} -->/ {
-      match($0, /id=(T[0-9]{3})/, arr)
-      id = arr[1]
-      getline
-      while (!/<!-- TASK:END -->/ && NF > 0) {
-        getline
-      }
-      if (/<!-- TASK:END -->/) {
-        print id
-      }
+# Use perl for validation
+perl -0777 -e '
+    my $content = <STDIN>;
+    my @errors_list;
+    my %task_ids;
+    my @task_order;
+    my %deps_for_task;
+    
+    # Extract all task blocks
+    my @blocks = $content =~ /<!-- TASK:BEGIN id=(T\d{3}) -->(.*?)<!-- TASK:END -->/gs;
+    
+    if (@blocks == 0) {
+        push @errors_list, "No task blocks found (no TASK:BEGIN markers)";
     }
-  ' "$1" 2>/dev/null || perl -nle 'print $1 if /<!-- TASK:BEGIN id=(T[0-9]{3}) -->/' "$1"
-}
+    
+    for (my $i = 0; $i < @blocks; $i += 2) {
+        my $task_id = $blocks[$i];
+        my $task_content = $blocks[$i + 1];
+        
+        push @task_order, $task_id;
+        
+        # Check for duplicate IDs
+        if (exists $task_ids{$task_id}) {
+            push @errors_list, "Duplicate task ID found: $task_id";
+        }
+        $task_ids{$task_id} = 1;
+        
+        # Check required fields
+        if ($task_content !~ /^\s*-\s*\*\*Label:\*\*/m) {
+            push @errors_list, "Task $task_id - Missing Label field";
+        }
+        
+        if ($task_content !~ /^\s*-\s*\*\*Size:\*\*/m) {
+            push @errors_list, "Task $task_id - Missing Size field";
+        } else {
+            # Extract and validate size
+            if ($task_content =~ /^\s*-\s*\*\*Size:\*\*\s*(\w+)/m) {
+                my $size = $1;
+                if ($size ne "XS" && $size ne "S") {
+                    push @errors_list, "Task $task_id - Invalid size $size (must be XS or S)";
+                }
+            }
+        }
+        
+        if ($task_content !~ /^\s*-\s*\*\*Assignee:\*\*/m) {
+            push @errors_list, "Task $task_id - Missing Assignee field";
+        }
+        
+        if ($task_content !~ /^\s*-\s*\*\*Dependencies:\*\*/m) {
+            push @errors_list, "Task $task_id - Missing Dependencies field";
+        } else {
+            # Extract and validate dependencies
+            if ($task_content =~ /^\s*-\s*\*\*Dependencies:\*\*\s*(.+)$/m) {
+                my $deps = $1;
+                $deps =~ s/^[\s,—-]+$//;  # Handle various empty markers
+                
+                if ($deps && $deps !~ /^[\s,—-]+$/) {
+                    # Has actual dependencies - validate format
+                    my @dep_list = split /[,\s]+/, $deps;
+                    foreach my $dep (@dep_list) {
+                        $dep =~ s/^\s+|\s+$//g;
+                        next if $dep eq "—" || $dep eq "" || $dep eq "-";
+                        if ($dep !~ /^T\d{3}$/) {
+                            push @errors_list, "Task $task_id - Invalid dependency format $dep (must be T###)";
+                        } else {
+                            push @{$deps_for_task{$task_id}}, $dep;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    # Validate dependencies reference existing IDs
+    foreach my $task_id (@task_order) {
+        if (exists $deps_for_task{$task_id}) {
+            foreach my $dep (@{$deps_for_task{$task_id}}) {
+                unless (exists $task_ids{$dep}) {
+                    push @errors_list, "Task $task_id - Dependency $dep references non-existent task ID";
+                }
+            }
+        }
+    }
+    
+    # Print errors or success
+    my $error_count = scalar @errors_list;
+    if ($error_count > 0) {
+        foreach my $err (@errors_list) {
+            print "ERROR: $err\n";
+        }
+        print "VALIDATION_FAILED:$error_count\n";
+        exit 1;
+    } else {
+        my $count = scalar @task_order;
+        print "VALIDATION_PASSED:$count\n";
+        exit 0;
+    }
+' < "$PLAN_FILE" > /tmp/validation_result_$$.txt 2>&1
 
-# Get all task IDs
-task_ids=$(extract_task_ids "$PLAN_FILE")
+# Read validation result
+VALIDATION_RESULT=$(cat /tmp/validation_result_$$.txt)
 
-if [[ -z "$task_ids" ]]; then
-  echo "ERROR: No task blocks found (expected <!-- TASK:BEGIN -->...<!-- TASK:END -->)" >&2
-  ERRORS=$((ERRORS + 1))
-  
-  echo "" >&2
-  echo "=== Validation FAILED with $ERRORS error(s) ===" >&2
-  echo "Fix the errors above and re-run." >&2
-  echo "" >&2
-  echo "Required format:" >&2
-  echo '  <!-- TASK:BEGIN id=T001 -->' >&2
-  echo '  ### T001: Short title' >&2
-  echo '  ' >&2
-  echo '  - **Label:** backend' >&2
-  echo '  - **Size:** S' >&2
-  echo '  - **Assignee:** general' >&2
-  echo '  - **Dependencies:** —' >&2
-  echo '  ' >&2
-  echo '  **Description:**' >&2
-  echo '  Task description here...' >&2
-  echo '  <!-- TASK:END -->' >&2
-  exit 1
-fi
-
-# Count actual tasks ( Implementation Tasks section)
-task_count=$(echo "$task_ids" | grep -c "^T" || echo "0")
-
-# Check for duplicate IDs
-duplicates=$(echo "$task_ids" | sort | uniq -d)
-if [[ -n "$duplicates" ]]; then
-  echo "ERROR: Duplicate task IDs found: $duplicates" >&2
-  ERRORS=$((ERRORS + 1))
-fi
-
-# Validate each task
-seen_ids=""
-while IFS= read -r task_id; do
-  [[ -z "$task_id" ]] && continue
-  
-  # Validate ID format (T followed by 3 digits)
-  if [[ ! "$task_id" =~ ^T[0-9]{3}$ ]]; then
-    echo "ERROR: Task $task_id - Invalid ID format (expected T###, e.g., T001)" >&2
-    ERRORS=$((ERRORS + 1))
-    continue
-  fi
-  
-  # Skip if we've already processed this ID (duplicate handling)
-  if echo "$seen_ids" | grep -qx "$task_id" 2>/dev/null; then
-    continue
-  fi
-  seen_ids="$seen_ids
-$task_id"
-  
-  # Extract task block using sed
-  block=$(sed -n "/<!-- TASK:BEGIN id=$task_id/,/<!-- TASK:END/p" "$PLAN_FILE")
-  
-  if [[ -z "$block" ]]; then
-    echo "ERROR: Task $task_id - Could not extract task block" >&2
-    ERRORS=$((ERRORS + 1))
-    continue
-  fi
-  
-  # Check for required fields using grep
-  if ! echo "$block" | grep -qE '^[[:space:]]*-[[:space:]]+\*?\*?Label:\*?\*[[:space:]]+'; then
-    echo "ERROR: Task $task_id - Missing 'Label:' field" >&2
-    ERRORS=$((ERRORS + 1))
-  fi
-  
-  if ! echo "$block" | grep -qE '^[[:space:]]*-[[:space:]]+\*?\*?Size:\*?\*[[:space:]]+'; then
-    echo "ERROR: Task $task_id - Missing 'Size:' field" >&2
-    ERRORS=$((ERRORS + 1))
-  fi
-  
-  if ! echo "$block" | grep -qE '^[[:space:]]*-[[:space:]]+\*?\*?Assignee:\*?\*[[:space:]]+'; then
-    echo "ERROR: Task $task_id - Missing 'Assignee:' field" >&2
-    ERRORS=$((ERRORS + 1))
-  fi
-  
-  if ! echo "$block" | grep -qE '^[[:space:]]*-[[:space:]]+\*?\*?Dependencies:\*?\*[[:space:]]+'; then
-    echo "ERROR: Task $task_id - Missing 'Dependencies:' field" >&2
-    ERRORS=$((ERRORS + 1))
-  fi
-  
-  # Validate size is XS or S
-  size=$(echo "$block" | grep -oE 'Size:[[:space:]]*[A-Z]+' | head -1 | sed 's/Size:[[:space:]]*//' || true)
-  if [[ -n "$size" && "$size" != "XS" && "$size" != "S" ]]; then
-    echo "ERROR: Task $task_id - Invalid size '$size' (must be XS or S)" >&2
-    ERRORS=$((ERRORS + 1))
-  fi
-  
-  # Validate label
-  label=$(echo "$block" | grep -oE 'Label:[[:space:]]*[a-z-]+' | head -1 | sed 's/Label:[[:space:]]*//' || true)
-  if [[ -n "$label" && ! "$label" =~ ^(backend|frontend|test|docs|infrastructure)$ ]]; then
-    echo "WARNING: Task $task_id - Unusual label '$label' (expected: backend, frontend, test, docs, infrastructure)" >&2
-  fi
-  
-  # Validate header matches ID
-  if ! echo "$block" | grep -qE "^###[[:space:]]+$task_id:"; then
-    echo "ERROR: Task $task_id - Header doesn't match ID (expected '### $task_id: ...')" >&2
-    ERRORS=$((ERRORS + 1))
-  fi
-  
-done <<< "$task_ids"
-
-# Summary
-if [[ $ERRORS -gt 0 ]]; then
-  echo "" >&2
-  echo "=== Validation FAILED with $ERRORS error(s) ===" >&2
-  echo "Fix the errors above and re-run." >&2
-  echo "" >&2
-  echo "Required format:" >&2
-  echo '  <!-- TASK:BEGIN id=T001 -->' >&2
-  echo '  ### T001: Short title' >&2
-  echo '  ' >&2
-  echo '  - **Label:** backend' >&2
-  echo '  - **Size:** S' >&2
-  echo '  - **Assignee:** general' >&2
-  echo '  - **Dependencies:** —' >&2
-  echo '  ' >&2
-  echo '  **Description:**' >&2
-  echo '  Task description here...' >&2
-  echo '  <!-- TASK:END -->' >&2
-  exit 1
+# Check for errors in output
+if echo "$VALIDATION_RESULT" | grep -q "VALIDATION_FAILED"; then
+    ERROR_COUNT=$(echo "$VALIDATION_RESULT" | grep "VALIDATION_FAILED:" | head -1 | sed 's/VALIDATION_FAILED://')
+    echo "$VALIDATION_RESULT" | grep "^ERROR:" | sed 's/^ERROR: //' >&2
+    echo "=== Validation FAILED with $ERROR_COUNT error(s) ===" >&2
+    rm -f /tmp/validation_result_$$.txt
+    exit 1
+elif echo "$VALIDATION_RESULT" | grep -q "VALIDATION_PASSED"; then
+    TASK_COUNT=$(echo "$VALIDATION_RESULT" | grep "VALIDATION_PASSED:" | head -1 | sed 's/VALIDATION_PASSED://')
+    echo "=== Validation PASSED ($TASK_COUNT task(s) found) ===" >&2
+    rm -f /tmp/validation_result_$$.txt
+    exit 0
 else
-  echo "=== Validation PASSED ($task_count task(s) found) ===" >&2
-  exit 0
+    echo "ERROR: Validation script failed to produce valid output" >&2
+    echo "$VALIDATION_RESULT" >&2
+    rm -f /tmp/validation_result_$$.txt
+    exit 1
 fi
