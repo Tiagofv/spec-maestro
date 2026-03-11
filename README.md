@@ -164,13 +164,13 @@ See [cmd/maestro-cli/README.md](cmd/maestro-cli/README.md) for full CLI document
 
 ```
 /maestro.specify "add user authentication"
-    └── .maestro/specs/001-add-user-authentication/spec.md
+    └── .maestro/specs/001-user-authentication/spec.md
 
 /maestro.clarify
     └── resolves [NEEDS CLARIFICATION] markers in spec.md
 
 /maestro.plan
-    └── .maestro/specs/001-add-user-authentication/plan.md
+    └── .maestro/specs/001-user-authentication/plan.md
 
 /maestro.tasks
     └── bd epic + implementation tasks + review tasks + PM validation task
@@ -237,11 +237,10 @@ Research findings are stored in `.maestro/research/` and can be linked to featur
 │   └── conventions.md       # Global review conventions
 ├── config.yaml         # Project configuration
 ├── constitution.md     # Project rules (generated from template)
-├── specs/              # Feature specifications (created by /maestro.specify)
+├── specs/              # Feature specifications (created by /maestro.specify, see reference/conventions.md)
 ├── state/              # Pipeline state JSON files
 ├── memory/             # Agent memory (learnings across sessions)
-├── research/           # Research findings (created by /maestro.research)
-└── skills/             # SKILL.md files — source of truth (copied to agent dirs by init)
+└── research/           # Research findings (created by /maestro.research)
 
 ## Key Concepts
 
