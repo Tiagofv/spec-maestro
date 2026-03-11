@@ -378,6 +378,248 @@ If script execution fails, report the error to the user and stop.
 - `/maestro.research Compare React Query vs SWR for data fetching`
 - `/maestro.research Best practices for implementing rate limiting in Go`
 
+#### External Research Workflow
+
+When conducting external research, follow this structured approach to generate comprehensive findings:
+
+##### Step 1: Identify Research Scope
+
+Analyze the query to determine:
+- **Technology domain** (database, frontend framework, API style, etc.)
+- **Comparison type** (single technology deep-dive, multi-option comparison, pattern analysis)
+- **Project constraints** (language ecosystem, scale requirements, team expertise)
+
+##### Step 2: Research Multiple Options
+
+For each technology or approach identified, gather:
+
+**Core Information:**
+- Official name and latest stable version
+- Primary purpose and problem it solves
+- Maturity level (experimental, stable, legacy)
+- Community size and activity level
+- License type and commercial considerations
+
+**Technical Details:**
+- Supported languages and platforms
+- Integration patterns with common stacks
+- Performance characteristics (throughput, latency, resource usage)
+- Scalability limits and horizontal scaling support
+
+##### Step 3: Structured Pros/Cons Analysis
+
+For each option, document:
+
+**Pros (Advantages):**
+- List 3-7 specific advantages
+- Include technical benefits (performance, simplicity, features)
+- Include ecosystem benefits (community, tooling, documentation)
+- Include business benefits (cost, hiring, long-term viability)
+
+**Cons (Disadvantages):**
+- List 3-7 specific disadvantages
+- Include technical limitations (complexity, overhead, constraints)
+- Include operational concerns (hosting, maintenance, monitoring)
+- Include adoption barriers (learning curve, migration effort)
+
+**Use scoring when helpful:**
+```
+Criterion          | Option A | Option B | Option C
+-------------------|----------|----------|----------
+Performance        | ★★★★☆    | ★★★☆☆    | ★★★★★
+Ease of use        | ★★★★★    | ★★★★☆    | ★★★☆☆
+Community support  | ★★★☆☆    | ★★★★★    | ★★★★☆
+Documentation      | ★★★★☆    | ★★★★★    | ★★★☆☆
+Integration        | ★★★★☆    | ★★★★☆    | ★★★☆☆
+```
+
+##### Step 4: Use Case Mapping
+
+Identify specific scenarios where each option excels:
+
+**Best For:**
+- Scenario 1: Description and why this option fits
+- Scenario 2: Description and why this option fits
+
+**Avoid When:**
+- Scenario 1: Description and why this option is unsuitable
+- Scenario 2: Description and why this option is unsuitable
+
+##### Step 5: Source Documentation
+
+For each technology, capture authoritative sources:
+
+**Required Sources:**
+- Official documentation URL (primary reference)
+- GitHub/repository URL (if open source)
+- Getting started guide URL
+- API reference or specification URL
+
+**Additional Sources (when available):**
+- Comparison articles from trusted sources
+- Case studies from production usage
+- Benchmark results or performance studies
+- Community discussions (Reddit, Hacker News, Stack Overflow)
+
+**Source Format:**
+```markdown
+**{Technology Name}**
+- **Official Docs**: [Documentation](https://docs.example.com) - Primary reference
+- **Repository**: [GitHub](https://github.com/org/repo) - Source code and issues
+- **Getting Started**: [Quick Start Guide](https://docs.example.com/quickstart) - Tutorial for beginners
+- **API Reference**: [API Docs](https://api.example.com) - Detailed API specification
+```
+
+##### Step 6: Synthesize Recommendations
+
+Based on the analysis, provide clear guidance:
+
+**Recommendation Structure:**
+1. **Primary Recommendation**: The top choice and why
+2. **Alternative Option**: When the primary isn't suitable
+3. **Avoid**: Technologies that don't fit the use case
+
+**Recommendation Template:**
+```markdown
+## Recommendation
+
+**Recommended Approach**: {Technology Name}
+
+**Rationale**:
+- {Reason 1 based on analysis}
+- {Reason 2 based on analysis}
+- {Reason 3 based on analysis}
+
+**When to choose alternatives**:
+- {Scenario where Option B is better}: {Explanation}
+- {Scenario where Option C is better}: {Explanation}
+
+**Migration/Adoption Path**:
+1. {Step 1 for adopting the recommendation}
+2. {Step 2 for adopting the recommendation}
+3. {Step 3 for adopting the recommendation}
+```
+
+##### Step 7: Risk Assessment
+
+Document potential risks and mitigation strategies:
+
+**Risk Categories:**
+- **Technical risks**: Performance issues, bugs, limitations
+- **Ecosystem risks**: Abandonment, breaking changes, community fragmentation
+- **Operational risks**: Security concerns, compliance issues, vendor lock-in
+
+**Risk Documentation:**
+```markdown
+### Risks and Mitigations
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| {Risk description} | Low/Medium/High | Low/Medium/High | {Mitigation strategy} |
+```
+
+#### External Research Output Template
+
+Research documents for external sources should follow this structure:
+
+```markdown
+# Research: {Query Title}
+
+**Research ID:** YYYYMMDD-{slug}  
+**Date:** YYYY-MM-DD  
+**Source Type:** external  
+**Domain:** {technology domain}
+
+## Query
+
+{Original user query}
+
+## Summary
+
+{2-3 sentence overview of findings and primary recommendation}
+
+## Options Analyzed
+
+### Option 1: {Technology Name}
+
+**Overview**: {Brief description of what it is and does}
+
+**Latest Version**: {version number}  
+**Maturity**: {experimental/beta/stable/legacy}  
+**License**: {license type}
+
+#### Pros
+- {Advantage 1 with brief explanation}
+- {Advantage 2 with brief explanation}
+- {Advantage 3 with brief explanation}
+
+#### Cons
+- {Disadvantage 1 with brief explanation}
+- {Disadvantage 2 with brief explanation}
+- {Disadvantage 3 with brief explanation}
+
+#### Best For
+- {Use case 1}
+- {Use case 2}
+
+#### Sources
+- **Official Docs**: [{Title}]({URL}) - {Description}
+- **Repository**: [{Title}]({URL}) - {Description}
+- **Getting Started**: [{Title}]({URL}) - {Description}
+
+---
+
+### Option 2: {Technology Name}
+
+[Same structure as Option 1]
+
+## Comparison Matrix
+
+| Criteria | Option 1 | Option 2 | Option 3 |
+|----------|----------|----------|----------|
+| {Criterion} | {Rating} | {Rating} | {Rating} |
+
+## Recommendation
+
+**Recommended**: {Technology Name}
+
+**Rationale**:
+1. {Key reason}
+2. {Key reason}
+3. {Key reason}
+
+**When to use alternatives**:
+- {Scenario}: Use {Alternative} because {reason}
+
+**Adoption Path**:
+1. {Step 1}
+2. {Step 2}
+3. {Step 3}
+
+## Risks and Mitigations
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| {Risk} | {level} | {level} | {strategy} |
+
+## References
+
+- [{Title}]({URL}) - {Description}
+- [{Title}]({URL}) - {Description}
+```
+
+#### Quality Checks
+
+Before completing external research, verify:
+
+- [ ] At least 2-3 options were researched (even if query asks for one)
+- [ ] Each option has 3+ pros and 3+ cons documented
+- [ ] All source URLs are included and valid
+- [ ] Recommendation includes clear rationale
+- [ ] Risks and mitigations are documented
+- [ ] Use cases are specific to the project context
+- [ ] Analysis considers team expertise and existing stack
+
 ### Source Type 3: Artifact Research
 
 **Trigger patterns:** "Find specs...", "Previous plans...", "Related features...", "Research on..."
@@ -557,6 +799,148 @@ Searches:
 /maestro.list research --type codebase
 /maestro.list research --type external
 /maestro.list research --type artifacts
+```
+
+---
+
+## Research Listing and Search
+
+The `/maestro.research` command supports listing and searching research items stored in `.maestro/research/`.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/maestro.research.list` | List all research items with metadata |
+| `/maestro.research.list --type {codebase\|external\|artifact}` | Filter by source type |
+| `/maestro.research.list --tag {tag}` | Filter by tag |
+| `/maestro.research.search {keyword}` | Search across titles and summaries |
+
+### /maestro.research.list
+
+Lists all research items with their metadata.
+
+**Usage:**
+```
+/maestro.research.list
+```
+
+**Output Format:**
+```
+Research Items (12 total)
+
+20250311-oauth-patterns
+  Title: OAuth implementation patterns in this codebase
+  Type: codebase
+  Tags: auth, oauth, patterns
+  Created: 2025-03-11
+  Linked Features: 2
+
+20250312-postgresql-mongodb
+  Title: Compare PostgreSQL vs MongoDB for time-series data
+  Type: external
+  Tags: database, comparison
+  Created: 2025-03-12
+  Linked Features: 0
+```
+
+**Metadata Fields:**
+- **Research ID**: Unique identifier (YYYYMMDD-slug format)
+- **Title**: Original research query or summary
+- **Type**: Source type (codebase, external, artifact)
+- **Tags**: List of assigned tags
+- **Created**: Date the research was created
+- **Linked Features**: Number of specs/plans referencing this research
+
+### Filter by Source Type
+
+Filter research items by their source type.
+
+**Usage:**
+```
+/maestro.research.list --type codebase
+/maestro.research.list --type external
+/maestro.research.list --type artifact
+```
+
+**Output:** Only shows research items matching the specified source type.
+
+### Filter by Tag
+
+Filter research items by one or more tags.
+
+**Usage:**
+```
+/maestro.research.list --tag auth
+/maestro.research.list --tag database
+/maestro.research.list --tag "performance optimization"
+```
+
+**Behavior:**
+- Shows research items that have the specified tag
+- Tag matching is case-insensitive
+- Multiple `--tag` flags can be combined (OR logic)
+
+### /maestro.research.search
+
+Search across research titles and summaries.
+
+**Usage:**
+```
+/maestro.research.search authentication
+/maestro.research.search "database migration"
+/maestro.research.search caching
+```
+
+**Search Scope:**
+- Research titles
+- Research summaries
+- Finding content
+- Tags
+
+**Output Format:**
+```
+Search Results for "authentication" (3 matches)
+
+20250311-oauth-patterns
+  Relevance: ★★★★☆
+  Summary: OAuth 2.0 implementation patterns found in the codebase...
+  Matched in: title, tags
+
+20250310-jwt-security
+  Relevance: ★★★☆☆
+  Summary: Security considerations for JWT token handling...
+  Matched in: summary, findings
+```
+
+**Relevance Scoring:**
+- **Title match**: Highest priority
+- **Tag match**: High priority
+- **Summary match**: Medium priority
+- **Finding content match**: Lower priority
+
+### Combining Filters
+
+Filters can be combined for precise discovery:
+
+```
+/maestro.research.list --type external --tag database
+/maestro.research.search "error handling" --type codebase
+```
+
+### Empty Results
+
+When no research items match the criteria:
+
+```
+No research items found matching:
+  - Type: external
+  - Tag: deprecated
+
+Suggestions:
+  - Run /maestro.research.list to see all research
+  - Try different search terms
+  - Check available tags with /maestro.research.tags
 ```
 
 ---
