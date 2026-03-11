@@ -1,7 +1,5 @@
 ---
-description: >
-  Break the implementation plan into bd issues with dependencies.
-  Creates an epic with implementation tasks, review tasks, and PM validation.
+description: Break the implementation plan into bd issues with dependencies. Creates an epic with implementation tasks, review tasks, and PM validation.
 argument-hint: [feature-id] [--dry-run]
 ---
 
