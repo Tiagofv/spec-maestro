@@ -78,13 +78,29 @@ The feature is considered complete when:
 
 ---
 
-## 6. Dependencies
+## 6. Research
+
+{Include research findings that inform this specification}
+
+### Linked Research Items
+
+- **{Research ID}** - {Brief description of findings}
+  - Key insight: {What was learned}
+  - Recommendation: {How this informs the spec}
+
+### Research Summary
+
+{Summary of how research findings influenced requirements, scope, or approach}
+
+---
+
+## 7. Dependencies
 
 {List any existing features, services, or systems this feature depends on. If none, write "None identified."}
 
 ---
 
-## 7. Open Questions
+## 8. Open Questions
 
 - [NEEDS CLARIFICATION: {Specific question about ambiguous requirement}]
 - [NEEDS CLARIFICATION: {Specific question about edge case or boundary}]

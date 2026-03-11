@@ -5,7 +5,7 @@ A spec-driven development kit delivered as slash commands and skills for AI codi
 Maestro gives AI agents (Claude Code, OpenCode, Cursor, Copilot) a structured pipeline:
 
 ```
-specify → clarify → plan → tasks → implement → review → pm-validate → analyze
+specify → clarify → research → plan → tasks → implement → review → pm-validate → analyze
 ```
 
 Each stage produces an artifact that feeds the next. The agent never skips ahead.
@@ -111,47 +111,14 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
 
 **Skills** are prefixed with `maestro-` when copied (e.g., `.maestro/skills/review/` becomes `.claude/skills/maestro-review/`) to avoid collisions with any agent-native skills you may have.
 
-## CLI (Optional)
-
-For those who prefer a native CLI over slash commands, maestro provides `maestro-cli`:
-
-### Installation
-
-**Homebrew (macOS/Linux)**
-
-```bash
-brew tap spec-maestro/maestro
-brew install maestro
-```
-
-**From Source** (requires Go 1.23+)
-
-```bash
-git clone https://github.com/spec-maestro/maestro-cli
-cd maestro-cli/cmd/maestro-cli
-make install
-```
-
-### Updating
-
-To update the CLI to the latest version:
-
-```bash
-cd /path/to/maestro-cli/cmd/maestro-cli
-make install
-```
-
-See [cmd/maestro-cli/README.md](cmd/maestro-cli/README.md) for full CLI documentation.
-
 ## Commands
 
 | Command                          | What it does                                                              |
 | -------------------------------- | ------------------------------------------------------------------------- |
 | `/maestro.init`                  | Initialize maestro in the project                                         |
-| `/maestro.update`                | Update maestro to latest version from GitHub                              |
 | `/maestro.specify <description>` | Generate a feature spec from plain language                               |
 | `/maestro.clarify`               | Resolve `[NEEDS CLARIFICATION]` markers in the spec                       |
-| `/maestro.research <query>`      | Conduct structured research on code patterns, technologies, or artifacts  |
+| `/maestro.research`              | Run pre-planning research and produce readiness artifacts                 |
 | `/maestro.plan`                  | Generate an implementation plan from the spec                             |
 | `/maestro.tasks`                 | Break the plan into bd issues with dependencies                           |
 | `/maestro.implement`             | Implement all tasks — loops through ready tasks, reviews, and PM validate |
@@ -164,13 +131,16 @@ See [cmd/maestro-cli/README.md](cmd/maestro-cli/README.md) for full CLI document
 
 ```
 /maestro.specify "add user authentication"
-    └── .maestro/specs/001-user-authentication/spec.md
+    └── .maestro/specs/001-add-user-authentication/spec.md
 
 /maestro.clarify
     └── resolves [NEEDS CLARIFICATION] markers in spec.md
 
+/maestro.research
+    └── .maestro/specs/001-add-user-authentication/research/*.md
+
 /maestro.plan
-    └── .maestro/specs/001-user-authentication/plan.md
+    └── .maestro/specs/001-add-user-authentication/plan.md
 
 /maestro.tasks
     └── bd epic + implementation tasks + review tasks + PM validation task
@@ -180,31 +150,12 @@ See [cmd/maestro-cli/README.md](cmd/maestro-cli/README.md) for full CLI document
     └── when all tasks done → /maestro.pm-validate → /maestro.analyze
 ```
 
-### Research
-
-The `/maestro.research` command helps you investigate technologies, patterns, or existing solutions before specifying a feature:
-
-```bash
-/maestro.research How do we handle authentication in this codebase?
-/maestro.research What are the trade-offs between PostgreSQL and MongoDB?
-/maestro.research Find specs related to payments
-```
-
-Research supports three source types:
-
-- **Codebase patterns**: Search existing code, specs, and plans
-- **External technologies**: Research libraries, frameworks, and approaches
-- **Artifacts**: Discover existing specs, plans, and prior research
-
-Research findings are stored in `.maestro/research/` and can be linked to feature specifications.
-
 ## Directory Structure
 
-````
+```
 .maestro/
 ├── commands/           # Slash commands (maestro.*.md) — source of truth
 │   ├── maestro.init.md
-│   ├── maestro.update.md
 │   ├── maestro.specify.md
 │   ├── maestro.clarify.md
 │   ├── maestro.research.md
@@ -215,10 +166,11 @@ Research findings are stored in `.maestro/research/` and can be linked to featur
 │   ├── maestro.pm-validate.md
 │   ├── maestro.commit.md
 │   └── maestro.analyze.md
-├── templates/          # Templates for specs, plans, reviews
+├── templates/          # Templates for specs, plans, reviews, research
 │   ├── spec-template.md
 │   ├── plan-template.md
 │   ├── review-template.md
+│   ├── research-template.md
 │   └── constitution-template.md
 ├── skills/             # SKILL.md files — source of truth (copied to agent dirs by init)
 │   ├── constitution/SKILL.md
@@ -237,10 +189,10 @@ Research findings are stored in `.maestro/research/` and can be linked to featur
 │   └── conventions.md       # Global review conventions
 ├── config.yaml         # Project configuration
 ├── constitution.md     # Project rules (generated from template)
-├── specs/              # Feature specifications (created by /maestro.specify, see reference/conventions.md)
+├── specs/              # Feature specifications (created by /maestro.specify)
 ├── state/              # Pipeline state JSON files
-├── memory/             # Agent memory (learnings across sessions)
-└── research/           # Research findings (created by /maestro.research)
+└── memory/             # Agent memory (learnings across sessions)
+```
 
 ## Key Concepts
 
@@ -284,7 +236,7 @@ If you edit any command or skill in `.maestro/`, re-run init to propagate change
 
 ```bash
 bash .maestro/scripts/init.sh .
-````
+```
 
 ## License
 

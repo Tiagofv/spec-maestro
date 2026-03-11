@@ -1,0 +1,68 @@
+{
+  "feature_id": "015-our-tauri-ui-has-a-lot-of-tickets-on-the-kanban-bo",
+  "created_at": "2026-02-19T00:00:00Z",
+  "updated_at": "2026-02-20T02:14:41Z",
+  "stage": "complete",
+  "spec_path": ".maestro/specs/015-our-tauri-ui-has-a-lot-of-tickets-on-the-kanban-bo/spec.md",
+  "plan_path": ".maestro/specs/015-our-tauri-ui-has-a-lot-of-tickets-on-the-kanban-bo/plan.md",
+  "epic_id": "agent-maestro-ctl",
+  "task_count": 37,
+  "branch": "feat/our-tauri-ui-has-a-lot-of-tickets-on-the-kanban-bo",
+  "worktree_name": "our-tauri-ui-has-a-lot-of-tickets-on-the-kanban-bo",
+  "worktree_path": ".worktrees/our-tauri-ui-has-a-lot-of-tickets-on-the-kanban-bo",
+  "worktree_branch": "feat/our-tauri-ui-has-a-lot-of-tickets-on-the-kanban-bo",
+  "worktree_created": false,
+  "completed_at": "2026-02-20T02:09:37Z",
+  "clarification_count": 0,
+  "user_stories": 5,
+  "phases": 5,
+  "components_new": 5,
+  "components_modified": 6,
+  "progress": {
+    "completed": 37,
+    "total": 37,
+    "percentage": 100
+  },
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "created"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "resolved 12 markers"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "created plan with 5 phases, 5 new components, 6 modified components"
+    },
+    {
+      "stage": "tasks",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "created 37 tasks in beads"
+    },
+    {
+      "stage": "implement",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "completed 31 of 37 tasks"
+    },
+    {
+      "stage": "implement",
+      "timestamp": "2026-02-19T00:00:00Z",
+      "action": "completed 35 of 37 tasks; 1 ready performance task remaining"
+    },
+    {
+      "stage": "complete",
+      "timestamp": "2026-02-20T02:09:37Z",
+      "action": "all 37 tasks and epic closed"
+    },
+    {
+      "stage": "complete",
+      "timestamp": "2026-02-20T02:14:41Z",
+      "action": "worktree cleaned up and local main updated"
+    }
+  ]
+}

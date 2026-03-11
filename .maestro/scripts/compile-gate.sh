@@ -18,8 +18,29 @@ if [[ ! -f "$CONFIG" ]]; then
   exit 1
 fi
 
-# Extract stack value (simple grep, avoid yq dependency)
-STACK=$(grep -E "^\s+stack:" "$CONFIG" | head -1 | sed 's/.*stack:\s*//' | tr -d '"' | tr -d "'")
+# Extract value from compile_gate block (avoid yq dependency)
+get_compile_gate_value() {
+  local key="$1"
+  awk -v key="$key" '
+    BEGIN { in_compile_gate=0 }
+    /^compile_gate:[[:space:]]*$/ { in_compile_gate=1; next }
+    in_compile_gate && /^[^[:space:]]/ { in_compile_gate=0 }
+    in_compile_gate && $0 ~ "^[[:space:]]+" key ":[[:space:]]*" {
+      line=$0
+      sub("^[[:space:]]+" key ":[[:space:]]*", "", line)
+      sub(/^[[:space:]]+/, "", line)
+      sub(/[[:space:]]+$/, "", line)
+      if (line ~ /^".*"$/) {
+        sub(/^"/, "", line)
+        sub(/"$/, "", line)
+      }
+      print line
+      exit
+    }
+  ' "$CONFIG"
+}
+
+STACK=$(get_compile_gate_value "stack" | tr -d "'")
 
 if [[ -z "$STACK" ]]; then
   echo "FAIL: No stack defined in config.yaml" >&2
@@ -27,7 +48,7 @@ if [[ -z "$STACK" ]]; then
 fi
 
 # Get command for this stack
-CMD=$(grep -A1 "^compile_gate:" "$CONFIG" | grep -E "^\s+$STACK:" | sed "s/.*$STACK:\s*//" | tr -d '"')
+CMD=$(get_compile_gate_value "$STACK")
 
 if [[ -z "$CMD" ]]; then
   echo "FAIL: No compile_gate command for stack: $STACK" >&2

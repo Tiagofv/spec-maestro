@@ -3,8 +3,43 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+func readRepoFileForCommandTests(t *testing.T, relativePath string) string {
+	t.Helper()
+	repoRoot, err := filepath.Abs("../../..")
+	if err != nil {
+		t.Fatalf("resolve repo root: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(repoRoot, relativePath))
+	if err != nil {
+		t.Fatalf("read %s: %v", relativePath, err)
+	}
+
+	return string(content)
+}
+
+func missingSynthesisQualitySignals(content string) []string {
+	requiredSignals := []string{
+		"- **Decision:**",
+		"- **Rationale:**",
+		"- **Alternatives:",
+		"- **Confidence:",
+		"- **Verdict:**",
+	}
+
+	missing := make([]string, 0)
+	for _, signal := range requiredSignals {
+		if !strings.Contains(content, signal) {
+			missing = append(missing, signal)
+		}
+	}
+
+	return missing
+}
 
 // TestDoctorOnUninitializedProject tests doctor when .maestro/ doesn't exist.
 func TestDoctorOnUninitializedProject(t *testing.T) {
@@ -581,5 +616,47 @@ func TestDoctorNoRegressionExistingFlow(t *testing.T) {
 	// Should pass with valid structure
 	if err != nil {
 		t.Errorf("doctor should pass on valid project, got: %v", err)
+	}
+}
+
+func TestPlanCommandContractIncludesResearchReadinessAndBypassPhrase(t *testing.T) {
+	planCommand := readRepoFileForCommandTests(t, ".maestro/commands/maestro.plan.md")
+
+	requiredSnippets := []string{
+		"Consider research ready only when all are true",
+		"I acknowledge proceeding without complete research",
+		"synthesis minimum quality signals are present",
+		"run `/maestro.research {feature_id}`",
+	}
+
+	for _, snippet := range requiredSnippets {
+		if !strings.Contains(planCommand, snippet) {
+			t.Fatalf("plan command contract missing snippet %q", snippet)
+		}
+	}
+}
+
+func TestPlanCommandContractKeepsLegacyStateCompatibility(t *testing.T) {
+	planCommand := readRepoFileForCommandTests(t, ".maestro/commands/maestro.plan.md")
+
+	if !strings.Contains(planCommand, "Treat missing research fields as legacy state") {
+		t.Fatal("plan command contract must preserve legacy research-field compatibility")
+	}
+
+	if !strings.Contains(planCommand, "Never fail only because research metadata fields are missing") {
+		t.Fatal("plan command contract must not hard-fail when legacy state lacks research metadata")
+	}
+}
+
+func TestSynthesisFixturesCoverQualityMinimumsAndMissingFields(t *testing.T) {
+	complete := readRepoFileForCommandTests(t, "cmd/maestro-cli/test/fixtures/research/complete/synthesis.md")
+	missing := readRepoFileForCommandTests(t, "cmd/maestro-cli/test/fixtures/research/missing-quality/synthesis.md")
+
+	if missingSignals := missingSynthesisQualitySignals(complete); len(missingSignals) != 0 {
+		t.Fatalf("complete synthesis fixture missing required quality signals: %v", missingSignals)
+	}
+
+	if missingSignals := missingSynthesisQualitySignals(missing); len(missingSignals) == 0 {
+		t.Fatal("missing-quality synthesis fixture must omit at least one required quality signal")
 	}
 }

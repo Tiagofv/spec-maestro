@@ -1,0 +1,35 @@
+{
+  "feature_id": "016-should-we-add-the-scripts-skills-templates-to-the-",
+  "created_at": "2026-02-20T02:08:51Z",
+  "updated_at": "2026-02-20T02:13:08Z",
+  "stage": "plan",
+  "spec_path": ".maestro/specs/016-should-we-add-the-scripts-skills-templates-to-the-/spec.md",
+  "plan_path": ".maestro/specs/016-should-we-add-the-scripts-skills-templates-to-the-/plan.md",
+  "branch": "feat/should-we-add-the-scripts-skills-templates-to-the-",
+  "worktree_name": "should-we-add-the-scripts-skills-templates-to-the-",
+  "worktree_path": ".worktrees/should-we-add-the-scripts-skills-templates-to-the-",
+  "worktree_branch": "feat/should-we-add-the-scripts-skills-templates-to-the-",
+  "worktree_created": false,
+  "clarification_count": 0,
+  "user_stories": 3,
+  "phases": 4,
+  "components_new": 2,
+  "components_modified": 4,
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-02-20T02:08:51Z",
+      "action": "created"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-02-20T02:12:33Z",
+      "action": "resolved 6 markers"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-02-20T02:13:08Z",
+      "action": "created implementation plan"
+    }
+  ]
+}

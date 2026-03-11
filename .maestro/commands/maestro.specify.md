@@ -30,6 +30,31 @@ The constitution informs:
 
 If the constitution doesn't exist, proceed without it but suggest the user run `/maestro.init` first.
 
+## Step 0b: Parse Research References
+
+Parse the feature description for research references:
+
+**Research Reference Pattern:**
+
+```
+"(see research {research_id})"
+"(research: {research_id})"
+"ref: {research_id}"
+```
+
+Examples:
+
+- `Implement OAuth (see research 20250311-oauth-patterns)`
+- `Build caching layer (research: 20250312-cache-options)`
+- `Database migration ref: 20250310-db-patterns`
+
+**Extraction Logic:**
+
+1. Search for patterns in $ARGUMENTS
+2. Extract research_id from each match
+3. Validate that research exists: `.maestro/state/research/{research_id}.json`
+4. Store valid research_ids for context injection
+
 ## Step 1: Create Feature Scaffold
 
 Run the helper script to create the feature directory and git branch:
@@ -64,6 +89,54 @@ In Refine mode:
 - Incorporate the new description as additional context
 - Preserve existing clarification markers
 - Add new sections as needed
+
+## Step 1c: Load Research Context
+
+If research references were found in Step 0b:
+
+### 1c.1: Read Research Files
+
+For each research_id found:
+
+1. Read `.maestro/state/research/{research_id}.json`
+2. Get the file_path from state
+3. Read the research document from `.maestro/research/{research_id}.md`
+4. Extract key findings for context
+
+### 1c.2: Validate Research Relevance
+
+Check that research is relevant to the feature:
+
+- Research tags overlap with feature keywords
+- Research query relates to feature description
+- Research is not stale (>90 days old)
+
+If stale, add warning but still include.
+
+### 1c.3: Build Research Context
+
+Compile research findings:
+
+```markdown
+## Research Context
+
+### Linked Research Items
+
+- **{research_id}** - {research_title}
+  - Type: {source_type}
+  - Key Finding: {summary}
+  - Relevance: {High/Med/Low}
+
+### Research Insights
+
+{Key insights that inform this specification}
+
+### Recommendations from Research
+
+{Specific recommendations to consider}
+```
+
+This context will be injected into the spec generation.
 
 ## Step 2: Read the Spec Template
 
@@ -138,6 +211,7 @@ Create or update the state file at `.maestro/state/{feature_id}.json`:
   "worktree_created": false,
   "clarification_count": 0,
   "user_stories": 0,
+  "research_ids": [],
   "history": [{ "stage": "specify", "timestamp": "{ISO}", "action": "created" }]
 }
 ```
@@ -147,7 +221,21 @@ Where:
 - `{feature_id}`, `{spec_dir}`, and `{branch}` come from Step 1 scaffold output
 - `clarification_count` is the number of `[NEEDS CLARIFICATION]` markers in the generated spec
 - `user_stories` is the number of user stories in the generated spec
+- `research_ids` is an array of linked research IDs from Step 0b
 - If the state file already exists (refine mode), append to the `history` array with action `"refined"` and update `updated_at`
+
+### 5b.1: Link Research to Feature
+
+For each research_id in `research_ids`:
+
+```bash
+.maestro/scripts/research-state.sh link {research_id} {feature_id}
+```
+
+This creates bidirectional linking:
+
+- Feature state references research
+- Research state references feature
 
 ## Step 6: Report and Suggest Next Steps
 

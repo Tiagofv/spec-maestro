@@ -1,0 +1,57 @@
+{
+  "feature_id": "017-lets-add-support-for-codex-on-maestro",
+  "created_at": "2026-02-20T12:11:52Z",
+  "updated_at": "2026-02-20T14:50:00Z",
+  "stage": "plan",
+  "spec_path": ".maestro/specs/017-lets-add-support-for-codex-on-maestro/spec.md",
+  "branch": "feat/lets-add-support-for-codex-on-maestro",
+  "worktree_name": "lets-add-support-for-codex-on-maestro",
+  "worktree_path": ".worktrees/lets-add-support-for-codex-on-maestro",
+  "worktree_branch": "feat/lets-add-support-for-codex-on-maestro",
+  "worktree_created": false,
+  "plan_path": ".maestro/specs/017-lets-add-support-for-codex-on-maestro/plan.md",
+  "phases": 3,
+  "components_new": 2,
+  "components_modified": 7,
+  "clarification_count": 0,
+  "user_stories": 3,
+  "tasks_total": 0,
+  "tasks_remaining": 0,
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-02-20T12:11:52Z",
+      "action": "created"
+    },
+    {
+      "stage": "specify",
+      "timestamp": "2026-02-20T12:14:34Z",
+      "action": "refined"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-02-20T12:27:16Z",
+      "action": "resolved 6 markers"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-02-20T12:34:34Z",
+      "action": "corrected codex cli terminology"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-02-20T12:37:29Z",
+      "action": "created implementation plan"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-02-20T14:45:00Z",
+      "action": "verified plan against codebase"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-02-20T14:50:00Z",
+      "action": "regenerated implementation plan from finalized spec"
+    }
+  ]
+}

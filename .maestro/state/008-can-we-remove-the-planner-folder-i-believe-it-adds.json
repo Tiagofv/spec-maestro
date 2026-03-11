@@ -1,0 +1,81 @@
+{
+  "feature_id": "008-can-we-remove-the-planner-folder-i-believe-it-adds",
+  "created_at": "2026-02-19T00:00:00.000Z",
+  "updated_at": "2026-02-20T01:33:00Z",
+  "stage": "complete",
+  "spec_path": ".maestro/specs/008-can-we-remove-the-planner-folder-i-believe-it-adds/spec.md",
+  "plan_path": ".maestro/specs/008-can-we-remove-the-planner-folder-i-believe-it-adds/plan.md",
+  "branch": "feat/can-we-remove-the-planner-folder-i-believe-it-adds",
+  "worktree_name": "can-we-remove-the-planner-folder-i-believe-it-adds",
+  "worktree_path": ".worktrees/can-we-remove-the-planner-folder-i-believe-it-adds",
+  "worktree_branch": "feat/can-we-remove-the-planner-folder-i-believe-it-adds",
+  "worktree_created": false,
+  "epic_id": "agent-maestro-euf",
+  "task_count": 11,
+  "clarification_count": 0,
+  "user_stories": 3,
+  "phases": 4,
+  "components_new": 0,
+  "components_modified": 3,
+  "tasks": {
+    "T001": "agent-maestro-euf.1",
+    "R001": "agent-maestro-euf.2",
+    "T002": "agent-maestro-euf.3",
+    "R002": "agent-maestro-euf.4",
+    "T003": "agent-maestro-euf.5",
+    "R003": "agent-maestro-euf.6",
+    "T004": "agent-maestro-euf.7",
+    "R004": "agent-maestro-euf.8",
+    "PM-VAL": "agent-maestro-euf.9",
+    "FIX-001": "agent-maestro-euf.10",
+    "R-FIX-001": "agent-maestro-euf.11"
+  },
+  "progress": {
+    "completed": 11,
+    "total": 11,
+    "percentage": 100
+  },
+  "completed_at": "2026-02-20T01:30:28Z",
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-02-19T00:00:00.000Z",
+      "action": "created"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-02-19T00:00:00.000Z",
+      "action": "resolved 4 markers + 3 implicit gaps"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-02-19T00:00:00.000Z",
+      "action": "plan created"
+    },
+    {
+      "stage": "tasks",
+      "timestamp": "2026-02-19T00:00:00.000Z",
+      "action": "created 9 tasks (4 impl + 4 review + 1 pm-val)"
+    },
+    {
+      "stage": "complete",
+      "timestamp": "2026-02-19T00:00:00.000Z",
+      "action": "implementation + reviews + pm validation completed"
+    },
+    {
+      "stage": "implement",
+      "timestamp": "2026-02-20T01:30:28Z",
+      "action": "recovered lost worktree, replayed all tasks, resolved critical review and PM validation gaps"
+    },
+    {
+      "stage": "complete",
+      "timestamp": "2026-02-20T01:30:28Z",
+      "action": "all 11 tasks closed including fix/review follow-ups; PM validation COMPLETE"
+    },
+    {
+      "stage": "complete",
+      "timestamp": "2026-02-20T01:33:00Z",
+      "action": "worktree cleaned up"
+    }
+  ]
+}

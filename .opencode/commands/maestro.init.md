@@ -122,7 +122,7 @@ Tell the user:
    - Directory structure
    - config.yaml (with detected project name)
    - constitution.md (from template)
-   - Registered commands (11 slash commands)
+   - Registered commands (12 slash commands)
    - Registered skills (constitution, review, pm-validation)
 
 2. Next steps:
