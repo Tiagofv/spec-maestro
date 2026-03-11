@@ -148,8 +148,10 @@ See [cmd/maestro-cli/README.md](cmd/maestro-cli/README.md) for full CLI document
 | Command                          | What it does                                                              |
 | -------------------------------- | ------------------------------------------------------------------------- |
 | `/maestro.init`                  | Initialize maestro in the project                                         |
+| `/maestro.update`                | Update maestro to latest version from GitHub                              |
 | `/maestro.specify <description>` | Generate a feature spec from plain language                               |
 | `/maestro.clarify`               | Resolve `[NEEDS CLARIFICATION]` markers in the spec                       |
+| `/maestro.research <query>`      | Conduct structured research on code patterns, technologies, or artifacts  |
 | `/maestro.plan`                  | Generate an implementation plan from the spec                             |
 | `/maestro.tasks`                 | Break the plan into bd issues with dependencies                           |
 | `/maestro.implement`             | Implement all tasks — loops through ready tasks, reviews, and PM validate |
@@ -178,14 +180,34 @@ See [cmd/maestro-cli/README.md](cmd/maestro-cli/README.md) for full CLI document
     └── when all tasks done → /maestro.pm-validate → /maestro.analyze
 ```
 
+### Research
+
+The `/maestro.research` command helps you investigate technologies, patterns, or existing solutions before specifying a feature:
+
+```bash
+/maestro.research How do we handle authentication in this codebase?
+/maestro.research What are the trade-offs between PostgreSQL and MongoDB?
+/maestro.research Find specs related to payments
+```
+
+Research supports three source types:
+
+- **Codebase patterns**: Search existing code, specs, and plans
+- **External technologies**: Research libraries, frameworks, and approaches
+- **Artifacts**: Discover existing specs, plans, and prior research
+
+Research findings are stored in `.maestro/research/` and can be linked to feature specifications.
+
 ## Directory Structure
 
-```
+````
 .maestro/
 ├── commands/           # Slash commands (maestro.*.md) — source of truth
 │   ├── maestro.init.md
+│   ├── maestro.update.md
 │   ├── maestro.specify.md
 │   ├── maestro.clarify.md
+│   ├── maestro.research.md
 │   ├── maestro.plan.md
 │   ├── maestro.tasks.md
 │   ├── maestro.implement.md
@@ -217,8 +239,9 @@ See [cmd/maestro-cli/README.md](cmd/maestro-cli/README.md) for full CLI document
 ├── constitution.md     # Project rules (generated from template)
 ├── specs/              # Feature specifications (created by /maestro.specify)
 ├── state/              # Pipeline state JSON files
-└── memory/             # Agent memory (learnings across sessions)
-```
+├── memory/             # Agent memory (learnings across sessions)
+├── research/           # Research findings (created by /maestro.research)
+└── skills/             # SKILL.md files — source of truth (copied to agent dirs by init)
 
 ## Key Concepts
 
@@ -262,7 +285,7 @@ If you edit any command or skill in `.maestro/`, re-run init to propagate change
 
 ```bash
 bash .maestro/scripts/init.sh .
-```
+````
 
 ## License
 
