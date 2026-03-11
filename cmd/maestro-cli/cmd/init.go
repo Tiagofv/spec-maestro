@@ -94,6 +94,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Download and extract assets if release found
+	assetDownloaded := false
 	if release != nil {
 		fmt.Printf("Using release: %s\n", release.TagName)
 		asset, err := release.FindAssetForPlatform(platform.AssetSuffix())
@@ -109,9 +110,21 @@ func runInit(cmd *cobra.Command, args []string) error {
 				} else {
 					if err := assets.ExtractAsset(cachedPath, maestroDir); err != nil {
 						fmt.Fprintf(os.Stderr, "Warning: extraction failed: %v\n", err)
+					} else {
+						assetDownloaded = true
 					}
 				}
 			}
+		}
+	}
+
+	// Fallback: Fetch from GitHub if no asset was downloaded
+	if !assetDownloaded {
+		fmt.Println("Falling back to fetching .maestro/ from GitHub main branch...")
+		if err := initFromGitHub(client, maestroDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: GitHub fetch failed: %v\n", err)
+		} else {
+			fmt.Println("✓ Downloaded .maestro/ from GitHub")
 		}
 	}
 
@@ -307,4 +320,61 @@ func isInteractiveStdin() bool {
 		return false
 	}
 	return (info.Mode() & os.ModeCharDevice) != 0
+}
+
+// initFromGitHub fetches only the core maestro directories from GitHub main branch
+// when no release asset is available for the current platform.
+// This preserves user data - specs/state/research/memory are created empty.
+func initFromGitHub(client *ghclient.Client, maestroDir string) error {
+	coreDirs := []string{".maestro/commands", ".maestro/scripts", ".maestro/templates", ".maestro/skills", ".maestro/cookbook", ".maestro/reference"}
+	// User data directories - just create them empty, don't fetch from GitHub
+	userDirs := []string{"specs", "state", "research", "memory"}
+
+	if err := os.MkdirAll(maestroDir, 0755); err != nil {
+		return fmt.Errorf("creating maestro directory: %w", err)
+	}
+
+	totalFiles := 0
+	for _, dir := range coreDirs {
+		content, err := client.FetchAgentDir(dir, "main")
+		if err != nil {
+			continue
+		}
+
+		for filePath, fileContent := range content {
+			localPath := filePath
+			if strings.HasPrefix(localPath, dir+"/") {
+				localPath = strings.TrimPrefix(localPath, dir+"/")
+			}
+
+			fullPath := filepath.Join(maestroDir, strings.TrimPrefix(dir, ".maestro/"), localPath)
+
+			parentDir := filepath.Dir(fullPath)
+			if err := os.MkdirAll(parentDir, 0755); err != nil {
+				return fmt.Errorf("creating directory %s: %w", parentDir, err)
+			}
+
+			if err := os.WriteFile(fullPath, fileContent, 0644); err != nil {
+				return fmt.Errorf("writing %s: %w", fullPath, err)
+			}
+			totalFiles++
+		}
+	}
+
+	for _, userDir := range userDirs {
+		userPath := filepath.Join(maestroDir, userDir)
+		if _, err := os.Stat(userPath); os.IsNotExist(err) {
+			if err := os.MkdirAll(userPath, 0755); err != nil {
+				return fmt.Errorf("creating user directory %s: %w", userPath, err)
+			}
+		}
+	}
+
+	if totalFiles == 0 {
+		return fmt.Errorf("no files downloaded from GitHub")
+	}
+
+	fmt.Printf("✓ Downloaded %d core files from GitHub\n", totalFiles)
+	fmt.Println("  (Existing user data preserved: specs, state, research, memory)")
+	return nil
 }
