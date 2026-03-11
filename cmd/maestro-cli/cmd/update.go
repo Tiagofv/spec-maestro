@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -63,8 +64,13 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	// Find asset for platform
 	asset, err := release.FindAssetForPlatform(platform.AssetSuffix())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: no asset for platform %s: %v\n", platform.String(), err)
-		fmt.Println("Please download the update manually from https://github.com/" + githubOwner + "/" + githubRepo + "/releases")
+		// No release asset for this platform - fall back to fetching from GitHub main
+		fmt.Printf("Warning: no release asset for platform %s\n", platform.String())
+		fmt.Println("Falling back to fetching .maestro/ from GitHub main branch...")
+		if err := updateFromGitHub(client); err != nil {
+			return fmt.Errorf("updating from GitHub: %w", err)
+		}
+		fmt.Printf("✓ Updated .maestro/ from GitHub main branch!\n")
 		return nil
 	}
 
@@ -267,6 +273,41 @@ func fetchAndInstallAgentDirs(client *ghclient.Client, selected []string) error 
 		fmt.Printf("✓ Installed %s\n", dir)
 	}
 
+	return nil
+}
+
+// updateFromGitHub fetches the .maestro/ directory directly from GitHub main branch
+// when no release asset is available for the current platform.
+func updateFromGitHub(client *ghclient.Client) error {
+	fmt.Println("Fetching .maestro/ directory from GitHub main branch...")
+
+	// Fetch the entire .maestro directory
+	content, err := client.FetchAgentDir(".maestro", "main")
+	if err != nil {
+		return fmt.Errorf("fetching .maestro directory: %w", err)
+	}
+
+	// Write each file to the .maestro/ directory
+	for filePath, fileContent := range content {
+		fullPath := filePath
+		// Ensure we're writing to .maestro/ directory
+		if !strings.HasPrefix(fullPath, ".maestro/") {
+			fullPath = ".maestro/" + fullPath
+		}
+
+		// Create parent directories if needed
+		parentDir := path.Dir(fullPath)
+		if err := os.MkdirAll(parentDir, 0755); err != nil {
+			return fmt.Errorf("creating directory %s: %w", parentDir, err)
+		}
+
+		// Write the file
+		if err := os.WriteFile(fullPath, fileContent, 0644); err != nil {
+			return fmt.Errorf("writing %s: %w", fullPath, err)
+		}
+	}
+
+	fmt.Printf("✓ Updated %d files from GitHub\n", len(content))
 	return nil
 }
 
