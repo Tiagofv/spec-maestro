@@ -46,19 +46,140 @@ Validate command boundaries before starting research:
 
 If validation fails, stop with corrective guidance.
 
-## Step 4: Use Fixed Research Agent Set (MVP)
+## Step 4: Detect Query Complexity
+
+Analyze the research query to determine if parallel agent orchestration is needed:
+
+**Complex Query Indicators:**
+
+- Contains: "architecture", "comprehensive", "full analysis", "deep dive"
+- Compares multiple technologies: "vs", "compare", "trade-offs"
+- Asks for patterns: "how do we", "existing implementation", "patterns"
+- References scope: "best practices", "pitfalls", "common mistakes"
+
+**Routing Decision:**
+
+| Query Type               | Action               | Agents               |
+| ------------------------ | -------------------- | -------------------- |
+| Simple (codebase search) | Sequential execution | 1 (pattern agent)    |
+| Simple (external lookup) | Sequential execution | 1 (technology agent) |
+| Complex (multi-domain)   | Parallel execution   | 4 (all agents)       |
+
+## Step 5: Use Fixed Research Agent Set (MVP)
 
 Use a fixed, non-configurable research agent set for MVP. Do not allow custom domain swapping in this command.
 
 Fixed agent tracks:
 
 1. **Technology Options** -> `research/technology-options.md`
+
+- **Agent:** `.maestro/agents/research/technology-agent.md`
+- **Scope:** External technologies, libraries, frameworks
+
 2. **Pattern Catalog** -> `research/pattern-catalog.md`
+
+- **Agent:** `.maestro/agents/research/pattern-agent.md`
+- **Scope:** Existing patterns in codebase and ecosystem
+
 3. **Pitfall Register** -> `research/pitfall-register.md`
+
+- **Agent:** `.maestro/agents/research/pitfall-agent.md`
+- **Scope:** Common mistakes, gotchas, risks
+
 4. **Competitive Analysis** -> `research/competitive-analysis.md`
+
+- **Agent:** `.maestro/agents/research/best-practices-agent.md`
+- **Scope:** Best practices and industry standards
+
 5. **Synthesis and Readiness** -> `research/synthesis.md`
 
+- **Synthesizes:** All domain outputs
+- **Determines:** Planning readiness
+
 The first four tracks gather domain findings. The synthesis track consolidates all domain outputs and determines planning readiness.
+
+## Step 5b: Execute Parallel Agent Orchestration (Complex Queries)
+
+When query complexity requires parallel research:
+
+### 5b.1: Spawn Agents in Parallel
+
+Launch 4 agents simultaneously using Task():
+
+```
+Task(agent: technology-agent, query: $ARGUMENTS)
+Task(agent: pattern-agent, query: $ARGUMENTS)
+Task(agent: pitfall-agent, query: $ARGUMENTS)
+Task(agent: best-practices-agent, query: $ARGUMENTS)
+```
+
+**Constraints:**
+
+- Max 4 concurrent agents (as per spec requirement)
+- Each agent has 30-minute time limit
+- Agents are independent (no dependencies between them)
+
+### 5b.2: Collect Agent Outputs
+
+Wait for all agents to complete and collect:
+
+- **Technology findings:** Structured comparison with recommendations
+- **Pattern findings:** Catalog of existing patterns with applicability
+- **Pitfall findings:** Risk catalog with mitigations
+- **Best practices:** Practice catalog with priority levels
+
+### 5b.3: Synthesize Findings
+
+Consolidate all agent outputs:
+
+**Synthesis Rules:**
+
+- Weight findings by confidence score when conflicting
+- Include comparison matrix when options differ
+- Highlight risks identified by pitfall agent
+- Reference patterns from pattern agent
+- Apply best practices recommendations
+
+**Output Structure:**
+
+```markdown
+# Research Synthesis: {Query}
+
+## Findings Summary
+
+- {High-level summary of what was learned}
+
+## Technology Recommendations
+
+{Consolidated from technology-agent}
+
+## Pattern Guidance
+
+{Consolidated from pattern-agent}
+
+## Risks & Mitigations
+
+{Consolidated from pitfall-agent}
+
+## Best Practices to Apply
+
+{Consolidated from best-practices-agent}
+
+## Final Recommendation
+
+{Unified recommendation based on all agents}
+```
+
+### 5b.4: Store Agent Usage in State
+
+Record which agents were used:
+
+```json
+{
+  "agents_used": ["technology", "pattern", "pitfall", "best_practices"],
+  "parallel_execution": true
+}
+```
 
 ## Step 5: Execute with Bounded Parallelism
 

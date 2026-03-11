@@ -72,6 +72,74 @@ Planning readiness gate behavior:
 
 If the phrase is missing or incorrect, stop and instruct the user to run `/maestro.research {feature_id}`.
 
+## Step 3c: Load Research Findings
+
+If research is linked to the feature (check `research_ids` array in state):
+
+### 3c.1: Read Linked Research
+
+For each research_id in `research_ids`:
+
+1. Read `.maestro/state/research/{research_id}.json`
+2. Get the research file path
+3. Read the full research document
+4. Extract key findings, recommendations, and risks
+
+### 3c.2: Build Research Context
+
+Compile research findings for planning context:
+
+```markdown
+## Research-Informed Context
+
+### Technology Recommendations
+
+{From research findings}
+
+### Pattern Guidance
+
+{Applicable patterns from research}
+
+### Identified Risks
+
+{Risks and mitigations from research}
+
+### Best Practices to Apply
+
+{Practices from research}
+```
+
+### 3c.3: Apply Research to Planning
+
+Use research findings to inform plan decisions:
+
+**Architecture Decisions:**
+
+- Reference research technology recommendations
+- Consider pattern guidance from research
+- Include research-identified risks in risk section
+
+**Component Design:**
+
+- Apply patterns discovered in research
+- Follow best practices identified
+- Avoid pitfalls documented
+
+**Risk Assessment:**
+
+- Include all risks from research
+- Add mitigations based on research recommendations
+
+**Example Integration:**
+
+```markdown
+### Key Design Decisions
+
+| Decision        | Options Considered          | Chosen     | Rationale                                                                    |
+| --------------- | --------------------------- | ---------- | ---------------------------------------------------------------------------- |
+| Database choice | PostgreSQL, MongoDB, SQLite | PostgreSQL | Per research 20250312-db-comparison: better for time-series, proven at scale |
+```
+
 ## Step 4: Read the Plan Template
 
 Read `.maestro/templates/plan-template.md`.
