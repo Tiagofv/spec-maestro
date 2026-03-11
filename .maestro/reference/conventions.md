@@ -180,6 +180,101 @@ This convention is implemented in `.maestro/scripts/create-feature.sh`. The scri
 
 ---
 
+## Real Examples from This Project
+
+The following folder names exist in `.maestro/specs/`:
+
+| Folder Name | Description (Original) | Notes |
+|-------------|------------------------|-------|
+| `001-kanban-board-tauri-ui` | "We need to build a kanban board on our Tauri UI to track tasks" | Filters stop words, keeps key nouns |
+| `013-better-naming-for-the-folders-created-inside-specs` | "Add better naming for the folders created inside specs" | Exact match with convention, 48 chars |
+| `014-add-automatic-git-worktree-support-to-maestro` | "Add automatic git worktree support to Maestro" | Long descriptive name kept |
+| `017-lets-add-support-for-codex-on-maestro` | "Let's add support for Codex on Maestro" | Filters "let's", keeps nouns |
+
+---
+
+## Edge Cases and How They're Handled
+
+### Edge Case 1: Very Short Descriptions
+
+**Problem:** Description is too brief (e.g., "Fix bug").
+
+**Handling:** When the description is below minimum after stop word filtering, the full phrase is used even if under 10 characters. Example: `015-fix-ui-bug` (11 chars).
+
+### Edge Case 2: All Stop Words
+
+**Problem:** Description contains only stop words.
+
+**Handling:** The script keeps at least the original words regardless of stop word filtering. A description like "Add the feature" becomes `xxx-add-feature`.
+
+### Edge Case 3: Numbers in Description
+
+**Problem:** Description contains numbers (e.g., "Add v2 support").
+
+**Handling:** Numbers are preserved in the slug. Example: `020-v2-api-support`.
+
+### Edge Case 4: Special Characters
+
+**Problem:** Description contains special characters or punctuation.
+
+**Handling:** Only alphanumeric characters and spaces are kept. Hyphens are used as word separators. Example: "API's & Webhooks!" becomes `api-s-webhooks`.
+
+### Edge Case 5: Duplicate Names After Truncation
+
+**Problem:** Two different descriptions result in the same truncated name.
+
+**Handling:** Counter suffix is appended (-v2, -v3, etc.) to create uniqueness.
+
+### Edge Case 6: Unicode Characters
+
+**Problem:** Description contains non-ASCII characters.
+
+**Handling:** Unicode characters are converted to ASCII equivalents where possible, or removed. Only a-z, 0-9 are kept in the final slug.
+
+### Edge Case 7: Single Word Description
+
+**Problem:** Description is a single word.
+
+**Handling:** The single word is used with the ID prefix. Example: "Refactor" becomes `021-refactor`.
+
+---
+
+## FAQ
+
+### Q: Why not use timestamps instead of -v2, -v3?
+
+**A:** Timestamps (e.g., `-20240219`) are less readable and harder to sort mentally. Counter suffixes are predictable, chronological by nature, and easier to type.
+
+### Q: Can I rename existing folders manually?
+
+**A:** Yes. The convention doesn't enforce renaming. Existing folders work as-is. Manual migration is optional.
+
+### Q: What if my description is exactly 40 characters?
+
+**A:** That's acceptable. The maximum is inclusive, so 40 characters is valid.
+
+### Q: Does the numeric ID have to be 3 digits?
+
+**A:** Yes. The prefix is always 3 digits (001-999) for consistent sorting and alignment.
+
+### Q: What happens if I create a folder outside this convention?
+
+**A:** The folder will still work, but it won't follow project conventions. The script enforces the convention for new creations.
+
+### Q: Can I override the convention for specific cases?
+
+**A:** Yes, but it's discouraged. The conventions ensure consistency across the project. Override only when absolutely necessary.
+
+### Q: How do I update existing state files after renaming?
+
+**A:** State files in `.maestro/state/` reference folder names. After renaming, update any references manually. The convention doesn't auto-update state files.
+
+### Q: Is there a length minimum for the descriptive portion?
+
+**A:** Yes, 10 characters minimum for the descriptive portion alone (after the ID and hyphen). If below minimum, use the full phrase.
+
+---
+
 ## References
 
 - Feature Spec: `.maestro/specs/013-better-naming-for-the-folders-created-inside-specs/spec.md`
