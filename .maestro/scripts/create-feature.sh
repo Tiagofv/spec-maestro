@@ -15,10 +15,12 @@ SPECS_DIR=".maestro/specs"
 
 # --- Derive slug from description ---
 # Extract key words (remove articles, prepositions), then generate slug
+STOP_WORDS='^(a|an|the|and|or|but|for|nor|on|at|to|from|in|into|with|by|of|is|are|was|were|be|been|being|over|under|above|below|through|about|around|before|after|since|until|while|during|we|our|i|this|that|need|build|tauri)$'
+
 SLUG=$(echo "$DESCRIPTION" \
   | tr '[:upper:]' '[:lower:]' \
   | tr '[:space:]' '\n' \
-  | grep -vE '^(a|an|the|and|or|but|for|nor|on|at|to|from|in|into|with|by|of|is|are|was|were|be|been|being|over|under|above|below|through|about|around|before|after|since|until|while|during)$' \
+  | grep -vE "$STOP_WORDS" \
   | grep -vE '^[[:space:]]*$' \
   | tr '\n' ' ' \
   | sed 's/[^a-z0-9]/-/g' \
