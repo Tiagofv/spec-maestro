@@ -33,8 +33,44 @@ bd sync               # Sync with git
 7. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
+
 - Work is NOT complete until `git push` succeeds
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 
+---
+
+## Rebuilding Maestro CLI
+
+The maestro CLI (`cmd/maestro-cli/maestro`) is a Go binary. Here's when you need to rebuild:
+
+### ✅ Rebuild Required
+
+Run `make build` or `go build -o maestro ./cmd/maestro-cli` when you change:
+
+- **Go source files** (`.go` in `cmd/`, `pkg/`, `internal/`)
+- **Go module dependencies** (`go.mod`, `go.sum`)
+- **Embedded assets** (if code uses `//go:embed`)
+
+### ❌ No Rebuild Needed
+
+The CLI reads these files at runtime - changes take effect immediately:
+
+- **Command definitions** (`.maestro/commands/*.md`)
+- **Scripts** (`.maestro/scripts/*.sh`)
+- **Templates** (`.maestro/templates/*.md`)
+- **Configuration** (`.maestro/config.yaml`)
+- **Documentation** (README, USAGE, etc.)
+
+### Quick Check
+
+```bash
+# Did you modify .go files?
+git diff --name-only | grep '\.go$'
+
+# If yes → rebuild required
+make build
+
+# If only .md, .sh, .yaml → no rebuild needed
+```
