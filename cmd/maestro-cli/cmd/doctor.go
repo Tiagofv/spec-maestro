@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/spec-maestro/maestro-cli/pkg/agents"
@@ -76,6 +77,54 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 			message: map[bool]string{true: "found", false: "missing"}[err == nil],
 			fix:     fmt.Sprintf("Run 'maestro init' to restore %s/", dir),
 		})
+	}
+
+	// Check system dependencies on PATH
+	type sysDep struct {
+		name        string
+		installHint string
+		isRequired  bool
+	}
+	sysDeps := []sysDep{
+		{
+			name:        "bd",
+			installHint: "Install from https://github.com/anomalyco/beads",
+			isRequired:  true,
+		},
+		{
+			name:        "jq",
+			installHint: "Install via: brew install jq (macOS) or apt-get install jq (Linux)",
+			isRequired:  false,
+		},
+		{
+			name:        "python3",
+			installHint: "Install via: brew install python3 (macOS) or apt-get install python3 (Linux)",
+			isRequired:  false,
+		},
+		{
+			name:        "git",
+			installHint: "Install via: brew install git (macOS) or apt-get install git (Linux)",
+			isRequired:  true,
+		},
+	}
+
+	for _, dep := range sysDeps {
+		_, err := exec.LookPath(dep.name)
+		if err == nil {
+			results = append(results, checkResult{
+				name:    dep.name + " (system)",
+				ok:      true,
+				message: "found on PATH",
+			})
+		} else {
+			results = append(results, checkResult{
+				name:    dep.name + " (system)",
+				ok:      false,
+				message: "not found",
+				fix:     dep.installHint,
+				isWarn:  !dep.isRequired,
+			})
+		}
 	}
 
 	// Check optional agent directories (warnings only)
