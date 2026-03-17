@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Test
+  go-test:
+    name: Go Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,3 +23,53 @@ jobs:
       - name: Vet
         working-directory: cmd/maestro-cli
         run: go vet ./...
+
+  typescript-test:
+    name: TypeScript Test
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build (type check)
+        run: pnpm run build
+      - name: Test
+        run: pnpm run test:run
+
+  rust-test:
+    name: Rust Test
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cargo check
+        working-directory: src-tauri
+        run: cargo check
+      - name: Cargo test
+        working-directory: src-tauri
+        run: cargo test
+
+  shell-test:
+    name: Shell Script Test
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install jq
+        run: sudo apt-get install -y jq
+      - name: Test list-features
+        run: bash .maestro/scripts/test/test-list-features.sh
+      - name: Test validate-plan
+        run: bash .maestro/scripts/test/validate-plan-test.sh
+      - name: Test create-tasks
+        run: bash .maestro/scripts/test/create-tasks-test.sh
