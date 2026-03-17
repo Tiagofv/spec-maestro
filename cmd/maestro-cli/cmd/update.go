@@ -16,6 +16,11 @@ import (
 	ghclient "github.com/spec-maestro/maestro-cli/pkg/github"
 )
 
+const (
+	githubOwner = "Tiagofv"
+	githubRepo  = "spec-maestro"
+)
+
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Update maestro to the latest version",
