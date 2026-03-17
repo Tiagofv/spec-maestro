@@ -1,0 +1,77 @@
+{
+  "feature_id": "031-lets-add-agent-maestro-new-command-list",
+  "created_at": "2026-03-16T00:00:00Z",
+  "updated_at": "2026-03-16T00:00:00Z",
+  "stage": "complete",
+  "completed_at": "2026-03-16T00:00:00Z",
+  "spec_path": ".maestro/specs/031-lets-add-agent-maestro-new-command-list/spec.md",
+  "plan_path": ".maestro/specs/031-lets-add-agent-maestro-new-command-list/plan.md",
+  "epic_id": "agent-maestro-6nk",
+  "branch": "feat/lets-add-agent-maestro-new-command-list",
+  "worktree_name": "lets-add-agent-maestro-new-command-list",
+  "worktree_path": ".worktrees/lets-add-agent-maestro-new-command-list",
+  "worktree_branch": "feat/lets-add-agent-maestro-new-command-list",
+  "worktree_created": true,
+  "clarification_count": 0,
+  "user_stories": 4,
+  "phases": 1,
+  "components_new": 4,
+  "components_modified": 0,
+  "task_count": 11,
+  "implementation_tasks": 5,
+  "review_tasks": 5,
+  "pm_validation": 1,
+  "research_path": ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research",
+  "research_artifacts": [
+    ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/technology-options.md",
+    ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/pattern-catalog.md",
+    ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/pitfall-register.md",
+    ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/competitive-analysis.md",
+    ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/synthesis.md"
+  ],
+  "research_artifact_pointers": {
+    "technology_options": ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/technology-options.md",
+    "pattern_catalog": ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/pattern-catalog.md",
+    "pitfall_register": ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/pitfall-register.md",
+    "competitive_analysis": ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/competitive-analysis.md",
+    "synthesis": ".maestro/specs/031-lets-add-agent-maestro-new-command-list/research/synthesis.md"
+  },
+  "research_ready": true,
+  "research_completed_at": "2026-03-16T00:00:00Z",
+  "research_bypass_acknowledged": false,
+  "research_parallel_agents_default": 2,
+  "research_parallel_agents_max": 5,
+  "research_parallel_agents_used": 4,
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-03-16T00:00:00Z",
+      "action": "created"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-03-16T00:00:00Z",
+      "action": "resolved 5 markers"
+    },
+    {
+      "stage": "research",
+      "timestamp": "2026-03-16T00:00:00Z",
+      "action": "completed 5 research artifacts"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-03-16T00:00:00Z",
+      "action": "generated implementation plan with 5 tasks"
+    },
+    {
+      "stage": "tasks",
+      "timestamp": "2026-03-16T00:00:00Z",
+      "action": "created epic and 11 tasks (5 impl + 5 review + 1 PM validation)"
+    },
+    {
+      "stage": "complete",
+      "timestamp": "2026-03-16T00:00:00Z",
+      "action": "all 11 tasks closed; PM validation COMPLETE 19/19 criteria; all reviews PASS"
+    }
+  ]
+}
