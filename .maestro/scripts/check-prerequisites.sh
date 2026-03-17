@@ -179,7 +179,7 @@ case "$STAGE" in
   implement|review|pm-validate)
     # Check bd has tasks for this feature
     if ! command -v bd &>/dev/null; then
-      echo "{\"ok\":false,\"error\":\"bd CLI not found\",\"suggestion\":\"Install bd: go install github.com/...\"}"
+      echo "{\"ok\":false,\"error\":\"bd CLI not found\",\"suggestion\":\"Install bd from https://github.com/anomalyco/beads\"}"
       exit 1
     fi
     ;;
