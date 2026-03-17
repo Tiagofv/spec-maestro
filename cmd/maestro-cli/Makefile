@@ -8,9 +8,12 @@ LDFLAGS := -X github.com/spec-maestro/maestro-cli/internal/version.Version=$(VER
            -X github.com/spec-maestro/maestro-cli/internal/version.Commit=$(COMMIT) \
            -X github.com/spec-maestro/maestro-cli/internal/version.Date=$(DATE)
 
-.PHONY: build test install uninstall clean
+.PHONY: build test install uninstall clean generate
 
-build:
+generate:
+	go generate ./...
+
+build: generate
 	go build -ldflags "$(LDFLAGS)" -o $(BINARY) .
 
 test:
