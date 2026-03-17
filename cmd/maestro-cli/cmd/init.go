@@ -71,39 +71,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Install .maestro/ core directories from embedded resources
-	fetch := embedded.NewAssetFetcher()
-	coreDirs := []string{
-		".maestro/commands",
-		".maestro/scripts",
-		".maestro/templates",
-		".maestro/skills",
-		".maestro/cookbook",
-		".maestro/reference",
-	}
-
-	totalFiles := 0
-	for _, dir := range coreDirs {
-		content, err := fetch(dir)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: could not read embedded dir %s: %v\n", dir, err)
-			continue
-		}
-
-		for filePath, fileContent := range content {
-			if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-				return fmt.Errorf("creating directory for %s: %w", filePath, err)
-			}
-			if err := os.WriteFile(filePath, fileContent, 0644); err != nil {
-				return fmt.Errorf("writing %s: %w", filePath, err)
-			}
-			totalFiles++
-		}
-	}
-
-	if totalFiles > 0 {
-		fmt.Printf("✓ Installed %d core files from embedded resources\n", totalFiles)
-	}
-
+	// Uses the transactional installer with conflict handling
 	if err := installRequiredStarterAssets(os.Stdin, os.Stdout); err != nil {
 		return fmt.Errorf("installing required starter assets: %w", err)
 	}
