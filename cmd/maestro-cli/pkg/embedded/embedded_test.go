@@ -17,37 +17,37 @@ func TestNewAssetFetcher_MaestroSubdirectories(t *testing.T) {
 		{
 			name:     "commands",
 			dir:      ".maestro/commands",
-			wantFile: ".maestro/commands/maestro.init.md",
+			wantFile: "maestro.init.md",
 			minFiles: 1,
 		},
 		{
 			name:     "scripts",
 			dir:      ".maestro/scripts",
-			wantFile: ".maestro/scripts/init.sh",
+			wantFile: "init.sh",
 			minFiles: 1,
 		},
 		{
 			name:     "templates",
 			dir:      ".maestro/templates",
-			wantFile: ".maestro/templates/spec-template.md",
+			wantFile: "spec-template.md",
 			minFiles: 1,
 		},
 		{
 			name:     "skills",
 			dir:      ".maestro/skills",
-			wantFile: ".maestro/skills/constitution/SKILL.md",
+			wantFile: "constitution/SKILL.md",
 			minFiles: 1,
 		},
 		{
 			name:     "cookbook",
 			dir:      ".maestro/cookbook",
-			wantFile: ".maestro/cookbook/post-epic-analysis.md",
+			wantFile: "post-epic-analysis.md",
 			minFiles: 1,
 		},
 		{
 			name:     "reference",
 			dir:      ".maestro/reference",
-			wantFile: ".maestro/reference/conventions.md",
+			wantFile: "conventions.md",
 			minFiles: 1,
 		},
 	}
@@ -80,13 +80,13 @@ func TestNewAssetFetcher_AgentDirs(t *testing.T) {
 		{
 			name:     "claude",
 			dir:      ".claude",
-			wantFile: ".claude/commands/maestro.init.md",
+			wantFile: "commands/maestro.init.md",
 			minFiles: 1,
 		},
 		{
 			name:     "opencode",
 			dir:      ".opencode",
-			wantFile: ".opencode/commands/maestro.init.md",
+			wantFile: "commands/maestro.init.md",
 			minFiles: 1,
 		},
 	}

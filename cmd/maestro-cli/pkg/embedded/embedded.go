@@ -69,9 +69,12 @@ func NewAssetFetcher() func(dir string) (map[string][]byte, error) {
 				return fmt.Errorf("reading embedded file %s: %w", filePath, readErr)
 			}
 
-			// Strip the "resources/" prefix so the key matches what the
-			// caller expects (e.g. ".maestro/commands/maestro.init.md").
-			rel := strings.TrimPrefix(filePath, embeddedRoot+"/")
+			// Strip the "resources/<dir>/" prefix so the key is relative to
+			// the requested directory (e.g. "maestro.init.md" not
+			// ".maestro/commands/maestro.init.md").  This matches the
+			// contract expected by agents.WriteAgentDir which joins the
+			// key with the target directory.
+			rel := strings.TrimPrefix(filePath, embeddedDir+"/")
 
 			result[rel] = content
 			return nil
