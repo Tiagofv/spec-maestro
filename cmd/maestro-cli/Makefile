@@ -8,7 +8,7 @@ LDFLAGS := -X github.com/spec-maestro/maestro-cli/internal/version.Version=$(VER
            -X github.com/spec-maestro/maestro-cli/internal/version.Commit=$(COMMIT) \
            -X github.com/spec-maestro/maestro-cli/internal/version.Date=$(DATE)
 
-.PHONY: build test install uninstall clean generate
+.PHONY: build test install uninstall clean generate upgrade
 
 generate:
 	go generate ./...
@@ -25,6 +25,11 @@ install: build
 
 uninstall:
 	rm -f $(PREFIX)/bin/$(BINARY)
+
+upgrade: build
+	@echo "Installing $(BINARY) to $(PREFIX)/bin (requires sudo)..."
+	sudo install -m 755 $(BINARY) $(PREFIX)/bin/$(BINARY)
+	@echo "✓ $(shell $(PREFIX)/bin/$(BINARY) --version 2>/dev/null || echo $(BINARY) installed)"
 
 clean:
 	rm -f $(BINARY)
