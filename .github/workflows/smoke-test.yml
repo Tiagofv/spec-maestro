@@ -1,0 +1,251 @@
+name: Smoke Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to test (e.g. v0.2.0)"
+        required: false
+        type: string
+
+jobs:
+  # Job 1: Build from source and verify maestro init works end-to-end
+  smoke-test-from-source:
+    name: Smoke Test (source, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Generate embedded resources
+        working-directory: cmd/maestro-cli
+        run: go generate ./...
+
+      - name: Build binary
+        working-directory: cmd/maestro-cli
+        run: go build -o maestro .
+
+      - name: Create fresh test directory
+        run: mkdir -p /tmp/maestro-smoke-test
+
+      - name: Run maestro init (non-interactive)
+        working-directory: /tmp/maestro-smoke-test
+        run: |
+          echo "" | "${{ github.workspace }}/cmd/maestro-cli/maestro" init
+
+      - name: Verify directory structure
+        working-directory: /tmp/maestro-smoke-test
+        run: |
+          FAIL=0
+
+          check_dir() {
+            if test -d "$1"; then
+              echo "$1: OK"
+            else
+              echo "FAIL: $1 not found"
+              FAIL=1
+            fi
+          }
+
+          check_file() {
+            if test -f "$1"; then
+              echo "$1: OK"
+            else
+              echo "FAIL: $1 not found"
+              FAIL=1
+            fi
+          }
+
+          check_dir .maestro/commands
+          check_dir .maestro/scripts
+          check_dir .maestro/templates
+          check_dir .maestro/skills
+          check_dir .maestro/cookbook
+          check_dir .maestro/reference
+          check_dir .maestro/specs
+          check_dir .maestro/state
+          check_file .maestro/constitution.md
+          check_file .maestro/config.yaml
+          check_file AGENTS.md
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo "--- Directory structure verification FAILED ---"
+            exit 1
+          fi
+
+          echo "--- Directory structure verification PASSED ---"
+
+      - name: Verify file counts
+        working-directory: /tmp/maestro-smoke-test
+        run: |
+          FAIL=0
+
+          check_not_empty() {
+            COUNT=$(ls "$1" | wc -l | tr -d ' ')
+            if [ "$COUNT" -gt 0 ]; then
+              echo "$1: $COUNT files OK"
+            else
+              echo "FAIL: $1 is empty"
+              FAIL=1
+            fi
+          }
+
+          check_not_empty .maestro/commands/
+          check_not_empty .maestro/scripts/
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo "--- File count verification FAILED ---"
+            exit 1
+          fi
+
+          echo "--- File count verification PASSED ---"
+
+      - name: Verify maestro version
+        run: |
+          OUTPUT=$("${{ github.workspace }}/cmd/maestro-cli/maestro" --version)
+          if [ -z "$OUTPUT" ]; then
+            echo "FAIL: maestro --version produced no output"
+            exit 1
+          fi
+          echo "maestro --version: $OUTPUT"
+
+  # Job 2: Download a release binary and verify maestro init works
+  smoke-test-release:
+    name: Smoke Test (release, ${{ matrix.os }})
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.release_tag != ''
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Determine platform suffix
+        id: platform
+        run: |
+          case "${{ matrix.os }}" in
+            ubuntu-latest)
+              echo "goos=Linux" >> "$GITHUB_OUTPUT"
+              echo "goarch=x86_64" >> "$GITHUB_OUTPUT"
+              ;;
+            macos-latest)
+              echo "goos=Darwin" >> "$GITHUB_OUTPUT"
+              echo "goarch=arm64" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Download release binary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.release_tag }}
+        run: |
+          REPO="${{ github.repository }}"
+          ASSET="maestro_${{ steps.platform.outputs.goos }}_${{ steps.platform.outputs.goarch }}.tar.gz"
+          echo "Downloading $ASSET from release $TAG..."
+
+          gh release download "$TAG" \
+            --repo "$REPO" \
+            --pattern "$ASSET" \
+            --dir /tmp/maestro-release
+
+          cd /tmp/maestro-release
+          tar xzf "$ASSET"
+          chmod +x maestro
+          echo "/tmp/maestro-release" >> "$GITHUB_PATH"
+
+      - name: Create fresh test directory
+        run: mkdir -p /tmp/maestro-smoke-test
+
+      - name: Run maestro init (non-interactive)
+        working-directory: /tmp/maestro-smoke-test
+        run: |
+          echo "" | maestro init
+
+      - name: Verify directory structure
+        working-directory: /tmp/maestro-smoke-test
+        run: |
+          FAIL=0
+
+          check_dir() {
+            if test -d "$1"; then
+              echo "$1: OK"
+            else
+              echo "FAIL: $1 not found"
+              FAIL=1
+            fi
+          }
+
+          check_file() {
+            if test -f "$1"; then
+              echo "$1: OK"
+            else
+              echo "FAIL: $1 not found"
+              FAIL=1
+            fi
+          }
+
+          check_dir .maestro/commands
+          check_dir .maestro/scripts
+          check_dir .maestro/templates
+          check_dir .maestro/skills
+          check_dir .maestro/cookbook
+          check_dir .maestro/reference
+          check_dir .maestro/specs
+          check_dir .maestro/state
+          check_file .maestro/constitution.md
+          check_file .maestro/config.yaml
+          check_file AGENTS.md
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo "--- Directory structure verification FAILED ---"
+            exit 1
+          fi
+
+          echo "--- Directory structure verification PASSED ---"
+
+      - name: Verify file counts
+        working-directory: /tmp/maestro-smoke-test
+        run: |
+          FAIL=0
+
+          check_not_empty() {
+            COUNT=$(ls "$1" | wc -l | tr -d ' ')
+            if [ "$COUNT" -gt 0 ]; then
+              echo "$1: $COUNT files OK"
+            else
+              echo "FAIL: $1 is empty"
+              FAIL=1
+            fi
+          }
+
+          check_not_empty .maestro/commands/
+          check_not_empty .maestro/scripts/
+
+          if [ "$FAIL" -ne 0 ]; then
+            echo "--- File count verification FAILED ---"
+            exit 1
+          fi
+
+          echo "--- File count verification PASSED ---"
+
+      - name: Verify maestro version
+        run: |
+          OUTPUT=$(maestro --version)
+          if [ -z "$OUTPUT" ]; then
+            echo "FAIL: maestro --version produced no output"
+            exit 1
+          fi
+          echo "maestro --version: $OUTPUT"
