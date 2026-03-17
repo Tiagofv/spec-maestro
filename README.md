@@ -18,10 +18,19 @@ This follows the [spec-kit](https://github.com/github/spec-kit) pattern: slash c
 
 ## Prerequisites
 
-- [bd](https://github.com/anomalyco/beads) (beads) CLI on PATH — for issue tracking and task management
+- [bd](https://github.com/anomalyco/beads) (beads) CLI — issue tracking and task management
+  - macOS: `brew install anomalyco/tap/bd`
+  - Linux: download from https://github.com/anomalyco/beads/releases
+- `jq` — JSON processing (used by shell scripts)
+  - macOS: `brew install jq`
+  - Linux: `apt-get install jq`
+- `python3` — used by the research readiness gate
+  - macOS: `brew install python3`
+  - Linux: `apt-get install python3`
+- `git` — version control
 - An AI coding agent that supports slash commands:
-  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — commands in `.claude/commands/`, skills in `.claude/skills/`
-  - [OpenCode](https://opencode.ai) — commands in `.opencode/commands/`, skills in `.opencode/skills/`
+  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+  - [OpenCode](https://opencode.ai)
 
 ## Installation
 
@@ -95,6 +104,10 @@ agent_routing:
 
 Edit `.maestro/constitution.md` to define your project's rules — architectural boundaries, code standards, forbidden patterns. Every command reads this file before acting.
 
+### 5. Follow the quickstart
+
+See [QUICKSTART.md](./QUICKSTART.md) for a step-by-step walkthrough.
+
 ## How agents discover maestro
 
 Both Claude Code and OpenCode support slash commands and skills, but each looks in its own directory:
@@ -126,6 +139,9 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
 | `/maestro.pm-validate`           | Final validation gate — regression scan + acceptance criteria             |
 | `/maestro.commit`                | Layer-separated atomic commits                                            |
 | `/maestro.analyze`               | Post-epic learning — metrics, patterns, improvement proposals             |
+| `/maestro.list`                  | Show feature dashboard with pipeline stages, progress, and next actions   |
+| `/maestro.research.list`         | List all research artifacts with status                                   |
+| `/maestro.research.search`       | Search existing research by keyword or tag                                |
 
 ### Pipeline flow
 

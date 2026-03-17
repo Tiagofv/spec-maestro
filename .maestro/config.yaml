@@ -23,9 +23,14 @@ agent_routing:
 # Maestro reads the 'stack' field and runs the corresponding command
 compile_gate:
   go: "cd cmd/maestro-cli && go build ./... && go vet ./... && go test ./..."
-  node: "npm run build && npm run lint"
+  node: "pnpm run build && pnpm run test:run"
   python: "python -m py_compile **/*.py && ruff check ."
   rust: "cd src-tauri && cargo check && cargo test"
+  elixir: "mix compile --warnings-as-errors && mix test"
+  # Multi-stack support: list stacks to run in a single invocation
+  # If present, overrides 'stack' (single value). Add entries as YAML list items.
+  stacks:
+    - go
   # The stack to use for this project (must match a key above)
   stack: go
 

@@ -248,8 +248,8 @@ done
 
 echo "" >> "$TEMP_FILE"
 echo "  ]," >> "$TEMP_FILE"
-echo "  "count": $TASK_COUNT," >> "$TEMP_FILE"
-echo "  "errors": [" >> "$TEMP_FILE"
+echo "  \"count\": $TASK_COUNT," >> "$TEMP_FILE"
+echo "  \"errors\": [" >> "$TEMP_FILE"
 
 # Output errors
 first_error=true
@@ -264,7 +264,7 @@ for error in "${ERRORS[@]}"; do
 done
 echo "" >> "$TEMP_FILE"
 echo "  ]," >> "$TEMP_FILE"
-echo "  "warnings": [" >> "$TEMP_FILE"
+echo "  \"warnings\": [" >> "$TEMP_FILE"
 
 # Output warnings
 first_warning=true

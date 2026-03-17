@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # ── Argument parsing ────────────────────────────────────────────────
-VALID_STAGES=("specify" "clarify" "plan" "tasks" "implement" "complete" "no-state")
+VALID_STAGES=("specify" "clarify" "research" "plan" "tasks" "implement" "complete" "no-state")
 FILTER_STAGE=""
 
 while [[ $# -gt 0 ]]; do
@@ -188,6 +188,10 @@ compute_next_action() {
     clarify)
       next_action="/maestro.plan"
       reason="All clarifications resolved"
+      ;;
+    research)
+      next_action="/maestro.plan"
+      reason="Research complete, ready to plan"
       ;;
     plan)
       next_action="/maestro.tasks"
