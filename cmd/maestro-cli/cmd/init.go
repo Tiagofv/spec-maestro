@@ -13,23 +13,16 @@ import (
 
 	"github.com/spec-maestro/maestro-cli/internal/version"
 	"github.com/spec-maestro/maestro-cli/pkg/agents"
-	"github.com/spec-maestro/maestro-cli/pkg/assets"
 	"github.com/spec-maestro/maestro-cli/pkg/config"
-	"github.com/spec-maestro/maestro-cli/pkg/fs"
-	ghclient "github.com/spec-maestro/maestro-cli/pkg/github"
+	"github.com/spec-maestro/maestro-cli/pkg/embedded"
 )
 
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize maestro in the current project",
-	Long:  "Downloads and installs maestro files into .maestro/ in the current directory.",
+	Long:  "Installs maestro files into .maestro/ in the current directory from embedded resources.",
 	RunE:  runInit,
 }
-
-const (
-	githubOwner = "Tiagofv"
-	githubRepo  = "spec-maestro"
-)
 
 var (
 	initWithOpenCode bool
@@ -44,6 +37,8 @@ func init() {
 
 func runInit(cmd *cobra.Command, args []string) error {
 	maestroDir := ".maestro"
+
+	fmt.Printf("Installing maestro %s resources...\n", version.Version)
 
 	// Check if already initialized
 	if _, err := os.Stat(maestroDir); err == nil {
@@ -75,72 +70,55 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Detect platform
-	platform, err := fs.DetectPlatform()
-	if err != nil {
-		return fmt.Errorf("detecting platform: %w", err)
-	}
-	fmt.Printf("Platform: %s\n", platform.String())
-
-	// Fetch latest release
-	fmt.Println("Fetching latest release...")
-	token := ghclient.ResolveToken(os.Getenv("GITHUB_TOKEN"))
-	client := ghclient.NewClient(githubOwner, githubRepo, token)
-
-	release, err := client.FetchLatestRelease()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: could not fetch release: %v\n", err)
-		fmt.Println("Proceeding with local setup only...")
+	// Install .maestro/ core directories from embedded resources
+	fetch := embedded.NewAssetFetcher()
+	coreDirs := []string{
+		".maestro/commands",
+		".maestro/scripts",
+		".maestro/templates",
+		".maestro/skills",
+		".maestro/cookbook",
+		".maestro/reference",
 	}
 
-	// Download and extract assets if release found
-	assetDownloaded := false
-	if release != nil {
-		fmt.Printf("Using release: %s\n", release.TagName)
-		asset, err := release.FindAssetForPlatform(platform.AssetSuffix())
+	totalFiles := 0
+	for _, dir := range coreDirs {
+		content, err := fetch(dir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: no asset for platform %s: %v\n", platform.String(), err)
-		} else {
-			fmt.Printf("Downloading %s...\n", asset.Name)
-			cache, err := assets.NewCacheManager()
-			if err == nil {
-				cachedPath, err := cache.Get(asset.DownloadURL, 0)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: download failed: %v\n", err)
-				} else {
-					if err := assets.ExtractAsset(cachedPath, maestroDir); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: extraction failed: %v\n", err)
-					} else {
-						assetDownloaded = true
-					}
-				}
+			fmt.Fprintf(os.Stderr, "Warning: could not read embedded dir %s: %v\n", dir, err)
+			continue
+		}
+
+		for filePath, fileContent := range content {
+			if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+				return fmt.Errorf("creating directory for %s: %w", filePath, err)
 			}
+			if err := os.WriteFile(filePath, fileContent, 0644); err != nil {
+				return fmt.Errorf("writing %s: %w", filePath, err)
+			}
+			totalFiles++
 		}
 	}
 
-	// Fallback: Fetch from GitHub if no asset was downloaded
-	if !assetDownloaded {
-		fmt.Println("Falling back to fetching .maestro/ from GitHub main branch...")
-		if err := initFromGitHub(client, maestroDir); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: GitHub fetch failed: %v\n", err)
-		} else {
-			fmt.Println("✓ Downloaded .maestro/ from GitHub")
-		}
+	if totalFiles > 0 {
+		fmt.Printf("✓ Installed %d core files from embedded resources\n", totalFiles)
 	}
 
-	if err := installRequiredStarterAssets(client, os.Stdin, os.Stdout); err != nil {
+	if err := installRequiredStarterAssets(os.Stdin, os.Stdout); err != nil {
 		return fmt.Errorf("installing required starter assets: %w", err)
 	}
 
 	// Install required root files (constitution.md, etc.)
-	if err := installRequiredStarterFiles(client); err != nil {
+	if err := installRequiredStarterFiles(); err != nil {
 		return fmt.Errorf("installing required starter files: %w", err)
 	}
 
-	// Create minimal .maestro/ structure if not created by asset extraction
+	// Create user data directories (empty — not fetched from embedded)
 	for _, dir := range []string{
 		filepath.Join(maestroDir, "specs"),
 		filepath.Join(maestroDir, "state"),
+		filepath.Join(maestroDir, "research"),
+		filepath.Join(maestroDir, "memory"),
 	} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("creating directory %s: %w", dir, err)
@@ -178,7 +156,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 
 		if action != agents.ConflictCancel {
-			if err := fetchAndInstallAgentDirs(client, selectedAgentDirs); err != nil {
+			if err := installEmbeddedAgentDirs(selectedAgentDirs); err != nil {
 				return fmt.Errorf("installing agent configs: %w", err)
 			}
 		}
@@ -204,7 +182,7 @@ func selectInitAgentDirs(withOpenCode, withClaude bool, r io.Reader, w io.Writer
 	return agents.PromptAgentSelection(r, w, agents.KnownAgentDirs())
 }
 
-func installRequiredStarterAssets(client *ghclient.Client, r io.Reader, w io.Writer) error {
+func installRequiredStarterAssets(r io.Reader, w io.Writer) error {
 	required := agents.RequiredStarterAssetDirs()
 	conflicting := findExistingDirectories(required)
 	action := agents.ConflictOverwrite
@@ -221,9 +199,7 @@ func installRequiredStarterAssets(client *ghclient.Client, r io.Reader, w io.Wri
 		}
 	}
 
-	result, err := agents.InstallRequiredAssets(required, action, func(dir string) (map[string][]byte, error) {
-		return fetchAgentDirWithRefFallback(client, dir, "main")
-	})
+	result, err := agents.InstallRequiredAssets(required, action, embedded.NewAssetFetcher())
 	if err != nil {
 		return err
 	}
@@ -238,7 +214,7 @@ func installRequiredStarterAssets(client *ghclient.Client, r io.Reader, w io.Wri
 	return nil
 }
 
-func installRequiredStarterFiles(client *ghclient.Client) error {
+func installRequiredStarterFiles() error {
 	requiredFiles := agents.RequiredStarterAssetFiles()
 	if len(requiredFiles) == 0 {
 		return nil
@@ -251,8 +227,8 @@ func installRequiredStarterFiles(client *ghclient.Client) error {
 			continue
 		}
 
-		// Fetch file from GitHub
-		content, err := fetchFileWithRefFallback(client, filePath, "main")
+		// Fetch file from embedded resources
+		content, err := embedded.FetchFile(filePath)
 		if err != nil {
 			// Log warning but don't fail - files might not be critical
 			fmt.Fprintf(os.Stderr, "Warning: could not fetch %s: %v\n", filePath, err)
@@ -276,32 +252,30 @@ func installRequiredStarterFiles(client *ghclient.Client) error {
 	return nil
 }
 
-func fetchFileWithRefFallback(client *ghclient.Client, filePath string, primaryRef string) ([]byte, error) {
-	refs := []string{primaryRef}
-	if primaryRef == "main" {
-		refs = append(refs, "master")
+// installEmbeddedAgentDirs installs agent directories from embedded resources.
+func installEmbeddedAgentDirs(selected []string) error {
+	if len(selected) == 0 {
+		return nil
 	}
 
-	var lastErr error
-	for _, ref := range refs {
-		content, err := client.FetchFile(filePath, ref)
-		if err == nil {
-			return content, nil
+	fetch := embedded.NewAssetFetcher()
+
+	for _, dir := range selected {
+		fmt.Printf("Installing %s from embedded resources...\n", dir)
+
+		content, err := fetch(dir)
+		if err != nil {
+			return fmt.Errorf("reading embedded %s: %w", dir, err)
 		}
 
-		lastErr = err
-		if strings.Contains(strings.ToLower(err.Error()), "resource not found") {
-			continue
+		if err := agents.WriteAgentDir(content, dir); err != nil {
+			return fmt.Errorf("writing %s: %w", dir, err)
 		}
 
-		return nil, err
+		fmt.Printf("✓ Installed %s\n", dir)
 	}
 
-	if lastErr == nil {
-		return nil, fmt.Errorf("no refs attempted")
-	}
-
-	return nil, fmt.Errorf("tried refs %v: %w", refs, lastErr)
+	return nil
 }
 
 func findExistingDirectories(dirs []string) []string {
@@ -320,61 +294,4 @@ func isInteractiveStdin() bool {
 		return false
 	}
 	return (info.Mode() & os.ModeCharDevice) != 0
-}
-
-// initFromGitHub fetches only the core maestro directories from GitHub main branch
-// when no release asset is available for the current platform.
-// This preserves user data - specs/state/research/memory are created empty.
-func initFromGitHub(client *ghclient.Client, maestroDir string) error {
-	coreDirs := []string{".maestro/commands", ".maestro/scripts", ".maestro/templates", ".maestro/skills", ".maestro/cookbook", ".maestro/reference"}
-	// User data directories - just create them empty, don't fetch from GitHub
-	userDirs := []string{"specs", "state", "research", "memory"}
-
-	if err := os.MkdirAll(maestroDir, 0755); err != nil {
-		return fmt.Errorf("creating maestro directory: %w", err)
-	}
-
-	totalFiles := 0
-	for _, dir := range coreDirs {
-		content, err := client.FetchAgentDir(dir, "main")
-		if err != nil {
-			continue
-		}
-
-		for filePath, fileContent := range content {
-			localPath := filePath
-			if strings.HasPrefix(localPath, dir+"/") {
-				localPath = strings.TrimPrefix(localPath, dir+"/")
-			}
-
-			fullPath := filepath.Join(maestroDir, strings.TrimPrefix(dir, ".maestro/"), localPath)
-
-			parentDir := filepath.Dir(fullPath)
-			if err := os.MkdirAll(parentDir, 0755); err != nil {
-				return fmt.Errorf("creating directory %s: %w", parentDir, err)
-			}
-
-			if err := os.WriteFile(fullPath, fileContent, 0644); err != nil {
-				return fmt.Errorf("writing %s: %w", fullPath, err)
-			}
-			totalFiles++
-		}
-	}
-
-	for _, userDir := range userDirs {
-		userPath := filepath.Join(maestroDir, userDir)
-		if _, err := os.Stat(userPath); os.IsNotExist(err) {
-			if err := os.MkdirAll(userPath, 0755); err != nil {
-				return fmt.Errorf("creating user directory %s: %w", userPath, err)
-			}
-		}
-	}
-
-	if totalFiles == 0 {
-		return fmt.Errorf("no files downloaded from GitHub")
-	}
-
-	fmt.Printf("✓ Downloaded %d core files from GitHub\n", totalFiles)
-	fmt.Println("  (Existing user data preserved: specs, state, research, memory)")
-	return nil
 }

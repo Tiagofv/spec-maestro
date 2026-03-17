@@ -1,0 +1,2 @@
+# Generated embedded resources (built via go generate)
+pkg/embedded/resources/
