@@ -1,0 +1,48 @@
+{
+  "feature_id": "032-lets-refactor-maestro-init-command",
+  "created_at": "2026-03-16T12:00:00Z",
+  "updated_at": "2026-03-16T14:00:00Z",
+  "stage": "tasks",
+  "spec_path": ".maestro/specs/032-lets-refactor-maestro-init-command/spec.md",
+  "plan_path": ".maestro/specs/032-lets-refactor-maestro-init-command/plan.md",
+  "branch": "feat/lets-refactor-maestro-init-command",
+  "worktree_name": "lets-refactor-maestro-init-command",
+  "worktree_path": ".worktrees/lets-refactor-maestro-init-command",
+  "worktree_branch": "feat/lets-refactor-maestro-init-command",
+  "worktree_created": true,
+  "clarification_count": 0,
+  "user_stories": 5,
+  "phases": 3,
+  "components_new": 3,
+  "components_modified": 5,
+  "research_bypass_acknowledged": true,
+  "epic_id": "agent-maestro-29v",
+  "task_count": 23,
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-03-16T12:00:00Z",
+      "action": "created"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-03-16T12:30:00Z",
+      "action": "resolved 6 markers"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-03-16T13:00:00Z",
+      "action": "created plan with 10 tasks across 3 phases"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-03-16T13:15:00Z",
+      "action": "added T011 - CI smoke test workflow for maestro init (now 11 tasks)"
+    },
+    {
+      "stage": "implement",
+      "timestamp": "2026-03-16T14:00:00Z",
+      "action": "created 23 bd tasks (11 impl + 11 review + 1 PM-VAL) under epic agent-maestro-29v"
+    }
+  ]
+}

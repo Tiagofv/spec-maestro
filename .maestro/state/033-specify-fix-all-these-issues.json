@@ -1,0 +1,54 @@
+{
+  "feature_id": "033-specify-fix-all-these-issues",
+  "created_at": "2026-03-16T18:30:00Z",
+  "updated_at": "2026-03-16T20:00:00Z",
+  "stage": "implement",
+  "spec_path": ".maestro/specs/033-specify-fix-all-these-issues/spec.md",
+  "plan_path": ".maestro/specs/033-specify-fix-all-these-issues/plan.md",
+  "branch": "feat/specify-fix-all-these-issues",
+  "worktree_name": "specify-fix-all-these-issues",
+  "worktree_path": ".worktrees/specify-fix-all-these-issues",
+  "worktree_branch": "feat/specify-fix-all-these-issues",
+  "worktree_created": true,
+  "clarification_count": 0,
+  "user_stories": 6,
+  "research_ids": [],
+  "research_bypass_acknowledged": true,
+  "phases": 1,
+  "components_new": 1,
+  "components_modified": 9,
+  "tasks_count": 23,
+  "epic_id": "agent-maestro-6lt",
+  "progress": {
+    "completed": 0,
+    "total": 23,
+    "percentage": 0
+  },
+  "history": [
+    {
+      "stage": "specify",
+      "timestamp": "2026-03-16T18:30:00Z",
+      "action": "created"
+    },
+    {
+      "stage": "clarify",
+      "timestamp": "2026-03-16T19:00:00Z",
+      "action": "resolved 4 markers + 3 gap detection items"
+    },
+    {
+      "stage": "plan",
+      "timestamp": "2026-03-16T19:30:00Z",
+      "action": "created plan with 11 tasks via research bypass path"
+    },
+    {
+      "stage": "tasks",
+      "timestamp": "2026-03-16T20:00:00Z",
+      "action": "created epic agent-maestro-6lt with 23 tasks (11 impl + 11 review + 1 PM-VAL)"
+    },
+    {
+      "stage": "implement",
+      "timestamp": "2026-03-16T20:00:00Z",
+      "action": "worktree created at .worktrees/specify-fix-all-these-issues"
+    }
+  ]
+}
