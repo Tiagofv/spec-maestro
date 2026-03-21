@@ -4,7 +4,7 @@ description: >
   routes by label, spawns sub-agents, runs reviews, enforces compile gates,
   triggers PM validation, and runs post-epic analysis when done.
   Never implements directly — always delegates to sub-agents.
-argument-hint: [feature-id]
+argument-hint: [feature-id] [--no-worktree]
 ---
 
 # maestro.implement
@@ -13,15 +13,20 @@ Implement feature: **$ARGUMENTS**
 
 ## Step 1: Find the Feature
 
-If `$ARGUMENTS` contains a feature ID, use it. Otherwise, find the most recent feature.
+First parse arguments into:
+
+- `feature_id_arg` — positional feature ID if provided
+- `no_worktree_flag` — true when `--no-worktree` is present
+
+If `feature_id_arg` is set, use it. Otherwise, find the most recent feature.
 
 **Resolving the feature ID:**
 
-1. If `$ARGUMENTS` is provided:
+1. If `feature_id_arg` is provided:
    - Use it as the feature ID directly
    - Read the state file: `.maestro/state/{feature_id}.json`
 
-2. If `$ARGUMENTS` is empty:
+2. If `feature_id_arg` is empty:
    - List all state files: `.maestro/state/*.json`
    - Sort by `updated_at` descending
    - Use the most recently updated feature
@@ -33,28 +38,46 @@ If `$ARGUMENTS` contains a feature ID, use it. Otherwise, find the most recent f
 - `spec_path` — path to the spec for context
 - `branch` — the git branch to work on
 - `stage` — current stage (should be "tasks" or later)
+- `worktree_required` — optional; defaults to `true` when absent
 
 **Validation:**
 
 - If no state file exists → tell the user to run `/maestro.specify` first and stop
 - If no `epic_id` exists → tell the user to run `/maestro.tasks` first to create the bd epic and stop
-- If the state has `worktree_path` (worktree-enabled feature): set up worktree (Step 1b) instead of switching branches
-- If the state has no `worktree_path` (pre-worktree feature): switch branch: `git checkout {branch}`
+- Worktree invariant: use a worktree by default for all features. Only skip worktree when explicitly requested (`--no-worktree`) or when state has `worktree_required: false`.
 
 ## Step 1b: Worktree Setup
 
-If the state file contains `worktree_path` and `worktree_created` fields:
+Determine worktree mode:
 
-1. Read `worktree_name`, `worktree_path`, `worktree_branch`, `worktree_created` from state.json
-2. If `worktree_created` is `false`:
+1. If `no_worktree_flag=true`, set `worktree_required=false` for this run.
+2. Else if state has `worktree_required: false`, set `worktree_required=false`.
+3. Else set `worktree_required=true` (default behavior).
+
+If `worktree_required=true`, enforce the worktree invariant:
+
+1. Read `worktree_name`, `worktree_path`, `worktree_branch`, `worktree_created` from state.json.
+2. If any of `worktree_name`, `worktree_path`, or `worktree_branch` is missing (legacy/pre-worktree state):
+   - Derive defaults:
+     - `worktree_name`: `{feature_id}` with leading `NNN-` removed if present
+     - `worktree_path`: `.worktrees/{worktree_name}`
+     - `worktree_branch`: `{branch}`
+     - `worktree_created`: `false` if missing
+   - Update state.json with derived fields and append history action `"worktree metadata backfilled"`.
+3. If `worktree_created` is `false`:
    - Run: `bash .maestro/scripts/worktree-create.sh {worktree_name} {worktree_branch}`
-   - If successful, update state.json: set `worktree_created` to `true`
-   - If it fails with "worktree already exists", treat as already created (idempotent)
-3. If `worktree_created` is `true`:
-   - Verify the worktree directory still exists on disk
-   - If missing, re-run `worktree-create.sh` as in step 2 above
+   - If successful, update state.json: set `worktree_created` to `true`.
+   - If it fails with "worktree already exists", treat as already created (idempotent) and set `worktree_created` to `true`.
+4. If `worktree_created` is `true`:
+   - Verify the worktree directory still exists on disk.
+   - If missing, re-run `worktree-create.sh` as in step 3 above.
 
-**Backward compatibility:** If state.json has no `worktree_path` field (pre-worktree feature), skip this step entirely and proceed with the original `git checkout {branch}` logic.
+If `worktree_required=false` (explicit opt-out only):
+
+- Switch branch directly: `git checkout {branch}`.
+- Append state history action `"worktree opt-out for implement"` (include source: `--no-worktree` or state override).
+
+**Invariant:** Unless explicitly opted out, implementation must run from a feature worktree.
 
 ## Step 2: Get Ready Tasks
 
@@ -127,6 +150,8 @@ Batch 3 (parallel): [T004, T005]    — independent modules
 
 ## Step 3: Route by Label
 
+**Note:** Labels determine the **handler type** (implementation, review, or PM-validation) — they do NOT determine which agent is used. The agent is read from the task's assignee field, which was set during `/maestro.plan`.
+
 For each ready task, inspect its labels to determine which handler to invoke.
 
 **Routing table:**
@@ -180,9 +205,22 @@ Read files mentioned in the task description, plus:
 
 ### 4d: Spawn implementation agent
 
+**Agent Resolution:**
+
+1. Read the task's assignee from `bd show {task_id} --json`
+2. If assignee is empty, null, or not set → use `general`
+3. If assignee is set but doesn't match any available subagent_type → use `general` and log a warning:
+   ```
+   Warning: Agent "{assignee}" not found. Falling back to "general" for task {task_id}.
+   ```
+4. Log the agent routing decision:
+   ```
+   Agent: {task_id} ({title}) → {resolved_agent} [assignee: {original_assignee}]
+   ```
+
 ```
 Task(
-  subagent_type="{assignee from task}",
+  subagent_type="{resolved_agent}",
   description="Implement: {task_title}",
   prompt="Implement the following task:
 
@@ -202,10 +240,13 @@ Task(
   {relevant sections from constitution}
 
   ## Worktree Context
-  {If worktree_path is set:}
+  {If worktree_required=true:}
   Work in directory: {worktree_path}
   All file read/write operations and git commands must be performed from this worktree directory.
+  Run preflight before editing: bash .maestro/scripts/assert-worktree-context.sh {worktree_path}
   The compile gate is run as: bash .maestro/scripts/compile-gate.sh {worktree_path}
+  {If worktree_required=false:}
+  Worktree use was explicitly disabled for this run.
 
   ## Instructions
   1. Read the referenced files
@@ -220,12 +261,14 @@ Task(
        behavior still works after your changes
      - When in doubt, ADD a new case/handler rather than replacing an
        existing one
-  4. After implementing, you MUST run the compile gate:
-     bash .maestro/scripts/compile-gate.sh {worktree_path}
-     (If no worktree_path, run: bash .maestro/scripts/compile-gate.sh)
-  5. If the compile gate fails, fix the errors and re-run until it passes
-  6. Do NOT report your work as complete until the gate passes
-  7. Ensure all acceptance criteria are met
+  4. If worktree_required=true, run preflight before edits:
+     bash .maestro/scripts/assert-worktree-context.sh {worktree_path}
+  5. After implementing, you MUST run the compile gate:
+     - worktree_required=true: bash .maestro/scripts/compile-gate.sh {worktree_path}
+     - worktree_required=false: bash .maestro/scripts/compile-gate.sh
+  6. If the compile gate fails, fix the errors and re-run until it passes
+  7. Do NOT report your work as complete until the gate passes
+  8. Ensure all acceptance criteria are met
 
   ## Output Format
   When complete, report using this exact format:
@@ -410,10 +453,14 @@ If `worktree_path` is set in state.json:
 
 2. **Parallel when possible** — Execute independent tasks across different modules in parallel using multiple Task() calls in a single message. Max 3 concurrent.
 
-3. **Route by label** — Always check the task label to determine the correct handler. Never assume a task type.
+3. **Route by label for handler type** — Labels determine the handler type (implementation, review, or PM-validation). They do NOT determine the agent. Never assume a task type.
 
 4. **Compile gate is mandatory** — Every implementation task must pass the compile gate before being considered done. Delegated to sub-agents.
 
 5. **Fix tasks need reviews** — When a review finds CRITICAL gaps, it creates a fix task AND a review task. Both must execute in order.
 
 6. **Structured close reasons** — Every task close uses the pipe-delimited format: `DONE | files: ... | pattern: ...`. This feeds post-epic learning.
+
+7. **Agent from assignee** — The agent (subagent_type) is always read from the task's assignee field. If the assignee is empty or invalid, fall back to `general`. Never read agent_routing from config.yaml.
+
+8. **Worktree-first invariant** — Worktree usage is mandatory by default. Only bypass when explicitly requested (`--no-worktree`) or state sets `worktree_required: false`.

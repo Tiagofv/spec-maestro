@@ -27,6 +27,22 @@ Read:
 - The config: `.maestro/config.yaml` (Note: `agent_routing` is no longer used. Assignees come from the plan.)
 - The state: `.maestro/state/{feature_id}.json`
 - `worktree_path` — from state.json (may be absent for pre-worktree features)
+- `worktree_required` — optional; defaults to `true` when absent
+
+## Step 2b: Enforce Worktree Invariant Metadata
+
+Before creating tasks, normalize worktree metadata in state.json.
+
+1. Determine `worktree_required`:
+   - If state has `worktree_required`, use it
+   - Otherwise set `worktree_required=true` (default)
+2. If `worktree_required=true`, ensure state has:
+   - `worktree_name`
+   - `worktree_path`
+   - `worktree_branch`
+   - `worktree_created` (default `false` if missing)
+3. For legacy features missing metadata, backfill using feature/branch defaults and append history action `"worktree metadata backfilled"`.
+4. If `worktree_required=false`, keep metadata optional and append history action `"worktree opt-out preserved"`.
 
 ## Step 3: Idempotency Check
 
@@ -310,7 +326,9 @@ TASK_ID=$(bd_create_task \
   "{assignee}")
 ```
 
-**Worktree context:** If `worktree_path` is set in state.json, append the following section to every task description:
+**Worktree context:**
+
+If `worktree_required=true`, append the following section to every task description:
 
 ```
 ## Worktree
@@ -318,7 +336,7 @@ Work in worktree: {worktree_path}
 All file operations and git commands should be executed from this directory.
 ```
 
-If `worktree_path` is null or absent (pre-worktree feature), omit this section.
+If `worktree_required=false` (explicit opt-out), omit this section.
 
 Store task IDs in a map: `{task_id} → {bd_task_id}`
 

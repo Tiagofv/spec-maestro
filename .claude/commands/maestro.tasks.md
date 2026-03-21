@@ -1,7 +1,5 @@
 ---
-description: >
-  Break the implementation plan into bd issues with dependencies.
-  Creates an epic with implementation tasks, review tasks, and PM validation.
+description: Break the implementation plan into bd issues with dependencies. Creates an epic with implementation tasks, review tasks, and PM validation.
 argument-hint: [feature-id] [--dry-run]
 ---
 
@@ -26,9 +24,25 @@ If `$ARGUMENTS` contains a feature ID, use it. Otherwise, find the most recent f
 Read:
 
 - The plan: `.maestro/specs/{feature_id}/plan.md`
-- The config: `.maestro/config.yaml`
+- The config: `.maestro/config.yaml` (Note: `agent_routing` is no longer used. Assignees come from the plan.)
 - The state: `.maestro/state/{feature_id}.json`
 - `worktree_path` — from state.json (may be absent for pre-worktree features)
+- `worktree_required` — optional; defaults to `true` when absent
+
+## Step 2b: Enforce Worktree Invariant Metadata
+
+Before creating tasks, normalize worktree metadata in state.json.
+
+1. Determine `worktree_required`:
+   - If state has `worktree_required`, use it
+   - Otherwise set `worktree_required=true` (default)
+2. If `worktree_required=true`, ensure state has:
+   - `worktree_name`
+   - `worktree_path`
+   - `worktree_branch`
+   - `worktree_created` (default `false` if missing)
+3. For legacy features missing metadata, backfill using feature/branch defaults and append history action `"worktree metadata backfilled"`.
+4. If `worktree_required=false`, keep metadata optional and append history action `"worktree opt-out preserved"`.
 
 ## Step 3: Idempotency Check
 
@@ -51,12 +65,89 @@ Extract from the plan:
 3. **Components** — new and modified components
 4. **Tests** — from testing strategy
 
-Create a task list with:
+## Step 4a: Parse Task Markers
+
+Use regex to extract tasks from plan.md:
+
+**Task Marker Pattern:**
+
+```regex
+<!-- TASK:BEGIN id=(T\d{3}) -->([\s\S]*?)<!-- TASK:END -->
+```
+
+**Extraction Rules:**
+
+1. Find all TASK:BEGIN/TASK:END blocks
+2. Extract `id` from marker attribute (format: T###)
+3. Parse task metadata from content:
+   - **Title**: First H3 header (### {title}) after TASK:BEGIN
+   - **Label**: From `**Label:**` field (infrastructure/agent/core/ui/integration/template/testing/review/pm-validation)
+   - **Size**: From `**Size:**` field (XS/S/M/L) — reject M/L with warning
+   - **Assignee**: From `**Assignee:**` field — default to `general` if blank
+   - **Dependencies**: From `**Dependencies:**` field (comma-separated T### IDs, or "None")
+4. Extract file paths from `**Files to Modify:**` section (bullet list)
+5. Store in structured array for processing
+
+**Example parsing:**
+
+```markdown
+<!-- TASK:BEGIN id=T001 -->
+
+### T001: Create Research State Manager
+
+**Metadata:**
+
+- **Label:** infrastructure
+- **Size:** S
+- **Assignee:** general
+- **Dependencies:** None
+
+**Files:**
+
+- `.maestro/scripts/research-state.sh`
+<!-- TASK:END -->
+```
+
+Extracts to:
+
+```json
+{
+  "id": "T001",
+  "title": "Create Research State Manager",
+  "label": "infrastructure",
+  "size": "S",
+  "assignee": "general",
+  "dependencies": [],
+  "files": [".maestro/scripts/research-state.sh"]
+}
+```
+
+## Step 4b: Validate Parsed Tasks
+
+For each parsed task, validate:
+
+| Check        | Rule                        | On Failure                  |
+| ------------ | --------------------------- | --------------------------- |
+| ID format    | Matches `T###`              | Log error, skip task        |
+| Title        | Not empty                   | Log error, skip task        |
+| Size         | XS or S only                | Log warning, skip M/L tasks |
+| Label        | Valid label                 | Default to `general`        |
+| Dependencies | Reference existing T### IDs | Log warning, set to empty   |
+
+**Validation Output:**
+
+```
+Validated X tasks:
+  ✓ Passed: Y
+  ⚠ Skipped: Z (see logs)
+```
+
+Create a task list with validated tasks:
 
 - Title (imperative verb + what)
 - Description (detailed implementation guidance)
-- Size estimate (XS/S/M/L based on complexity)
-- Label (backend/frontend/test based on type)
+- Size estimate (XS/S based on complexity)
+- Label (infrastructure/agent/core/ui/integration/template/testing)
 - Dependencies (which tasks must complete first)
 
 ## Step 5: Map Sizes and Assignees
@@ -65,19 +156,138 @@ Read from `.maestro/config.yaml`:
 
 For each task:
 
-1. Convert size to minutes using `size_mapping`
-2. Determine assignee using `agent_routing[label]`
-3. Determine review assignee using `agent_routing.review`
-4. Calculate review size using `review_sizing`
+### 5.1 Size Mapping
+
+Convert T-shirt size to minutes:
+
+| Size | Default Minutes | Config Key                             |
+| ---- | --------------- | -------------------------------------- |
+| XS   | 120             | `size_mapping.XS`                      |
+| S    | 360             | `size_mapping.S`                       |
+| M    | 720             | `size_mapping.M` (reject, log warning) |
+| L    | 1200            | `size_mapping.L` (reject, log warning) |
+
+**Fallback:** If `size_mapping` missing from config, use defaults above.
+
+### 5.2 Assignee Resolution
+
+**Priority order:**
+
+1. Use assignee from plan task metadata (parsed in Step 4)
+2. If blank/missing → default to `general`
+3. For review tasks → use same assignee as parent impl task
+4. For PM-VAL task → default to `general`
+
+**Validation:**
+
+- Assignee must be non-empty string
+- No validation against agent registry (bd will handle)
+
+### 5.3 Review Task Sizing
+
+For each implementation task, create paired review task:
+
+| Impl Size | Review Size | Review Minutes            |
+| --------- | ----------- | ------------------------- |
+| XS        | XS          | `review_sizing.XS` or 120 |
+| S         | XS          | `review_sizing.S` or 120  |
+
+**Fallback:** If `review_sizing` missing, use 120 minutes for all review tasks.
 
 ## Step 6: Generate Task Table
 
-Build a table of all tasks:
+Build a table of all tasks with explicit generation rules:
 
-| #   | ID   | Title        | Label   | Size | Minutes | Assignee | Blocked By |
-| --- | ---- | ------------ | ------- | ---- | ------- | -------- | ---------- |
-| 1   | T001 | {title}      | backend | S    | 360     | {agent}  | —          |
-| 2   | R001 | Review: T001 | review  | XS   | 120     | {agent}  | T001       |
+### 6.1 Implementation Tasks
+
+For each validated parsed task:
+
+| Field      | Value        | Source                                |
+| ---------- | ------------ | ------------------------------------- |
+| ID         | `{task_id}`  | From parsed marker (T001, T002, etc.) |
+| Title      | `{title}`    | From parsed H3 header                 |
+| Label      | `{label}`    | From parsed metadata                  |
+| Size       | `{size}`     | From parsed metadata (XS/S only)      |
+| Minutes    | `{minutes}`  | From Step 5.1 size mapping            |
+| Assignee   | `{assignee}` | From Step 5.2 resolution              |
+| Blocked By | `{deps}`     | From parsed dependencies              |
+
+### 6.2 Review Tasks (Auto-Generated)
+
+For each implementation task, generate paired review:
+
+| Field      | Value                  | Example                                 |
+| ---------- | ---------------------- | --------------------------------------- |
+| ID         | `R{task_num}`          | R001 for T001                           |
+| Title      | `Review: {impl_title}` | "Review: Create Research State Manager" |
+| Label      | `review`               | Fixed                                   |
+| Size       | XS                     | From Step 5.3                           |
+| Minutes    | 120                    | From Step 5.3                           |
+| Assignee   | `{impl_assignee}`      | Same as impl task                       |
+| Blocked By | `{impl_task_id}`       | T001 blocks R001                        |
+
+**Review Task Description Template:**
+
+```markdown
+Code review for implementation task {task_id}.
+
+**Files to Review:**
+{impl_files_list}
+
+**Review Checklist:**
+
+- [ ] Implementation matches acceptance criteria
+- [ ] Code follows project conventions
+- [ ] No hardcoded secrets or credentials
+- [ ] Error handling is complete
+- [ ] Tests cover happy path and edge cases
+- [ ] No breaking changes to public APIs
+- [ ] Performance implications considered
+- [ ] Constitutional compliance verified
+```
+
+### 6.3 PM Validation Task (Auto-Generated)
+
+After all impl+review pairs, create final validation task:
+
+| Field      | Value                                 |
+| ---------- | ------------------------------------- |
+| ID         | PM-VAL (or next sequential ID)        |
+| Title      | `PM-VAL: {feature_title} Validation`  |
+| Label      | `pm-validation`                       |
+| Size       | XS                                    |
+| Minutes    | 120                                   |
+| Assignee   | `general` (or from config)            |
+| Blocked By | ALL review task IDs (comma-separated) |
+
+**PM-VAL Description Template:**
+
+```markdown
+PM validation for {feature_title}.
+
+**Validation Checklist:**
+
+- [ ] All acceptance criteria from spec met
+- [ ] Integration tests pass
+- [ ] No regressions in existing functionality
+- [ ] Documentation complete
+- [ ] Feature ready for release
+
+Run `/maestro.pm-validate` to execute validation.
+```
+
+### 6.4 Task Table Format
+
+```
+| #   | ID     | Title                           | Label          | Size | Minutes | Assignee |
+| --- | ------ | ------------------------------- | -------------- | ---- | ------- | -------- |
+| 1   | T001   | Create Research State Manager   | infrastructure | S    | 360     | general  |
+| 2   | R001   | Review: T001                    | review         | XS   | 120     | general  |
+| 3   | T002   | Create Agents Directory         | infrastructure | XS   | 120     | general  |
+| 4   | R002   | Review: T002                    | review         | XS   | 120     | general  |
+| ... | ...    | ...                             | ...            | ...  | ...     | ...      |
+| N   | PM-VAL | PM-VAL: Feature Validation        | pm-validation  | XS   | 120     | general  |
+```
 
 Include:
 
@@ -116,7 +326,9 @@ TASK_ID=$(bd_create_task \
   "{assignee}")
 ```
 
-**Worktree context:** If `worktree_path` is set in state.json, append the following section to every task description:
+**Worktree context:**
+
+If `worktree_required=true`, append the following section to every task description:
 
 ```
 ## Worktree
@@ -124,9 +336,93 @@ Work in worktree: {worktree_path}
 All file operations and git commands should be executed from this directory.
 ```
 
-If `worktree_path` is null or absent (pre-worktree feature), omit this section.
+If `worktree_required=false` (explicit opt-out), omit this section.
 
-Store task IDs for dependency wiring.
+Store task IDs in a map: `{task_id} → {bd_task_id}`
+
+## Step 9a: Handle Task Creation Failures
+
+If bd_create_task fails for any task:
+
+### 9a.1 Immediate Actions
+
+- Log error: `Failed to create task {task_id}: {error_message}`
+- Store failed task in retry list: `{task_id, error}`
+- Continue processing remaining tasks (don't stop)
+
+### 9a.2 Partial Success Reporting
+
+After all tasks processed, report:
+
+```
+Task Creation Results:
+━━━━━━━━━━━━━━━━━━━━━
+✓ Created: {success_count} tasks
+✗ Failed:  {fail_count} tasks
+
+Failed Tasks:
+- {task_id}: {error_message}
+- {task_id}: {error_message}
+```
+
+### 9a.3 Decision Gate
+
+If any tasks failed:
+
+- **If < 50% failed**: Ask user:
+  - "Retry failed tasks?" → Re-run Step 9 for failed tasks only
+  - "Continue without failed tasks?" → Proceed to dependency wiring
+  - "Abort?" → Stop, suggest manual review
+- **If ≥ 50% failed**: Recommend abort:
+
+  ```
+  ⚠️ {fail_count}/{total_count} tasks failed to create.
+  This indicates a systemic issue (e.g., bd connection, permissions).
+
+  Options:
+  1. Retry all failed tasks (may fail again)
+  2. Abort and investigate
+  3. Continue manually with `bd create`
+  ```
+
+### 9a.4 Retry Logic
+
+For retry:
+
+- Wait 2 seconds between attempts
+- Max 3 retry attempts per task
+- If still failing after 3 attempts → Mark as permanently failed
+
+### 9a.5 State Tracking
+
+Update state.json with task creation results.
+
+## Step 9b: Validate Dependencies Before Wiring
+
+Before calling bd_add_dep:
+
+### 9b.1 Dependency Checks
+
+- Verify blocker task ID exists in created_tasks map
+- Verify dependent task ID exists
+- Skip wiring if blocker not found (log warning)
+- Detect circular dependencies (shouldn't happen if plan is valid)
+
+### 9b.2 Dependency Resolution
+
+For each dependency:
+
+```
+Dependent: T003
+Blocker: T001
+Action: bd_add_dep "{t3_bd_id}" "{t1_bd_id}"
+```
+
+**Edge Cases:**
+
+- If blocker task failed to create → Log warning, skip wiring
+- If dependent task failed to create → Skip (already logged)
+- If circular dependency detected → Log error, skip wiring
 
 ## Step 10: Wire Dependencies
 
