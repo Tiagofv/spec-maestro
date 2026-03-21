@@ -2,7 +2,7 @@
 description: >
   Perform code review on a completed implementation task.
   Routes by risk level, injects conventions, checks for feature regression first.
-argument-hint: <review-task-id>
+argument-hint: <review-task-id> [--no-worktree]
 ---
 
 # maestro.review
@@ -11,7 +11,12 @@ Review task: **$ARGUMENTS**
 
 ## Step 1: Read Review Task
 
-`$ARGUMENTS` must contain a review task ID. If empty:
+First parse arguments into:
+
+- `review_task_id` — required positional review task ID
+- `no_worktree_flag` — true when `--no-worktree` is present
+
+`review_task_id` must be present. If empty:
 
 - List ready tasks: `bd ready`
 - Ask the user which review task to run
@@ -20,7 +25,7 @@ Review task: **$ARGUMENTS**
 Read the review task:
 
 ```bash
-bd show $ARGUMENTS --json
+bd show {review_task_id} --json
 ```
 
 Extract:
@@ -50,7 +55,22 @@ DONE | files: x.go,y.go | pattern: consumer | ref: z.go
 
 Parse the `files:` field to get the list of modified files.
 
-**Worktree context:** Look up the feature's state.json using the epic ID from the task. If the state has `worktree_path` set, store it as `{worktree_path}` for use in Step 3 and Step 5.
+**Worktree context and invariant:**
+
+1. Look up the feature's state.json using the epic ID from the task.
+2. Determine `worktree_required`:
+   - `false` when `no_worktree_flag=true`
+   - else value from state `worktree_required` when present
+   - else default `true`
+3. If `worktree_required=true`, enforce worktree metadata and existence:
+   - Ensure `worktree_name`, `worktree_path`, `worktree_branch`, `worktree_created` exist in state
+   - If missing, backfill from feature/branch (same derivation used by `/maestro.implement`) and write state history
+   - If worktree is not created or path is missing on disk, run:
+     `bash .maestro/scripts/worktree-create.sh {worktree_name} {worktree_branch}`
+   - Store `{worktree_path}` for Step 3 and Step 5
+4. If `worktree_required=false`, allow main-branch review for this run only and record history action `"worktree opt-out for review"`.
+
+**Invariant:** Unless explicitly opted out, review must run against the feature worktree.
 
 If the implementation task is not closed (no close_reason):
 
@@ -58,43 +78,46 @@ If the implementation task is not closed (no close_reason):
 - Show the implementation task status
 - Stop
 
-## Step 3: Risk Classification
+## Step 3: Filter Auto-Generated Files
 
-Read the risk classification cookbook:
+Check each file from Step 2 to identify auto-generated files that should be skipped:
 
-```bash
-cat .maestro/cookbook/review-routing.md
-```
+**Auto-generated file patterns:**
 
-Classify each file from Step 2 according to the risk levels:
+- **entgo**: Files in `ent/` directories (path contains `/ent/` or starts with `ent/`)
+- **protobuf**: Files ending with `.pb.go`
 
-- **HIGH RISK**: Always review (business logic, handlers, data access, auth, payments, API endpoints, migrations)
-- **MEDIUM RISK**: Review if >50 lines changed (wiring, middleware, DTOs, adapters, build scripts)
-- **LOW RISK**: Skip review (generated code, pure structs, type definitions, constants, test fixtures, docs, import-only)
-
-For MEDIUM RISK files, check the diff size:
+**Detection logic:**
 
 ```bash
-git diff HEAD~1 -- {file} | wc -l
+# Check if file is entgo generated (but NOT in ent/schema/)
+if echo "{file}" | grep -qE "(^ent/|/ent/)" && ! echo "{file}" | grep -qE "(^ent/schema/|/ent/schema/)"; then
+    # This is an entgo generated file - skip
+fi
+
+# Check if file is protobuf generated
+if echo "{file}" | grep -qE "\.pb\.go$"; then
+    # This is a protobuf generated file - skip
+fi
 ```
 
-If `worktree_path` is set, run the diff from within the worktree:
-git -C {worktree_path} diff HEAD~1 -- {file} | wc -l
-Otherwise use the standard form.
+**Skip auto-generated files:**
 
-If the diff is 50 lines or fewer, downgrade MEDIUM to LOW for that file.
-
-**If ALL files are LOW RISK:**
-
-Close the review task as skipped and stop:
+Close the review task for auto-generated files:
 
 ```bash
-bd close $ARGUMENTS --reason "SKIPPED | risk: low | files: {comma-separated list}"
+bd close {review_task_id} --reason "SKIPPED | auto-generated: {type} | files: {comma-separated list}"
 ```
 
-Report to the user that all files were low risk and the review was skipped.
+Where `{type}` is either `entgo` or `protobuf`.
 
-Otherwise, proceed with the files classified as HIGH or MEDIUM (with >50 lines changed).
+**Proceed with remaining files:**
+
+Review all files that don't match the auto-generated patterns. Domain files, interfaces, constants, and all other file types should be reviewed.
+
+**Document skipped files:**
+
+Maintain a list of skipped auto-generated files for the final report (see Step 7).
 
 ## Step 4: Load Conventions
 
@@ -122,7 +145,7 @@ Local conventions take precedence over global ones. When there's a conflict, the
 Spawn a sub-agent with the reviewer type from the task's assignee field. The sub-agent receives:
 
 - The conventions from Step 4
-- The file list from Step 3 (only HIGH and qualifying MEDIUM files)
+- The file list from Step 3 (all files except auto-generated)
 - The review template schema
 - Explicit instructions to check for feature regression FIRST
 
@@ -143,17 +166,19 @@ Task(
   Local conventions take precedence over global ones.
 
   ## Files to Review
-  {file list with full paths — only HIGH and qualifying MEDIUM risk files}
+  {file list with full paths — all files except auto-generated (entgo and protobuf)}
 
   ## Worktree Context
-  {If worktree_path is set:}
+  {If worktree_required=true:}
   The implementation was done in worktree: {worktree_path}
+  Run preflight before review: bash .maestro/scripts/assert-worktree-context.sh {worktree_path}
   Run git diff commands from within that directory using: git -C {worktree_path} diff HEAD~1 -- {file}
-  {Otherwise:} Run git diff commands normally.
+  {Otherwise:} Worktree was explicitly disabled for this run; run git diff commands normally.
 
   ## FEATURE REGRESSION CHECK (DO THIS FIRST)
 
-  For every modified file, use `git diff HEAD~1 -- {file}` to detect REMOVED functionality:
+  For every modified file, use `git diff HEAD~1 -- {file}` to detect REMOVED functionality.
+  If worktree_required=true, always execute this as `git -C {worktree_path} diff HEAD~1 -- {file}`:
   - Deleted switch cases, event handlers, or consumer registrations
   - Removed function calls, route registrations, or feature branches
   - Replaced a multi-entity handler with a single-entity one
@@ -207,7 +232,7 @@ Parse the JSON output from the reviewer sub-agent.
 Close the review task with a passing reason:
 
 ```bash
-bd close $ARGUMENTS --reason "PASS | files: {list} | layer: {layer}"
+bd close {review_task_id} --reason "PASS | files: {list} | layer: {layer}"
 ```
 
 Proceed to Step 8 to report results.
@@ -217,7 +242,7 @@ Proceed to Step 8 to report results.
 Close the review task noting the minor issues:
 
 ```bash
-bd close $ARGUMENTS --reason "MINOR | files: {list} | note: {summary from review}"
+bd close {review_task_id} --reason "MINOR | files: {list} | note: {summary from review}"
 ```
 
 Proceed to Step 8 to report results. Minor issues are informational and do not block.
@@ -248,6 +273,11 @@ bd create \
 
   ## Instructions
   Fix this issue while maintaining all existing functionality.
+  {If worktree_required=true:}
+  Work in worktree: {worktree_path}
+  Run preflight: bash .maestro/scripts/assert-worktree-context.sh {worktree_path}
+  After fixing, run compile gate: bash .maestro/scripts/compile-gate.sh {worktree_path}
+  {Otherwise:}
   After fixing, run compile gate: bash .maestro/scripts/compile-gate.sh"
 ```
 
@@ -267,20 +297,24 @@ After all fixes are implemented, go back to **Step 5** and re-run the review.
 
 **Fix-Review Loop:** This loop continues until the review returns PASS or MINOR. There is no maximum iteration count — the code must be correct before proceeding.
 
-If the same issue recurs 3 times, escalate to the user with context about what's been tried.
+If the same issue recurs 3 times, escalate to the user with context what's been tried.
 
 ## Step 8: Report Results
 
 Show the user:
 
 1. **Review verdict**: PASS, MINOR, or CRITICAL (with resolution)
-2. **Issues found** (if any): List each issue with file, line, cause, and description
-3. **Fix tasks created** (if any): List each fix task ID and status
-4. **Next ready tasks**: Run `bd ready` and show available work
-5. **Completion check**: If all review tasks for the current feature are complete, suggest: "All reviews complete. Run `/maestro.pm-validate` to validate the feature."
+2. **Files reviewed**: List all files that were reviewed
+3. **Files skipped** (if any): List auto-generated files that were skipped (entgo, protobuf) with reasons
+4. **Issues found** (if any): List each issue with file, line, cause, and description
+5. **Fix tasks created** (if any): List each fix task ID and status
+6. **Next ready tasks**: Run `bd ready` and show available work
+7. **Completion check**: If all review tasks for the current feature are complete, suggest: "All reviews complete. Run `/maestro.pm-validate` to validate the feature."
 
 ---
 
 **Feature regression check is non-negotiable.** It happens FIRST, before any other review activity. This was learned from production incidents where agents implemented new features but broke existing ones.
 
 **ADDITIVE review philosophy.** The reviewer's primary job is to ensure existing functionality was preserved while new functionality was correctly added.
+
+**Worktree-first invariant.** Review runs in the feature worktree by default. Only explicit opt-out (`--no-worktree` or state override) may bypass this.
