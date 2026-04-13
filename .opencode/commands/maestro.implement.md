@@ -270,6 +270,14 @@ Task(
   7. Do NOT report your work as complete until the gate passes
   8. Ensure all acceptance criteria are met
 
+  ## Commit Attribution
+  All git commits you create MUST include the suffix `[bd:{task_id}]` at the end of the commit message.
+  This enables per-task diff tracking. The task ID is provided above.
+
+  Example: `feat(api): add handler [bd:agent-maestro-xyz]`
+
+  If you create multiple commits, each one must carry this suffix.
+
   ## Output Format
   When complete, report using this exact format:
   DONE | files: {comma-separated list} | pattern: {pattern used} | ref: {reference file if any}
