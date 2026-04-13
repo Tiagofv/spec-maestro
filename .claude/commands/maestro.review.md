@@ -172,13 +172,27 @@ Task(
   {If worktree_required=true:}
   The implementation was done in worktree: {worktree_path}
   Run preflight before review: bash .maestro/scripts/assert-worktree-context.sh {worktree_path}
-  Run git diff commands from within that directory using: git -C {worktree_path} diff HEAD~1 -- {file}
+  For diffs, prefer task-diff.sh (see below). Fall back to: git -C {worktree_path} diff HEAD~1 -- {file}
   {Otherwise:} Worktree was explicitly disabled for this run; run git diff commands normally.
 
   ## FEATURE REGRESSION CHECK (DO THIS FIRST)
 
-  For every modified file, use `git diff HEAD~1 -- {file}` to detect REMOVED functionality.
-  If worktree_required=true, always execute this as `git -C {worktree_path} diff HEAD~1 -- {file}`:
+  **Obtain the full task diff.** Use `task-diff.sh` to get the combined diff across ALL commits
+  attributed to the implementation task (not just the last commit):
+
+  ```bash
+  # With worktree:
+  bash .maestro/scripts/task-diff.sh {implementation_task_id} --worktree {worktree_path}
+  # Without worktree:
+  bash .maestro/scripts/task-diff.sh {implementation_task_id}
+  ```
+
+  If task-diff.sh exits 1 (no `[bd:{implementation_task_id}]` commits found), fall back to
+  per-file diffs:
+  - If worktree_required=true: `git -C {worktree_path} diff HEAD~1 -- {file}` for each file
+  - Otherwise: `git diff HEAD~1 -- {file}` for each file
+
+  **Scan the diff output** (whether from task-diff.sh or the fallback) for REMOVED functionality:
   - Deleted switch cases, event handlers, or consumer registrations
   - Removed function calls, route registrations, or feature branches
   - Replaced a multi-entity handler with a single-entity one
