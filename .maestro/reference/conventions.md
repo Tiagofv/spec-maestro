@@ -279,3 +279,65 @@ The following folder names exist in `.maestro/specs/`:
 
 - Feature Spec: `.maestro/specs/013-better-naming-for-the-folders-created-inside-specs/spec.md`
 - Implementation Plan: `.maestro/specs/013-better-naming-for-the-folders-created-inside-specs/plan.md`
+
+---
+
+# Commit Attribution Convention
+
+Maestro uses a `[bd:ISSUE_ID]` suffix in commit messages to attribute commits to specific tasks. This enables the `/maestro.diff` command to reconstruct the full diff for any task by finding all commits that belong to it.
+
+## Format
+
+Append `[bd:<task-id>]` at the end of the commit message subject line.
+
+**Example:**
+
+```
+feat(api): add payment handler [bd:agent-maestro-xyz.3]
+```
+
+The suffix consists of:
+
+- `[bd:` -- opening marker (short for "beads", the internal task tracking system)
+- `<task-id>` -- the full task ID including epic prefix and subtask number (e.g., `agent-maestro-xyz.3`)
+- `]` -- closing marker
+
+## When It Is Applied
+
+### Automatic (during /maestro.implement)
+
+When you run `/maestro.implement`, the commit message is automatically suffixed with the `[bd:<task-id>]` marker for the task being implemented. No manual action is needed.
+
+### Manual (commits outside maestro)
+
+If you make commits outside the maestro workflow (e.g., hotfixes, manual changes related to a task), append the suffix yourself:
+
+```bash
+git commit -m "fix(api): correct null check [bd:agent-maestro-xyz.3]"
+```
+
+This ensures those commits are included when computing the task diff.
+
+## Viewing a Task Diff
+
+Use the `task-diff.sh` script to see the combined diff for all commits attributed to a task:
+
+```bash
+bash .maestro/scripts/task-diff.sh <task-id>
+# Example:
+bash .maestro/scripts/task-diff.sh agent-maestro-xyz.3
+```
+
+Add `--summary` for a one-line stat:
+
+```bash
+bash .maestro/scripts/task-diff.sh agent-maestro-xyz.3 --summary
+```
+
+## Known Limitations
+
+1. **Rebase and squash may lose suffixes.** If you interactively rebase or squash commits, the `[bd:...]` suffix may be dropped from the rewritten commit messages. After rebasing, verify that the suffixes are still present in the final commit messages.
+
+2. **Manual commits are not tagged automatically.** Commits made outside `/maestro.implement` will not have the suffix unless you add it yourself. Tasks with missing attribution will show: *"No commits found for task {task_id}. This task may have been completed before commit attribution was enabled."*
+
+3. **Older tasks have no attribution.** Tasks completed before commit attribution was introduced will not have any attributed commits. The `task-diff.sh` script handles this gracefully with a descriptive message.

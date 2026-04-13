@@ -95,7 +95,7 @@ main() {
   commits=$(find_commits "$TASK_ID")
 
   if [[ -z "$commits" ]]; then
-    echo "error: no commits found matching [bd:${TASK_ID}]" >&2
+    echo "No commits found for task ${TASK_ID}. This task may have been completed before commit attribution was enabled." >&2
     exit 1
   fi
 
