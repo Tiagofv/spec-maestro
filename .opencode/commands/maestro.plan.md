@@ -66,11 +66,11 @@ Consider research ready only when all are true:
 - synthesis verdict is `ready`
 - synthesis minimum quality signals are present
 
-If research is incomplete by this gate, require this exact acknowledgement phrase before planning:
+If research is incomplete or missing, show this suggestion and **continue planning**:
 
-`I acknowledge proceeding without complete research`
+> **Suggestion:** No completed research found for this feature. Consider running `/maestro.research {feature_id}` before planning if the domain is unfamiliar or the feature involves technology choices. Proceeding with plan generation based on the spec alone.
 
-If the phrase is missing/incorrect, stop and suggest `/maestro.research {feature_id}`.
+Do NOT block or require acknowledgement — proceed directly to Step 4.
 
 ## Step 4: Read the Plan Template
 
@@ -110,7 +110,7 @@ Update `.maestro/state/{feature_id}.json`:
 - Add `phases` count
 - Add `components_new` and `components_modified` counts
 - Preserve existing research metadata fields (`research_path`, `research_artifacts`, `research_artifact_pointers`, `research_ready`, `research_parallel_agents_default`, `research_parallel_agents_max`, `research_parallel_agents_used`)
-- If bypass path was used, set `research_bypass_acknowledged` to `true`
+- If research suggestion was shown, set `research_bypass_suggested` to `true`
 - Add history entry
 
 State update rules:
@@ -128,7 +128,7 @@ Show the user:
    - Existing components to modify
    - Key risks identified
 2. Any open questions that need resolution
-3. Whether planning proceeded via research-ready path or bypass acknowledgement path
+3. Whether planning proceeded via research-ready path or without research (suggestion shown)
 4. Research readiness evidence source (state metadata and synthesis path/verdict)
 5. Suggest: "Review the plan, then run `/maestro.tasks` to break it into bd issues."
 
