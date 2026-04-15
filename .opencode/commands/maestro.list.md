@@ -47,6 +47,7 @@ Capture the JSON array output. Each element contains:
 - `task_count` — count of tasks
 - `is_stalled` — boolean, true if no updates for 14+ days
 - `days_since_update` — days since last state change
+- `forked_from` — feature_id this was forked from (null if not a fork)
 - `next_action` — suggested command to run
 - `next_action_reason` — why that action is suggested
 
@@ -89,10 +90,11 @@ Summary: 2 specify | 3 plan | 1 implement
 Render a column-aligned table with these 6 columns:
 
 ```
-Features (9 total)
+Features (10 total)
 
 ID    Name                          Stage        Stories  Tasks  Next Action
 ----  ----------------------------  -----------  -------  -----  --------------------------
+010   ↳ from 005 Multi-currency v2  specify           0      0   /maestro.clarify
 009   Payment reconciliation        plan              4      0   /maestro.tasks
 008   Invoice templates             implement         6     12   (in progress)
 007   Vendor onboarding             ⚠ STALLED (21d) specify  3   0   /maestro.clarify
@@ -107,7 +109,7 @@ ID    Name                          Stage        Stories  Tasks  Next Action
 **Column Details:**
 
 - **ID:** Numeric prefix from `feature_id` (e.g. `009`)
-- **Name:** Feature title, truncated to 28 characters with `..` if longer
+- **Name:** Feature title, truncated to 28 characters with `..` if longer. If the feature has a non-null `forked_from` field, prepend `↳ from {NNN} ` to the title, where NNN is the numeric ID prefix extracted from the `forked_from` feature_id (e.g., `005` from `005-multi-currency-support`). The truncation limit applies to the combined string including the fork prefix.
 - **Stage:** Current stage; see Steps 8-9 for special indicators
 - **Stories:** Count of user stories (`user_stories`)
 - **Tasks:** Count of tasks (`task_count`)
