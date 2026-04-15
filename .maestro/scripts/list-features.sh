@@ -246,9 +246,22 @@ build_feature_json() {
       local action_json
       action_json=$(compute_next_action "$stage" "$clarification_count")
 
+      local forked_from
+      forked_from=$(echo "$parsed" | jq -r '.forked_from // empty')
+      local forks
+      forks=$(echo "$parsed" | jq '.forks // []')
+
       local group="active"
       if [[ "$stage" == "complete" ]]; then
         group="completed"
+      fi
+
+      # Build --arg or --argjson for forked_from depending on null vs string
+      local forked_from_args=()
+      if [[ -z "$forked_from" ]]; then
+        forked_from_args=(--argjson forked_from "null")
+      else
+        forked_from_args=(--arg forked_from "$forked_from")
       fi
 
       jq -n \
@@ -259,6 +272,8 @@ build_feature_json() {
         --argjson state "$parsed" \
         --argjson stalled "$stalled_json" \
         --argjson action "$action_json" \
+        "${forked_from_args[@]}" \
+        --argjson forks "$forks" \
         '{
           feature_id:          $fid,
           numeric_id:          $nid,
@@ -273,7 +288,9 @@ build_feature_json() {
           is_stalled:          $stalled.is_stalled,
           days_since_update:   $stalled.days_since_update,
           next_action:         $action.next_action,
-          next_action_reason:  $action.next_action_reason
+          next_action_reason:  $action.next_action_reason,
+          forked_from:         $forked_from,
+          forks:               $forks
         }'
       return
     fi
@@ -304,7 +321,9 @@ build_feature_json() {
       is_stalled:          false,
       days_since_update:   0,
       next_action:         $action.next_action,
-      next_action_reason:  $action.next_action_reason
+      next_action_reason:  $action.next_action_reason,
+      forked_from:         null,
+      forks:               []
     }'
 }
 
