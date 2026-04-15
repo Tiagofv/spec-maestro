@@ -202,6 +202,20 @@ bd update {task_id} --status in_progress
 Read files mentioned in the task description, plus:
 
 - `.maestro/constitution.md` — for architectural constraints
+- Convention memories from project memory — for coding conventions learned from PR reviews
+
+**Convention Loading:**
+If convention memories exist in Claude Code project memory (files matching `convention_*.md`):
+1. Read each convention memory file
+2. Check the `[scope: X]` tag in each file
+3. Filter by scope matching the current context:
+   - `[scope: all]` — always include
+   - `[scope: go]` — include when implementing in a Go repository (has go.mod)
+   - `[scope: react]` — include when implementing in a React/TypeScript project (has package.json with react dependency)
+   - `[scope: repo:{name}]` — include when the current repo name matches
+4. Collect the convention text (the rule, Do/Don't examples) from matching files
+
+If no convention memories exist, skip this step silently.
 
 ### 4d: Spawn implementation agent
 
@@ -238,6 +252,10 @@ Task(
 
   ## Constitution Constraints
   {relevant sections from constitution}
+
+  ## Conventions (learned from PR reviews)
+  {filtered convention text from matching convention_*.md memories — only conventions whose scope matches the current repo/language}
+  {If no conventions match, omit this section entirely}
 
   ## Worktree Context
   {If worktree_required=true:}
