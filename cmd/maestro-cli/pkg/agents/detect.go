@@ -8,7 +8,7 @@ import (
 // KnownAgentDirs returns the complete list of agent config directories
 // that maestro can manage. This is the single source of truth.
 func KnownAgentDirs() []string {
-	return []string{".opencode", ".claude"}
+	return []string{".opencode", ".claude", ".codex"}
 }
 
 // DetectInstalled returns the subset of KnownAgentDirs that exist
