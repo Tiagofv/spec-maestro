@@ -2,6 +2,26 @@
 # Helper functions for bd operations
 # Source this file: source .maestro/scripts/bd-helpers.sh
 
+# =============================================================================
+# FORBIDDEN COMMANDS
+# =============================================================================
+# Never call any of these from this file or from any maestro command:
+#
+#   bd init --force            (deprecated alias for --reinit-local; bypasses
+#                               local data-safety guard)
+#   bd init --reinit-local     (re-initializes the local .beads/, can lose
+#                               prior features' issues if the prefix changes)
+#   bd init --discard-remote   (authorizes discarding configured remote's Dolt
+#                               history; the most destructive option)
+#
+# Reason: each can silently destroy issues from prior features when the
+# workspace already has data. Use bd-preflight.sh for setup/recovery — it uses
+# bd bootstrap (non-destructive) and refuses to proceed on prefix drift.
+#
+# Entry point for setup/recovery:
+#   bash "$(dirname "${BASH_SOURCE[0]}")/bd-preflight.sh"
+# =============================================================================
+
 set -euo pipefail
 
 # Check if bd is available
@@ -11,6 +31,14 @@ bd_check() {
     return 1
   fi
   return 0
+}
+
+# Run bd workspace pre-flight check.
+# Exits 0 when the workspace is in a known-safe state.
+# Exits non-zero with a named recovery path on drift / setup gaps.
+# Usage: bd_preflight || { echo "preflight failed; see message above"; exit $?; }
+bd_preflight() {
+  bash "$(dirname "${BASH_SOURCE[0]}")/bd-preflight.sh"
 }
 
 # Create epic and return ID
@@ -54,6 +82,15 @@ bd_add_dep() {
 # Get ready tasks as JSON
 bd_ready_json() {
   bd ready --json 2>/dev/null || echo "[]"
+}
+
+# Apply a feature:NNN label to an epic and propagate it to all children.
+# Idempotent: bd label propagate skips children that already have the label.
+# Usage: bd_apply_feature_label "$EPIC_ID" "061"
+bd_apply_feature_label() {
+  local epic_id="$1"
+  local feature_num="$2"
+  bd label propagate "$epic_id" "feature:$feature_num" 2>/dev/null || true
 }
 
 # Close task with structured reason
