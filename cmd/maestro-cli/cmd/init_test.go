@@ -71,36 +71,16 @@ func TestInitCreatesFullStructure(t *testing.T) {
 	origDir := chdir(t, dir)
 	defer os.Chdir(origDir)
 
-	// Replicate the core init flow: install embedded core dirs
-	fetch := embedded.NewAssetFetcher()
-	coreDirs := []string{
-		".maestro/commands",
-		".maestro/scripts",
-		".maestro/templates",
-		".maestro/skills",
-		".maestro/cookbook",
-		".maestro/reference",
-	}
+	// Replicate the core init flow by calling the same install helper that
+	// runInit uses. The asset fetcher returns paths relative to the requested
+	// directory; agents.WriteAgentDir (invoked transitively via
+	// installRequiredStarterAssets) is what re-prepends the target dir, so
+	// the test must use this helper rather than write the relative keys
+	// directly to cwd.
+	coreDirs := agents.RequiredStarterAssetDirs()
 
-	totalFiles := 0
-	for _, d := range coreDirs {
-		content, err := fetch(d)
-		if err != nil {
-			t.Fatalf("fetch(%q) returned error: %v", d, err)
-		}
-		for filePath, fileContent := range content {
-			if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-				t.Fatalf("creating dir for %s: %v", filePath, err)
-			}
-			if err := os.WriteFile(filePath, fileContent, 0644); err != nil {
-				t.Fatalf("writing %s: %v", filePath, err)
-			}
-			totalFiles++
-		}
-	}
-
-	if totalFiles == 0 {
-		t.Fatal("expected at least one file to be installed from embedded resources")
+	if err := installRequiredStarterAssets(strings.NewReader("\n"), &bytes.Buffer{}); err != nil {
+		t.Fatalf("installRequiredStarterAssets: %v", err)
 	}
 
 	// Install required starter files (constitution.md, etc.)

@@ -17,6 +17,42 @@ bash .maestro/scripts/check-prerequisites.sh tasks
 
 If it fails, show the error and suggestion, then stop.
 
+## Step 1.5: bd Workspace Pre-flight
+
+Before reading the plan or touching any state, validate the bd workspace.
+
+Run the pre-flight check:
+
+```bash
+bash .maestro/scripts/bd-preflight.sh
+```
+
+**Behavior on non-zero exit:**
+
+- Surface the script's stdout (the named recovery path) to the user **verbatim**.
+- STOP. Do not attempt to recover automatically.
+- Destructive recovery from the pre-flight is **never automatic**.
+
+**Forbidden recovery commands** (do NOT invoke any of these in response to a pre-flight failure):
+
+- `bd init --force`
+- `bd init --reinit-local`
+- `bd init --discard-remote`
+
+These flags are destructive and must only be run by a human operator following the documented runbook.
+
+**Recovery runbook reference:**
+
+For drift conditions (exit code 3) and missing-prefix-populated conditions (exit code 4), point the user at the canonical recovery runbook:
+
+- `.maestro/templates/migration-runbook-template.md`
+
+That document is the single source of truth for safe recovery.
+
+**Non-destructive guarantee:**
+
+`bd-preflight.sh` is non-destructive. It uses `bd bootstrap` for first-time setup and never invokes `bd init --force` (or any of the forbidden flags above). If a destructive action is required, the script will surface the runbook reference and exit non-zero — it will not perform the action itself.
+
 ## Step 2: Find the Plan
 
 If `$ARGUMENTS` contains a feature ID, use it. Otherwise, find the most recent feature in `.maestro/specs/`.
@@ -332,6 +368,13 @@ EPIC_ID=$(bd_create_epic "{feature_id}: {feature_title}" "{plan summary}")
 
 Store the epic ID for later.
 
+```bash
+# Propagate feature:NNN label to the epic and all its (yet-to-be-created) children.
+# Idempotent: bd_apply_feature_label is a no-op when the label is already present.
+FEATURE_NUM=$(echo "{feature_id}" | grep -oE '^[0-9]+')
+bd_apply_feature_label "$EPIC_ID" "$FEATURE_NUM"
+```
+
 ## Step 9: Create Tasks
 
 For each task in the table:
@@ -457,9 +500,25 @@ bd_add_dep "{dependent_task_id}" "{blocker_task_id}"
 Update `.maestro/state/{feature_id}.json`:
 
 - Add `epic_id` field
+- Add `bd_label` field (e.g. `"bd_label": "feature:061"` for feature 061)
+- Compute `bd_label` as `feature:<NNN>` from the `feature_id` and persist alongside `epic_id`.
 - Add `task_count` field
 - Set `stage` to `tasks`
 - Add history entry
+
+**Documented state shape** (relevant fields):
+
+```json
+{
+  "epic_id": "bd-123",
+  "bd_label": "feature:061",
+  "task_count": 12,
+  "stage": "tasks",
+  "history": [
+    { "action": "tasks created", "timestamp": "..." }
+  ]
+}
+```
 
 ## Step 12: Report Results
 
