@@ -144,9 +144,12 @@ test_empty_workspace() {
 
 # ---------------------------------------------------------------------------
 # Branch 3: correct prefix → exit 0, "bd workspace OK ...".
-# Note: bd init --prefix=altpay- strips the trailing hyphen (stores 'altpay'),
-# which would *not* startsWith('altpay-'). We seed with altpay-001 to get a
-# prefix that genuinely begins with the stable altpay- string.
+#
+# bd_stable_prefix=altpay- ends with a hyphen. bd accepts that as input but
+# stores the prefix in two distinct shapes depending on what follows:
+#   - bd init --prefix=altpay-      → stored as 'altpay'         (hyphen stripped)
+#   - bd init --prefix=altpay-001   → stored as 'altpay-001'      (kept intact)
+# The script must accept BOTH as correct. Two test cases below pin both forms.
 # ---------------------------------------------------------------------------
 test_correct_prefix() {
   local name="test_correct_prefix"
@@ -170,6 +173,53 @@ test_correct_prefix() {
 
   if [[ $rc -ne 0 ]]; then
     _fail "$name" "expected exit 0, got $rc; output: $out"
+    return
+  fi
+  local first_line
+  first_line="$(printf '%s' "$out" | head -n1)"
+  if [[ "$first_line" != "bd workspace OK"* ]]; then
+    _fail "$name" "expected first stdout line to start with 'bd workspace OK'; got: $first_line"
+    return
+  fi
+  _pass "$name"
+}
+
+# ---------------------------------------------------------------------------
+# Branch 3 (variant): bare-stem prefix — the form bd actually stores when the
+# user runs bd init --prefix=altpay- or bd rename-prefix altpay-. bd silently
+# drops the trailing hyphen, so the bd-stored prefix is 'altpay' even though
+# the configured stable prefix is 'altpay-'. The script must treat 'altpay'
+# (== STABLE with the trailing hyphen stripped) as correct, not as drift.
+#
+# Regression guard for altpay-dw1 — release v0.0.16 shipped a starts-with
+# comparison that rejected this form, breaking the very migration path the
+# feature documents.
+# ---------------------------------------------------------------------------
+test_correct_prefix_bare_stem() {
+  local name="test_correct_prefix_bare_stem"
+  local tmpd
+  tmpd="$(seed_workspace)"
+  _assert_tmp_path "$tmpd"
+  trap 'rm -rf "$tmpd"' RETURN
+
+  ( cd "$tmpd" && bd init --prefix="altpay-" --non-interactive --skip-hooks --skip-agents -q ) >/dev/null 2>&1
+
+  # Verify the seed actually produced the bare-stem form (i.e., bd stripped
+  # the trailing hyphen as documented). If a future bd version stops doing
+  # that, this test becomes a no-op duplicate of test_correct_prefix and we
+  # should learn about it via this assertion.
+  local seeded_prefix
+  seeded_prefix="$(cd "$tmpd" && bd config get issue_prefix 2>/dev/null | tr -d '[:space:]')"
+  if [[ "$seeded_prefix" != "altpay" ]]; then
+    _fail "$name" "seed step produced unexpected prefix '$seeded_prefix' (expected bare 'altpay' from bd stripping the trailing hyphen)"
+    return
+  fi
+
+  local out rc
+  out="$(cd "$tmpd" && bash "$tmpd/.maestro/scripts/bd-preflight.sh" 2>&1)" && rc=$? || rc=$?
+
+  if [[ $rc -ne 0 ]]; then
+    _fail "$name" "expected exit 0 (bare stem accepted as correct), got $rc; output: $out"
     return
   fi
   local first_line
@@ -351,6 +401,7 @@ test_bd_not_on_path() {
 run_all() {
   test_empty_workspace
   test_correct_prefix
+  test_correct_prefix_bare_stem
   test_drift
   test_missing_prefix_populated
   test_bd_not_on_path
