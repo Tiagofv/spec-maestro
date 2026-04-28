@@ -62,6 +62,7 @@ The CLI reads these files at runtime - changes take effect immediately:
 - **Templates** (`.maestro/templates/*.md`)
 - **Configuration** (`.maestro/config.yaml`)
 - **Documentation** (README, USAGE, etc.)
+- **Inventory script** (`.maestro/scripts/list-agents.sh`) — bash script discovering harness agents at plan time; edits take effect immediately, no Go rebuild.
 
 ### Quick Check
 
