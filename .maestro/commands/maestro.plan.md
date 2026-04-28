@@ -144,19 +144,93 @@ Use research findings to inform plan decisions:
 
 Read `.maestro/templates/plan-template.md`.
 
-## Step 4b: File-Pattern-to-Agent Mapping
+## Step 4b: Inventory Discovery and Per-Task Agent Selection
 
-Use the following mapping table to assign agents to tasks based on file patterns:
+Replace the previous static file-pattern-to-agent table with project-aware selection
+driven by the harness's actual agent inventory.
 
-| Pattern | Agent   |
-| ------- | ------- |
-| \*.go   | general |
-| \*.ts   | general |
-| \*.tsx  | general |
-| \*.py   | general |
-| \*      | general |
+### Step 4b.1: Discover the Inventory
 
-**Instructions:** When generating tasks, match each task's target files against this table **in order from top to bottom**. The **first matching pattern** determines the agent assignee for that task. Users can customize this table by editing it directly (e.g., changing `*.go` to `golang-expert-payments` for specialized Go development).
+Run the inventory script and capture its output:
+
+```bash
+bash .maestro/scripts/list-agents.sh --harness=auto > /tmp/maestro-agents-inventory.json
+```
+
+The output is a JSON array of `AgentInventoryEntry` records (see
+`.maestro/specs/060-improve-maestro-select-best-agent-each/data-model.md`).
+
+If the array is empty, every task in this plan will fall back to `general`. This is
+correct behavior for a fresh project — emit a single `[no-match: empty-inventory]`
+annotation at the top of the task list and proceed.
+
+Determine the running harness:
+- If exactly one of `which claude`, `which opencode`, `which codex` succeeds, that's the
+  running harness.
+- If multiple succeed, prefer in this order: `claude`, `opencode`, `codex` (matches
+  spec-maestro's existing `KnownAgentDirs` order).
+- If none succeed, the harness is `unknown` — selection still works against any matching
+  entries, but the `[harness: ...]` annotation is omitted.
+
+### Step 4b.2: Score Each Task Against the Inventory
+
+For each task in the plan, compute a per-entry score:
+
+| Component | Weight | How to compute |
+| --------- | ------ | -------------- |
+| Stack match | +10 per matching stack | Task touches `*.go` AND entry.stacks contains `"go"` → +10. Task touches `*.tsx` AND entry.stacks contains `"tsx"` or `"ts"` or `"frontend"` → +10. |
+| Intent match | +5 if task is impl AND entry.intent in `["impl","either"]` | Or +5 if task is review AND entry.intent in `["review","either"]`. Mismatch (impl task, review-only entry) → -1000 (effectively excludes). |
+| Harness match | +3 if entry.harness == running harness | Cross-harness entries get 0 here, so they're outscored by same-harness candidates but still selectable when no same-harness match exists. |
+| Wildcard penalty | -2 if entry.stacks == `["*"]` | Generic agents like `general-purpose` are eligible but lose to specialists. |
+
+Pick the entry with the **highest score**. If multiple entries tie at the top:
+1. Prefer entries from the running harness.
+2. Within the same harness, pick alphabetically by `name` and emit `[tie-broken]`.
+
+If max score is **≤ 0**, set assignee to `general` and emit `[no-match: <reason>]`
+where `<reason>` is the most specific cause:
+- `harness-mismatch` — entries existed but none from the running harness.
+- `no-stack-match` — entries existed but none matched the task's stacks.
+- `no-intent-match` — only review-only entries existed for an impl task (or vice versa).
+- `empty-inventory` — JSON array was empty.
+
+### Step 4b.3: Emit Annotations
+
+Every task's `Assignee:` field includes:
+- The chosen name (or `general`).
+- A `[harness: <name>]` annotation when the running harness was detected.
+- One of: `[no-match: <reason>]`, `[tie-broken]`, `[review-fallback]`, or no annotation
+  if a clean specialist match was found.
+
+Annotations are space-separated, in brackets, after the assignee name. Example:
+
+```
+Assignee: golang-code-reviewer [harness: claude]
+Assignee: general [harness: claude] [no-match: no-stack-match]
+Assignee: general [harness: claude] [review-fallback]
+```
+
+### Step 4b.4: Review Tasks Are Selected Independently
+
+Review tasks (label `review`, auto-paired with each impl task) are scored
+independently against entries with `intent in ["review","either"]`. They do **not**
+inherit the impl task's assignee. If no review-capable agent matches, the review task
+falls back to `general` with `[review-fallback]` annotation — never to the impl
+agent's name.
+
+This change supersedes the previous rule in `maestro.tasks.md` Step 5.2 #3 (see
+companion contract `maestro-tasks-step5-step6.md`).
+
+### Step 4b.5: Regenerate Path
+
+If this plan is being regenerated for a feature whose bd epic already exists, consult
+each existing bd task's status before applying the new selection:
+- bd task in `open` status → apply new selection.
+- bd task in `in_progress`, `blocked`, or `closed` → preserve the existing assignee
+  and emit `[divergence: was X, plan now suggests Y]` on the task line, where X is
+  the preserved assignee and Y is what the new selection would have chosen.
+
+Use `bd show <id> --json` to read the existing status and assignee.
 
 ## Step 5: Generate the Plan
 
@@ -169,8 +243,8 @@ Fill in the template based on the spec and constitution.
 3. **Identify risks early** — Especially regression risks in modified components
 4. **Phases should be deliverable** — Each phase produces something testable
 5. **Testing is not optional** — Every component needs a testing strategy
-6. **Assign agent per task** — For each task, match its target files against the File-Pattern-to-Agent Mapping table. Set the matched agent as the task's assignee. If no pattern matches, use `general`.
-7. **Split multi-agent tasks** — If a task touches files matching different agent patterns (e.g., both `.go` and `.ts` files), split it into separate tasks — one per agent pattern. Set dependencies between split tasks if they share interfaces.
+6. **Assign agent per task** — For each task, run Step 4b's procedure (discovery + scoring). Set the matched agent as the task's assignee. If scoring fails, use `general` and emit a `[no-match: <reason>]` annotation. Always include a `[harness: <name>]` annotation when known.
+7. **Split multi-agent tasks** — If a task touches files that score highest for *different* agents (e.g., a Go service file scoring for `golang-expert-payments` and a `.tsx` file scoring for `frontend-code` skill), split it into separate tasks — one per matched agent. Set dependencies between split tasks if they share interfaces.
 8. **Show agent assignments** — In the plan output, every task must include an `Assignee` field showing which agent will implement it.
 
 If the spec is too vague to make architectural decisions, add items to "Open Questions" section and flag them.

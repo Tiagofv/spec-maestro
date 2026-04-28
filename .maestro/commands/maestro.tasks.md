@@ -56,6 +56,26 @@ Check if tasks already exist for this feature:
   2. **Regenerate**: Archive existing epic and create fresh tasks
 - If user doesn't explicitly choose Regenerate, abort.
 
+### 3.1 Preserve In-Flight Assignees on Regenerate
+
+When regenerating tasks against an existing bd epic, walk each task in the plan in
+order. For each existing bd task that maps to a task in the regenerated plan:
+
+1. Read the existing bd task's status: `bd show <task_id> --json | jq -r .status`.
+2. If status is `open`:
+   - Apply the new assignee from the regenerated plan (per Step 5.2).
+   - No annotation needed.
+3. If status is `in_progress`, `blocked`, or `closed`:
+   - **Preserve the existing assignee.** Do not overwrite.
+   - On the corresponding line in the regenerated `plan.md`, append a
+     `[divergence: was X, plan now suggests Y]` annotation, where X is the preserved
+     assignee from bd and Y is what the new selection would have chosen.
+4. If a task in the regenerated plan does not exist in bd, create it with the new
+   selection (no special handling).
+
+This rule applies independently to impl and review tasks; both are scored independently
+in the new plan, so divergence on either side is reported separately.
+
 ## Step 4: Parse the Plan
 
 Extract from the plan:
@@ -173,15 +193,15 @@ Convert T-shirt size to minutes:
 
 **Priority order:**
 
-1. Use assignee from plan task metadata (parsed in Step 4)
+1. Use assignee from plan task metadata (parsed in Step 4) — this includes review tasks, which carry their own assignee picked independently in plan generation (see `maestro.plan.md` Step 4b.4)
 2. If blank/missing → default to `general`
-3. For review tasks → use same assignee as parent impl task
-4. For PM-VAL task → default to `general`
+3. For PM-VAL task → default to `general`
 
 **Validation:**
 
 - Assignee must be non-empty string
 - No validation against agent registry (bd will handle)
+- Review-task assignees may be `general` (when no review-capable agent matched) but must NEVER equal the parent impl task's assignee unless both are `general`
 
 ### 5.3 Review Task Sizing
 
@@ -223,7 +243,7 @@ For each implementation task, generate paired review:
 | Label      | `review`               | Fixed                                   |
 | Size       | XS                     | From Step 5.3                           |
 | Minutes    | 120                    | From Step 5.3                           |
-| Assignee   | `{impl_assignee}`      | Same as impl task                       |
+| Assignee   | `{review_assignee_from_plan}`  | Independently selected review-capable agent (or `general` with `[review-fallback]`); see `maestro.plan.md` Step 4b.4 |
 | Blocked By | `{impl_task_id}`       | T001 blocks R001                        |
 
 **Review Task Description Template:**
