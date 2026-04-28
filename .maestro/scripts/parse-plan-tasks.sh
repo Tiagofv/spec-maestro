@@ -63,7 +63,15 @@ if [[ ! -f "$PLAN_FILE" ]]; then
 fi
 
 # Valid labels
-VALID_LABELS=("infrastructure" "agent" "core" "ui" "integration" "template" "testing" "review" "pm-validation")
+# Valid label set — matches maestro.tasks.md Step 3 routing table plus common
+# component-area labels seen in real plans. The implement command treats any
+# non-routing label as a generic implementation task, so this list is generous
+# rather than a closed enum.
+VALID_LABELS=(
+  "backend" "frontend" "test" "fix" "refactor" "review" "pm-validation"
+  "infrastructure" "agent" "core" "ui" "integration" "template" "testing"
+  "scripts" "docs"
+)
 
 # Function to check if label is valid
 is_valid_label() {
@@ -82,9 +90,12 @@ is_valid_task_id() {
   [[ "$id" =~ ^T[0-9]{3}$ ]]
 }
 
-# Temporary file for building JSON
+# Temporary files: one for assembling JSON, one for the awk-emitted task stream
+# so the read loop can run in the parent shell (process substitution / file
+# redirect — not a pipe — so TASK_COUNT and ERRORS persist across iterations).
 TEMP_FILE=$(mktemp)
-trap "rm -f $TEMP_FILE" EXIT
+TASK_STREAM=$(mktemp)
+trap "rm -f $TEMP_FILE $TASK_STREAM" EXIT
 
 echo "{" > "$TEMP_FILE"
 echo '  "tasks": [' >> "$TEMP_FILE"
@@ -124,7 +135,12 @@ BEGIN { in_task = 0; task_content = ""; ORS = "" }
 in_task {
   task_content = task_content $0 "\n"
 }
-' "$PLAN_FILE" | while IFS='|' read -r -d '' marker task_id task_content; do
+' "$PLAN_FILE" > "$TASK_STREAM"
+
+# Read tasks via process substitution so TASK_COUNT / ERRORS / WARNINGS mutate
+# the parent shell's variables. A pipe runs the loop body in a subshell where
+# any state changes are lost on `done`.
+while IFS='|' read -r -d '' marker task_id task_content; do
   if [[ "$marker" != "TASK_START" ]]; then
     continue
   fi
@@ -156,10 +172,12 @@ in_task {
   fi
   
   # Extract metadata fields
-  # Use -F (fixed-string) for "**Foo:**" patterns. BSD grep otherwise rejects
-  # the leading `**` as an invalid repetition-operator.
-  label=$(echo "$task_content" | grep -F -A 1 '**Label:**' | tail -1 | sed 's/.*- //' | tr -d '[:space:]')
-  size=$(echo "$task_content" | grep -F -A 1 '**Size:**' | tail -1 | sed 's/.*- //' | tr -d '[:space:]')
+  # The plan-template format places marker AND value on the same bullet line
+  # (e.g. "- **Label:** scripts"), so a single sed match captures the value
+  # after `**Marker:**`. Older versions of this script used `grep -A 1` +
+  # `tail -1` which returned the *adjacent* line — wrong for this format.
+  label=$(echo "$task_content" | sed -nE 's/.*\*\*Label:\*\*[[:space:]]*([^[:space:]]+).*/\1/p' | head -1)
+  size=$(echo "$task_content" | sed -nE 's/.*\*\*Size:\*\*[[:space:]]*([^[:space:]]+).*/\1/p' | head -1)
   # Assignee: capture only the agent name and discard any bracket annotations
   # appended by feature 060's SelectionAnnotation grammar (data-model.md §Entity:
   # SelectionAnnotation). Recognized markers include [harness: <name>],
@@ -169,7 +187,9 @@ in_task {
   # Pattern: take the first whitespace-delimited token after `Assignee:` that
   # contains no whitespace and no `[`, then ignore everything else on the line.
   assignee=$(echo "$task_content" | sed -nE 's/.*Assignee:[*]*[[:space:]]+([^[:space:][]+).*/\1/p' | head -1)
-  dependencies=$(echo "$task_content" | grep -F -A 1 '**Dependencies:**' | tail -1 | sed 's/.*- //')
+  # Dependencies value can be a comma-separated list ("T001, T002, T003") or
+  # "None" — capture everything after the marker on the same line, then trim.
+  dependencies=$(echo "$task_content" | sed -nE 's/.*\*\*Dependencies:\*\*[[:space:]]*(.*)/\1/p' | head -1 | sed 's/[[:space:]]*$//')
 
   # Extract description (between metadata and Files section, or until next section)
   # `head -n -1` (drop last line) is GNU-only; use `sed '$d'` for BSD/macOS.
@@ -263,7 +283,7 @@ in_task {
       "files": $files_array
     }
 EOF
-done || true   # `read -d ''` returns 1 on EOF, which `pipefail`+`set -e` would treat as a failure.
+done < "$TASK_STREAM"
 
 echo "" >> "$TEMP_FILE"
 echo "  ]," >> "$TEMP_FILE"
