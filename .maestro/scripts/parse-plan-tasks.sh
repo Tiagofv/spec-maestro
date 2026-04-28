@@ -63,7 +63,15 @@ if [[ ! -f "$PLAN_FILE" ]]; then
 fi
 
 # Valid labels
-VALID_LABELS=("infrastructure" "agent" "core" "ui" "integration" "template" "testing" "review" "pm-validation")
+# Valid label set — matches maestro.tasks.md Step 3 routing table plus common
+# component-area labels seen in real plans. The implement command treats any
+# non-routing label as a generic implementation task, so this list is generous
+# rather than a closed enum.
+VALID_LABELS=(
+  "backend" "frontend" "test" "fix" "refactor" "review" "pm-validation"
+  "infrastructure" "agent" "core" "ui" "integration" "template" "testing"
+  "scripts" "docs"
+)
 
 # Function to check if label is valid
 is_valid_label() {
@@ -82,9 +90,12 @@ is_valid_task_id() {
   [[ "$id" =~ ^T[0-9]{3}$ ]]
 }
 
-# Temporary file for building JSON
+# Temporary files: one for assembling JSON, one for the awk-emitted task stream
+# so the read loop can run in the parent shell (process substitution / file
+# redirect — not a pipe — so TASK_COUNT and ERRORS persist across iterations).
 TEMP_FILE=$(mktemp)
-trap "rm -f $TEMP_FILE" EXIT
+TASK_STREAM=$(mktemp)
+trap "rm -f $TEMP_FILE $TASK_STREAM" EXIT
 
 echo "{" > "$TEMP_FILE"
 echo '  "tasks": [' >> "$TEMP_FILE"
@@ -98,19 +109,24 @@ if $VERBOSE; then
 fi
 
 # Read file and extract tasks
-# Use awk to handle multi-line task blocks
+# Use awk to handle multi-line task blocks. Records are NUL-delimited so
+# embedded newlines in the body don't break the downstream `while read`.
+# 2-arg `match()` (no array) is BSD/GNU portable — capture via RSTART/RLENGTH
+# instead of the GNU-only 3-arg form.
 awk '
-BEGIN { in_task = 0; task_content = "" }
+BEGIN { in_task = 0; task_content = ""; ORS = "" }
 /<!-- TASK:BEGIN id=T[0-9]{3} -->/ {
   in_task = 1
   task_content = ""
-  match($0, /id=(T[0-9]{3})/, arr)
-  task_id = arr[1]
+  if (match($0, /id=T[0-9]{3}/)) {
+    task_id = substr($0, RSTART + 3, RLENGTH - 3)
+  }
   next
 }
 /<!-- TASK:END -->/ {
   if (in_task) {
-    print "TASK_START|" task_id "|" task_content
+    # printf("...\0") emits a literal "\0" on BSD awk; use %c with 0 instead.
+    printf("TASK_START|%s|%s%c", task_id, task_content, 0)
     in_task = 0
     task_content = ""
   }
@@ -119,12 +135,20 @@ BEGIN { in_task = 0; task_content = "" }
 in_task {
   task_content = task_content $0 "\n"
 }
-' "$PLAN_FILE" | while IFS='|' read -r marker task_id task_content; do
+' "$PLAN_FILE" > "$TASK_STREAM"
+
+# Read tasks via process substitution so TASK_COUNT / ERRORS / WARNINGS mutate
+# the parent shell's variables. A pipe runs the loop body in a subshell where
+# any state changes are lost on `done`.
+while IFS='|' read -r -d '' marker task_id task_content; do
   if [[ "$marker" != "TASK_START" ]]; then
     continue
   fi
   
-  ((TASK_COUNT++))
+  # `((var++))` returns the *pre-increment* value, which is 0 on the first
+  # iteration; under `set -e` that nonzero exit aborts the script. Use the
+  # additive form so the arithmetic always evaluates to a nonzero result.
+  TASK_COUNT=$((TASK_COUNT + 1))
   
   if $VERBOSE; then
     echo "Processing task $task_id..." >&2
@@ -148,8 +172,12 @@ in_task {
   fi
   
   # Extract metadata fields
-  label=$(echo "$task_content" | grep -A 1 '**Label:**' | tail -1 | sed 's/.*- //' | tr -d '[:space:]')
-  size=$(echo "$task_content" | grep -A 1 '**Size:**' | tail -1 | sed 's/.*- //' | tr -d '[:space:]')
+  # The plan-template format places marker AND value on the same bullet line
+  # (e.g. "- **Label:** scripts"), so a single sed match captures the value
+  # after `**Marker:**`. Older versions of this script used `grep -A 1` +
+  # `tail -1` which returned the *adjacent* line — wrong for this format.
+  label=$(echo "$task_content" | sed -nE 's/.*\*\*Label:\*\*[[:space:]]*([^[:space:]]+).*/\1/p' | head -1)
+  size=$(echo "$task_content" | sed -nE 's/.*\*\*Size:\*\*[[:space:]]*([^[:space:]]+).*/\1/p' | head -1)
   # Assignee: capture only the agent name and discard any bracket annotations
   # appended by feature 060's SelectionAnnotation grammar (data-model.md §Entity:
   # SelectionAnnotation). Recognized markers include [harness: <name>],
@@ -159,10 +187,13 @@ in_task {
   # Pattern: take the first whitespace-delimited token after `Assignee:` that
   # contains no whitespace and no `[`, then ignore everything else on the line.
   assignee=$(echo "$task_content" | sed -nE 's/.*Assignee:[*]*[[:space:]]+([^[:space:][]+).*/\1/p' | head -1)
-  dependencies=$(echo "$task_content" | grep -A 1 '**Dependencies:**' | tail -1 | sed 's/.*- //')
+  # Dependencies value can be a comma-separated list ("T001, T002, T003") or
+  # "None" — capture everything after the marker on the same line, then trim.
+  dependencies=$(echo "$task_content" | sed -nE 's/.*\*\*Dependencies:\*\*[[:space:]]*(.*)/\1/p' | head -1 | sed 's/[[:space:]]*$//')
 
   # Extract description (between metadata and Files section, or until next section)
-  description=$(echo "$task_content" | awk '/\*\*Description:\*\*/,/\*\*Files/' | head -n -1 | tail -n +2 | sed 's/^- //')
+  # `head -n -1` (drop last line) is GNU-only; use `sed '$d'` for BSD/macOS.
+  description=$(echo "$task_content" | awk '/\*\*Description:\*\*/,/\*\*Files/' | sed '$d' | tail -n +2 | sed 's/^- //')
   
   # Extract files
   files=$(echo "$task_content" | awk '/\*\*Files to Modify:\*\*/,/^-/' | tail -n +2 | grep '^- ' | sed 's/^- //')
@@ -252,7 +283,7 @@ in_task {
       "files": $files_array
     }
 EOF
-done
+done < "$TASK_STREAM"
 
 echo "" >> "$TEMP_FILE"
 echo "  ]," >> "$TEMP_FILE"
@@ -261,7 +292,9 @@ echo "  \"errors\": [" >> "$TEMP_FILE"
 
 # Output errors
 first_error=true
-for error in "${ERRORS[@]}"; do
+# Guard against empty arrays under `set -u` (older bash treats "${arr[@]}" as unbound when empty).
+for error in "${ERRORS[@]:-}"; do
+  [[ -z "$error" ]] && continue
   if [[ "$first_error" == true ]]; then
     first_error=false
   else
@@ -276,7 +309,8 @@ echo "  \"warnings\": [" >> "$TEMP_FILE"
 
 # Output warnings
 first_warning=true
-for warning in "${WARNINGS[@]}"; do
+for warning in "${WARNINGS[@]:-}"; do
+  [[ -z "$warning" ]] && continue
   if [[ "$first_warning" == true ]]; then
     first_warning=false
   else
