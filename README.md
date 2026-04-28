@@ -18,9 +18,9 @@ This follows the [spec-kit](https://github.com/github/spec-kit) pattern: slash c
 
 ## Prerequisites
 
-- [bd](https://github.com/anomalyco/beads) (beads) CLI — issue tracking and task management
-  - macOS: `brew install anomalyco/tap/bd`
-  - Linux: download from https://github.com/anomalyco/beads/releases
+- [bd](https://github.com/steveyegge/beads) (beads) CLI — issue tracking and task management
+  - macOS: `brew install anomalyco/tap/beads`
+  - Linux: download from https://github.com/steveyegge/beads/releases
 - `jq` — JSON processing (used by shell scripts)
   - macOS: `brew install jq`
   - Linux: `apt-get install jq`

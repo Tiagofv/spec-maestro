@@ -14,6 +14,15 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
+      - name: Install bd (beads) — doctor tests require it on PATH
+        run: |
+          set -euo pipefail
+          BD_VERSION=v1.0.3
+          BD_TARBALL=beads_${BD_VERSION#v}_linux_amd64.tar.gz
+          curl -sSL "https://github.com/steveyegge/beads/releases/download/${BD_VERSION}/${BD_TARBALL}" \
+            | sudo tar -xz -C /usr/local/bin bd
+          sudo chmod +x /usr/local/bin/bd
+          bd --version
       - name: Generate embedded resources
         working-directory: cmd/maestro-cli
         run: go generate ./...
