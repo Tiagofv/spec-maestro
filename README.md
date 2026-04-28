@@ -228,6 +228,12 @@ Reviews are classified by risk level (HIGH/MEDIUM/LOW) based on what files chang
 
 The `agent_routing` config maps task types to agent identifiers. By default everything routes to `general`, but you can route `frontend` tasks to a React-specialized agent, `review` tasks to a code-reviewer, etc.
 
+### Auto-Selection of Agents
+
+When `/maestro.plan` runs, it discovers the harness's actual agent inventory by invoking `bash .maestro/scripts/list-agents.sh --harness=auto`. The script walks per-runtime directories (Claude Code: `.claude/agents/`, `~/.claude/agents/`, `.claude/skills/`; OpenCode: `.opencode/agents/`, `~/.config/opencode/agents/`; Codex: `.codex/agents/`, `.agents/skills/`) and emits a normalized JSON inventory. The plan then scores each task against the inventory by file pattern + intent + harness and picks the best-fit assignee — falling back to `general` with a `[no-match: <reason>]` annotation when no specialized agent matches.
+
+Plan output now includes annotations on every `Assignee:` line: `[harness: <name>]`, `[no-match: <reason>]`, `[tie-broken]`, `[review-fallback]`, or `[divergence: ...]`. These make the selection rationale visible. The legacy `agent_routing` block in `config.yaml` remains for backwards compatibility but is no longer consulted.
+
 ## Extending
 
 ### Adding a new command

@@ -150,9 +150,17 @@ in_task {
   # Extract metadata fields
   label=$(echo "$task_content" | grep -A 1 '**Label:**' | tail -1 | sed 's/.*- //' | tr -d '[:space:]')
   size=$(echo "$task_content" | grep -A 1 '**Size:**' | tail -1 | sed 's/.*- //' | tr -d '[:space:]')
-  assignee=$(echo "$task_content" | grep -A 1 '**Assignee:**' | tail -1 | sed 's/.*- //' | tr -d '[:space:]')
+  # Assignee: capture only the agent name and discard any bracket annotations
+  # appended by feature 060's SelectionAnnotation grammar (data-model.md §Entity:
+  # SelectionAnnotation). Recognized markers include [harness: <name>],
+  # [no-match: <reason>], [tie-broken], [review-fallback], and
+  # [divergence: was X, plan now suggests Y]. The legacy form `Assignee: general`
+  # (no annotations) must continue to parse identically.
+  # Pattern: take the first whitespace-delimited token after `Assignee:` that
+  # contains no whitespace and no `[`, then ignore everything else on the line.
+  assignee=$(echo "$task_content" | sed -nE 's/.*Assignee:[*]*[[:space:]]+([^[:space:][]+).*/\1/p' | head -1)
   dependencies=$(echo "$task_content" | grep -A 1 '**Dependencies:**' | tail -1 | sed 's/.*- //')
-  
+
   # Extract description (between metadata and Files section, or until next section)
   description=$(echo "$task_content" | awk '/\*\*Description:\*\*/,/\*\*Files/' | head -n -1 | tail -n +2 | sed 's/^- //')
   
