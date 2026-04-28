@@ -48,3 +48,6 @@ review_sizing:
   M: 360 # M impl -> S review
   L: 360 # L impl -> S review
 
+bd_stable_prefix: altpay-
+bd_label_template: "feature:{feature_num}"
+
