@@ -79,8 +79,15 @@ fi
 # ---------------------------------------------------------------------------
 CURRENT_PREFIX="$(bd config get issue_prefix 2>/dev/null | tr -d '[:space:]' || true)"
 
-# Branch 3: prefix is set and starts with the configured stable prefix.
-if [[ -n "$CURRENT_PREFIX" && "$CURRENT_PREFIX" == "$STABLE"* ]]; then
+# Branch 3: prefix is set and matches the configured stable prefix.
+#
+# bd init --prefix=<value> silently strips a trailing hyphen on store, so
+# bd_stable_prefix=altpay- can land in bd config as "altpay" (no hyphen).
+# We accept either the bare-stem form or anything starting with the
+# stem-and-hyphen form (which covers per-clone disambiguator suffixes
+# bd appends like altpay-pdh, plus user-chosen full prefixes like altpay-001).
+STABLE_BASE="${STABLE%-}"
+if [[ -n "$CURRENT_PREFIX" && ( "$CURRENT_PREFIX" == "$STABLE_BASE" || "$CURRENT_PREFIX" == "$STABLE_BASE-"* ) ]]; then
   echo "bd workspace OK (prefix=$CURRENT_PREFIX)"
   exit 0
 fi
