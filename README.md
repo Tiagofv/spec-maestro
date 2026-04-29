@@ -134,8 +134,7 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
 | `/maestro.research`              | Run pre-planning research and produce readiness artifacts                 |
 | `/maestro.plan`                  | Generate an implementation plan from the spec                             |
 | `/maestro.tasks`                 | Break the plan into bd issues with dependencies                           |
-| `/maestro.implement`             | Implement all tasks — loops through ready tasks, reviews, and PM validate |
-| `/maestro.review <task-id>`      | Code review with risk-based routing                                       |
+| `/maestro.implement`             | Implement all tasks — loops through ready tasks, reviews inline, and PM validate |
 | `/maestro.pm-validate`           | Final validation gate — regression scan + acceptance criteria             |
 | `/maestro.commit`                | Layer-separated atomic commits                                            |
 | `/maestro.analyze`               | Post-epic learning — metrics, patterns, improvement proposals             |
@@ -162,7 +161,7 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
     └── bd epic + implementation tasks + review tasks + PM validation task
 
 /maestro.implement
-    └── loops: bd ready → implement task → /maestro.review → repeat
+    └── loops: bd ready → implement task → inline review (assignee subagent + review skill) → repeat
     └── when all tasks done → /maestro.pm-validate → /maestro.analyze
 ```
 

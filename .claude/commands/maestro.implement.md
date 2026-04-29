@@ -163,7 +163,7 @@ For each ready task, inspect its labels to determine which handler to invoke.
 | `test`          | Execute as implementation task (Step 4)           |
 | `fix`           | Execute as implementation task (Step 4)           |
 | `refactor`      | Execute as implementation task (Step 4)           |
-| `review`        | Execute as review task → `/maestro.review {id}`   |
+| `review`        | Spawn assignee subagent with the review skill loaded → returns REVIEW_DONE verdict line |
 | `pm-validation` | Execute as PM validation → `/maestro.pm-validate` |
 
 **Label resolution rules:**
@@ -321,23 +321,79 @@ bd close {task_id} --reason "{sub-agent result}"
 
 ## Step 5: Execute Review Task
 
-For tasks with label `review`, spawn `/maestro.review`:
+For tasks with label `review`, the orchestrator dispatches the review **inline** by spawning the task's assignee as a subagent with the `review` skill loaded. The review playbook lives in the skill — this step only stitches inputs and parses the verdict.
+
+### 5a: Read the review task
+
+```bash
+bd show {review_task_id} --json
+```
+
+Extract: `id`, `title`, `assignee`, `dependencies`. From `dependencies`, identify the implementation task this review pairs with (the impl task that this review is `blocked-by` / paired with via the `blocks` relation set during `/maestro.tasks`). Call it `impl_task_id`.
+
+### 5b: Read the impl task and resolve the modified-files list
+
+```bash
+bd show {impl_task_id} --json
+```
+
+From the impl task's `close_reason`, parse the `files: ...` segment of its `DONE | files: ... | pattern: ... | ref: ...` close line. That list of files is what the review must inspect.
+
+### 5c: Resolve the worktree path
+
+Read `.maestro/state/{feature_id}.json` and extract `worktree_path`. The subagent will scope its review reads to that directory.
+
+### 5d: Load the review skill content
+
+Read the `review` skill body so it can be inlined into the subagent prompt:
+
+- Harness-resolved path: `~/.maestro/skills/review/SKILL.md` (or the harness-specific equivalent — `.claude/skills/review/SKILL.md` / `.opencode/skills/review/SKILL.md` if a project-local copy is present).
+
+The skill content is the playbook the subagent applies. The orchestrator does NOT interpret it — it just passes it through.
+
+### 5e: Spawn the assignee subagent inline
 
 ```
 Task(
-  description="Review: {task_id} - {task_title}",
-  prompt="Run the following command and report the result:
+  subagent_type="{review_task.assignee}",
+  description="Review: {review_task_id} - {review_task_title}",
+  prompt="You are performing the paired review for an implementation task.
 
-  /maestro.review {task_id}
+  Review Task ID: {review_task_id}
+  Review Task Title: {review_task_title}
+  Implementation Task ID: {impl_task_id}
+  Worktree: {worktree_path}
 
-  When complete, report:
-  REVIEW_DONE | task: {task_id} | verdict: {PASS|MINOR|CRITICAL}
+  ## Modified Files (from impl close_reason)
+  {comma-separated files list parsed in 5b}
 
-  If CRITICAL, report any fix tasks created."
+  ## Review Skill (playbook to apply)
+  {full inline contents of the review SKILL.md read in 5d}
+
+  ## Priority Order (apply strictly)
+  regression > security > data integrity > error handling > logic > code quality
+
+  ## Output Format
+  Return your verdict as EXACTLY one line, then a short issue-details paragraph:
+
+  REVIEW_DONE | task: {review_task_id} | verdict: {PASS|MINOR|CRITICAL}
+  <one paragraph: top issues found, or 'no issues' if PASS>
+
+  If verdict is CRITICAL, list each blocking issue as a bullet so the orchestrator can create fix tasks."
 )
 ```
 
-Wait for the review to complete. If CRITICAL, new fix tasks will appear in `bd ready`.
+### 5f: Capture verdict and close
+
+Parse the subagent reply. Extract the line beginning with `REVIEW_DONE | task:` — that is the captured verdict line. Then close the review task:
+
+```bash
+bd close {review_task_id} --reason "{captured REVIEW_DONE line}"
+```
+
+If the verdict is `CRITICAL`, the existing fix-task creation logic continues to apply (a fix task plus its paired review task get created and will surface via `bd ready` on the next loop iteration). If `PASS` or `MINOR`, no fix task is created and the loop moves on.
+
+Wait for the review to complete before continuing. If CRITICAL, new fix tasks will appear in `bd ready`.
 
 ## Step 6: Execute PM Validation
 

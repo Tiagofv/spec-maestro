@@ -388,7 +388,7 @@ When you run `/maestro.implement`, your agent will:
 1. Call `bd ready` to find the first available task
 2. Read the task description and implement the code changes
 3. Run the compile gate (`npm run build && npm run lint` or equivalent)
-4. Run `/maestro.review <task-id>` for a risk-classified code review
+4. Spawn the assignee subagent with the review skill loaded for a risk-classified code review (handled inline by `/maestro.implement`)
 5. Mark the task complete and loop to the next ready task
 6. When all tasks are done, run `/maestro.pm-validate` to verify acceptance criteria
 7. Run `/maestro.analyze` to capture learnings for future epics

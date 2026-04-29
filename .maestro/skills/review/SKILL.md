@@ -2,7 +2,7 @@
 name: review
 description: >
   Code review skill providing patterns, conventions, and structured output.
-  Loaded by reviewer agents during /maestro.review.
+  Loaded by reviewer agents (assignee subagent) inline during /maestro.implement.
 ---
 
 # Review Skill
