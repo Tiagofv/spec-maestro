@@ -14,7 +14,7 @@ The constitution defines the rules that govern all work in this project. Load th
 - `/maestro.specify` — Ensure spec respects architectural boundaries
 - `/maestro.plan` — Ensure design follows constitutional patterns
 - `/maestro.implement` — Ensure code follows standards and layer rules
-- `/maestro.review` — Check that implementation respects constraints
+- `/maestro.implement` (review handler) — Spawns the assignee subagent with the review skill loaded; that subagent verifies constitutional compliance as part of its review checklist.
 
 ## How to Use the Constitution
 
