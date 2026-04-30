@@ -258,7 +258,56 @@ Fill in the template based on the spec and constitution.
 
 If the spec is too vague to make architectural decisions, add items to "Open Questions" section and flag them.
 
-## Step 5b: Validate the Plan Before Writing
+After generating impl tasks, proceed to Step 5b to generate paired review tasks.
+
+## Step 5b: Generate Review Tasks
+
+After generating all implementation tasks, generate paired review tasks. Use LLM judgment to cluster impl tasks — one review task per cohesive cluster (tasks sharing the same file area or feature domain), not 1:1 per impl task.
+
+**Review task format:**
+
+Each review task uses `<!-- TASK:BEGIN id=R### -->` markers, with:
+- `**Label:** review`
+- `**Size:** XS` (or S for large clusters)
+- `**Assignee:**` — independently selected (do not inherit from impl task's assignee); prefer review-capable agents; fall back to `general` with `[review-fallback]`
+- `**Dependencies:**` — the T### IDs of impl tasks in this cluster (comma-separated)
+
+**Clustering heuristic:**
+
+Group impl tasks by the primary directory/module they touch. Tasks modifying scripts in `.maestro/scripts/` form one cluster; tasks modifying `.maestro/commands/*.md` form another; etc. Apply judgment — 3-6 impl tasks per review is a good target range.
+
+**Example:**
+
+If impl tasks T002, T003, T004, T005 all modify `.maestro/scripts/bd-helpers.sh` or its tests, they form one cluster:
+
+```markdown
+<!-- TASK:BEGIN id=R001 -->
+### R001: Review bd-helpers.sh changes (T002-T005)
+
+**Metadata:**
+- **Label:** review
+- **Size:** XS
+- **Assignee:** general [harness: claude]
+- **Dependencies:** T002, T003, T004, T005
+
+**Description:**
+Review bd-helpers.sh after T002-T005 land. Verify: (a) every helper returns non-empty ID or exits non-zero; (b) stderr surfaced on failure; (c) idempotent path correct.
+<!-- TASK:END -->
+```
+
+**Zero-review guard:**
+
+If after generating you have zero review tasks (impl-only plan), add a visible warning comment at the top of the tasks section:
+
+```markdown
+> ⚠ Warning: This plan has no review tasks. Consider adding at least one review cluster.
+```
+
+**PM-Validation task:**
+
+After all impl+review pairs, add a final PM-VAL task (label: `pm-validation`, XS, blocked by ALL review task IDs).
+
+## Step 5c: Validate the Plan Before Writing
 
 Before writing the plan to disk, run the format validator:
 
@@ -288,6 +337,7 @@ Update `.maestro/state/{feature_id}.json`:
 - Set `stage` to `plan`
 - Add `plan_path` field
 - Add `phases` count
+- Add `task_count` field: total number of tasks in the plan, including both impl tasks and review tasks (T### + R### + PM-VAL)
 - Add `components_new` and `components_modified` counts
 - Preserve any existing research metadata fields (`research_path`, `research_artifacts`, `research_artifact_pointers`, `research_ready`, `research_parallel_agents_default`, `research_parallel_agents_max`, `research_parallel_agents_used`)
 - If bypass path was used, set `research_bypass_acknowledged` to `true`
