@@ -164,6 +164,19 @@ parse_plan() {
   echo "parse_plan: parsed $count task(s) from $PLAN_FILE" >&2
 }
 
+# check_review_tasks: Warn (non-fatal) when the parsed plan has zero review tasks.
+check_review_tasks() {
+  local review_count=0
+  local plan_id title label rest
+  while IFS=$'\t' read -r plan_id title label rest; do
+    [[ "$label" == "review" ]] && review_count=$((review_count + 1))
+  done < "$TASKS_FILE"
+
+  if [[ $review_count -eq 0 ]]; then
+    echo "WARNING: plan has no review tasks; consider re-running /maestro.plan to generate them" >&2
+  fi
+}
+
 # build_table: Pretty-print parsed tasks in column-aligned format for dry-run + report.
 build_table() {
   if [[ -z "${TASKS_FILE:-}" || ! -f "$TASKS_FILE" ]]; then
@@ -353,6 +366,7 @@ report() {
 # --- Main ---
 main() {
   parse_plan
+  check_review_tasks
   build_table
 
   if [[ "$DRY_RUN" == "true" ]]; then
