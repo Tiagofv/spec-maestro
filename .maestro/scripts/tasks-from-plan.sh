@@ -209,7 +209,11 @@ create_epic() {
 # Global map: T001 -> altpay-woz.2 etc.
 declare -A TASK_ID_MAP
 
+# Global dep wiring counter (incremented per resolved dep passed at create time).
+DEP_COUNT=0
+
 # create_tasks: For each parsed task call bd_create_task, store T###->altpay-ID map.
+# Deps are wired inline via --deps (SINGLE_CALL per probe-bd-batch.md).
 create_tasks() {
   # Idempotency: if the epic was pre-existing, tasks already exist — skip creation.
   if [[ "$EPIC_WAS_PREEXISTING" == "true" ]]; then
@@ -238,24 +242,46 @@ create_tasks() {
 Size: $size | Label: $label | Deps: ${deps:-None}
 Worktree: ${WORKTREE_PATH:-}"
 
+    # Resolve dep T### plan IDs to altpay bd IDs (SINGLE_CALL strategy).
+    # Validate each dep is already in TASK_ID_MAP before passing to bd create.
+    local dep_ids=""
+    if [[ -n "$deps" && "$deps" != "None" && "$deps" != "-" ]]; then
+      local resolved_deps=()
+      IFS=',' read -ra dep_list <<< "$deps"
+      for dep_id in "${dep_list[@]}"; do
+        dep_id="${dep_id// /}"  # trim spaces
+        if [[ -n "${TASK_ID_MAP[$dep_id]:-}" ]]; then
+          resolved_deps+=("${TASK_ID_MAP[$dep_id]}")
+          (( DEP_COUNT++ )) || true
+        else
+          echo "  WARNING: dep $dep_id not yet in TASK_ID_MAP, skipping" >&2
+        fi
+      done
+      [[ ${#resolved_deps[@]} -gt 0 ]] && dep_ids=$(IFS=,; echo "${resolved_deps[*]}")
+    fi
+
     local bd_id
-    bd_id=$(bd_create_task "$plan_id: $title" "$desc" "$label" "$estimate" "$EPIC_BD_ID" "$assignee") || {
+    bd_id=$(bd_create_task "$plan_id: $title" "$desc" "$label" "$estimate" "$EPIC_BD_ID" "$assignee" "$dep_ids") || {
       echo "create_tasks: bd_create_task failed for $plan_id" >&2
       exit 1
     }
 
     TASK_ID_MAP["$plan_id"]="$bd_id"
-    echo "  created $plan_id → $bd_id" >&2
+    if [[ -n "$dep_ids" ]]; then
+      echo "  created $plan_id → $bd_id (deps: $dep_ids)" >&2
+    else
+      echo "  created $plan_id → $bd_id" >&2
+    fi
 
   done < "$TASKS_FILE"
 
   echo "Created ${#TASK_ID_MAP[@]} tasks" >&2
 }
 
-# wire_deps: Wire dependency edges using the T###->altpay-ID map.
-# Behavior (single-call vs fan-out) driven by probe-bd-batch.md decision.
+# wire_deps: Deps are wired at create time via --deps flag (SINGLE_CALL per probe-bd-batch.md).
+# This function is a no-op; DEP_COUNT is already populated by create_tasks.
 wire_deps() {
-  echo "TODO: wire_deps" >&2
+  echo "wire_deps: $DEP_COUNT dep(s) wired at create time via --deps (SINGLE_CALL)" >&2
 }
 
 # update_state: Atomic write to state JSON (stage=tasks, epic_id, task_count, dep_count).

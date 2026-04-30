@@ -75,7 +75,8 @@ bd_create_epic() {
 }
 
 # Create task under epic
-# Usage: bd_create_task "Title" "Description" "label" estimate_minutes epic_id assignee
+# Usage: bd_create_task "Title" "Description" "label" estimate_minutes epic_id assignee [deps_csv]
+# deps_csv: optional comma-separated list of bd task IDs to set as dependencies (--deps flag)
 bd_create_task() {
   local title="$1"
   local desc="$2"
@@ -83,6 +84,7 @@ bd_create_task() {
   local estimate="$4"
   local epic_id="$5"
   local assignee="${6:-general}"
+  local deps_csv="${7:-}"
   local bd_output bd_stderr bd_exit
   local bd_stderr_file
   bd_stderr_file=$(mktemp)
@@ -96,6 +98,7 @@ bd_create_task() {
     --assignee="$assignee" \
     --description="$desc" \
     --parent="$epic_id" \
+    ${deps_csv:+--deps="$deps_csv"} \
     --json 2>"$bd_stderr_file") && bd_exit=0 || bd_exit=$?
   bd_stderr=$(cat "$bd_stderr_file")
   rm -f "$bd_stderr_file"
