@@ -170,18 +170,38 @@ build_table() {
     echo "build_table: no TASKS_FILE to display" >&2
     return
   fi
-  echo "ID      TITLE                                             LABEL        SIZE  ASSIGNEE              DEPS"
-  echo "------  ------------------------------------------------  -----------  ----  --------------------  ----"
+  printf "%-7s %-40s %-11s %-5s %-9s %s\n" "ID" "Title" "Label" "Size" "Assignee" "Deps"
+  printf "%-7s %-40s %-11s %-5s %-9s %s\n" "-------" "----------------------------------------" "-----------" "-----" "---------" "----------"
   while IFS=$'\t' read -r id title label size assignee deps; do
-    printf "%-6s  %-48s  %-11s  %-4s  %-20s  %s\n" \
-      "$id" "${title:0:48}" "$label" "$size" "$assignee" "$deps"
+    [[ -z "$deps" || "$deps" == "None" ]] && deps="-"
+    printf "%-7s %-40s %-11s %-5s %-9s %s\n" \
+      "$id" "${title:0:40}" "$label" "$size" "$assignee" "$deps"
   done < "$TASKS_FILE"
 }
 
 # create_epic: Call bd_create_epic, store returned epic ID in EPIC_BD_ID.
 # Idempotent: if epic already exists, reuse it.
+EPIC_BD_ID=""
 create_epic() {
-  echo "TODO: create_epic" >&2
+  # Idempotency: reuse if state.json already has epic_id
+  if [[ -f "$STATE_FILE" ]]; then
+    local existing_epic
+    existing_epic=$(jq -r '.epic_id // empty' "$STATE_FILE" 2>/dev/null || true)
+    if [[ -n "$existing_epic" ]]; then
+      EPIC_BD_ID="$existing_epic"
+      echo "create_epic: reusing existing epic $EPIC_BD_ID from state.json" >&2
+      return 0
+    fi
+  fi
+
+  # Read feature title from plan.md H1
+  local feature_title
+  feature_title=$(grep "^# Implementation Plan:" "$PLAN_FILE" | sed 's/^# Implementation Plan: //' | head -1)
+  [[ -z "$feature_title" ]] && feature_title="$FEATURE_ID"
+
+  EPIC_BD_ID=$(bd_create_epic "$FEATURE_ID: $feature_title" "Spec: $MAESTRO_BASE/.maestro/specs/$FEATURE_ID/spec.md")
+
+  echo "Epic: $EPIC_BD_ID" >&2
 }
 
 # create_tasks: For each parsed task call bd_create_task, store T###->altpay-ID map.
