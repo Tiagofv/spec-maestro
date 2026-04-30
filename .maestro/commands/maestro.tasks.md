@@ -7,19 +7,47 @@ argument-hint: [feature-id] [--dry-run]
 
 Create bd issues from the implementation plan.
 
-## Step 1: Prerequisites Check
+## Step 1: Find the Plan
 
-Run the prerequisite check:
+**Resolving the feature ID (AI inference):**
+
+1. If the user supplied an explicit feature ID or number (e.g., `070`, `070-improve-...`), use it directly.
+2. Otherwise, infer from context using these signals in priority order:
+   a. **Recent state activity**: List `.maestro/state/*.json` files, read their `updated_at` field, pick the most recently updated non-`complete` feature.
+   b. **Current git branch**: Run `git branch --show-current`. If the branch matches `feat/NNN-...` or `NNN-...`, extract and use that feature ID.
+   c. **Conversation context**: If the current conversation referenced a feature earlier, use that feature.
+3. Surface the inferred feature ID to the user BEFORE taking any action:
+   ```
+   Inferred feature: 070-improve-maestro-tasks-command-speed (from: recent state activity)
+   Proceeding… (reply with a different feature ID to override)
+   ```
+4. **On signal conflict** (e.g., state recency says 070 but branch says 069): Ask the user which to use.
+5. **On no signals**: Ask the user for an explicit feature ID.
+6. **Exclude from inference**: Empty feature directories (spec.md missing or 0 bytes).
+
+Once `{feature_id}` is resolved, the feature directory is `.maestro/specs/{feature_id}`.
+
+Read:
+
+- The plan: `.maestro/specs/{feature_id}/plan.md`
+- The config: `.maestro/config.yaml` (Note: `agent_routing` is no longer used. Assignees come from the plan.)
+- The state: `.maestro/state/{feature_id}.json`
+- `worktree_path` — from state.json (may be absent for pre-worktree features)
+- `worktree_required` — optional; defaults to `true` when absent
+
+## Step 2: Prerequisites Check
+
+Now that `{feature_id}` and `{feature_dir}` are resolved, run the prerequisite check with the feature directory as a positional argument:
 
 ```bash
-bash .maestro/scripts/check-prerequisites.sh tasks
+bash .maestro/scripts/check-prerequisites.sh tasks .maestro/specs/{feature_id}
 ```
 
 If it fails, show the error and suggestion, then stop.
 
-## Step 1.5: bd Workspace Pre-flight
+## Step 2.5: bd Workspace Pre-flight
 
-Before reading the plan or touching any state, validate the bd workspace.
+Before touching any bd state, validate the bd workspace.
 
 Run the pre-flight check:
 
@@ -52,32 +80,6 @@ That document is the single source of truth for safe recovery.
 **Non-destructive guarantee:**
 
 `bd-preflight.sh` is non-destructive. It uses `bd bootstrap` for first-time setup and never invokes `bd init --force` (or any of the forbidden flags above). If a destructive action is required, the script will surface the runbook reference and exit non-zero — it will not perform the action itself.
-
-## Step 2: Find the Plan
-
-**Resolving the feature ID (AI inference):**
-
-1. If the user supplied an explicit feature ID or number (e.g., `070`, `070-improve-...`), use it directly.
-2. Otherwise, infer from context using these signals in priority order:
-   a. **Recent state activity**: List `.maestro/state/*.json` files, read their `updated_at` field, pick the most recently updated non-`complete` feature.
-   b. **Current git branch**: Run `git branch --show-current`. If the branch matches `feat/NNN-...` or `NNN-...`, extract and use that feature ID.
-   c. **Conversation context**: If the current conversation referenced a feature earlier, use that feature.
-3. Surface the inferred feature ID to the user BEFORE taking any action:
-   ```
-   Inferred feature: 070-improve-maestro-tasks-command-speed (from: recent state activity)
-   Proceeding… (reply with a different feature ID to override)
-   ```
-4. **On signal conflict** (e.g., state recency says 070 but branch says 069): Ask the user which to use.
-5. **On no signals**: Ask the user for an explicit feature ID.
-6. **Exclude from inference**: Empty feature directories (spec.md missing or 0 bytes).
-
-Read:
-
-- The plan: `.maestro/specs/{feature_id}/plan.md`
-- The config: `.maestro/config.yaml` (Note: `agent_routing` is no longer used. Assignees come from the plan.)
-- The state: `.maestro/state/{feature_id}.json`
-- `worktree_path` — from state.json (may be absent for pre-worktree features)
-- `worktree_required` — optional; defaults to `true` when absent
 
 ## Step 2b: Enforce Worktree Invariant Metadata
 

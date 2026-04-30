@@ -9,17 +9,7 @@ argument-hint: [feature-id] (optional, defaults to most recent)
 
 Generate an implementation plan for the feature.
 
-## Step 1: Prerequisites Check
-
-Run the prerequisite check:
-
-```bash
-bash .maestro/scripts/check-prerequisites.sh plan
-```
-
-If it fails, show the error and suggestion, then stop.
-
-## Step 2: Find the Specification
+## Step 1: Find the Specification
 
 **Resolving the feature ID (AI inference):**
 
@@ -37,11 +27,23 @@ If it fails, show the error and suggestion, then stop.
 5. **On no signals**: Ask the user for an explicit feature ID.
 6. **Exclude from inference**: Empty feature directories (spec.md missing or 0 bytes).
 
+Once `{feature_id}` is resolved, the feature directory is `.maestro/specs/{feature_id}`.
+
 Read:
 
 - The spec file: `.maestro/specs/{feature_id}/spec.md`
 - The constitution: `.maestro/constitution.md` (if exists)
 - The state: `.maestro/state/{feature_id}.json`
+
+## Step 2: Prerequisites Check
+
+Now that `{feature_id}` and `{feature_dir}` are resolved, run the prerequisite check with the feature directory as a positional argument:
+
+```bash
+bash .maestro/scripts/check-prerequisites.sh plan .maestro/specs/{feature_id}
+```
+
+If it fails, show the error and suggestion, then stop.
 
 ## Step 3: Validate Spec Readiness
 
