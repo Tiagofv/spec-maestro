@@ -286,12 +286,52 @@ wire_deps() {
 
 # update_state: Atomic write to state JSON (stage=tasks, epic_id, task_count, dep_count).
 update_state() {
-  echo "TODO: update_state" >&2
+  local feature_num
+  feature_num=$(echo "$FEATURE_ID" | grep -oE '^[0-9]+')
+  local task_count=${#TASK_ID_MAP[@]}
+  local timestamp
+  timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  jq \
+    --arg epic_id "$EPIC_BD_ID" \
+    --arg bd_label "feature:$feature_num" \
+    --argjson task_count "$task_count" \
+    --argjson dep_count "$DEP_COUNT" \
+    --arg stage "tasks" \
+    --arg ts "$timestamp" \
+    --arg note "epic=$EPIC_BD_ID; tasks=$task_count; deps=$DEP_COUNT" \
+    '.epic_id = $epic_id |
+     .bd_label = $bd_label |
+     .task_count = $task_count |
+     .dep_count = $dep_count |
+     .stage = $stage |
+     .updated_at = $ts |
+     .history += [{"stage": "tasks", "timestamp": $ts, "action": "tasks created", "note": $note}]' \
+    "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+
+  echo "Updated state file: $STATE_FILE" >&2
 }
 
 # report: One-line stdout summary + multi-line stderr breakdown.
 report() {
-  echo "TODO: report" >&2
+  local task_count=${#TASK_ID_MAP[@]}
+
+  # Stdout: machine-parseable
+  echo "epic=$EPIC_BD_ID tasks=$task_count deps=$DEP_COUNT"
+
+  # Stderr: human-readable
+  echo "" >&2
+  echo "━━━ Tasks Created ━━━" >&2
+  echo "Feature:  $FEATURE_ID" >&2
+  echo "Epic:     $EPIC_BD_ID" >&2
+  echo "Tasks:    $task_count" >&2
+  echo "Deps:     $DEP_COUNT" >&2
+  if [[ "$EPIC_WAS_PREEXISTING" == "true" ]]; then
+    echo "Note:     Epic existed; no tasks created (idempotent re-run)" >&2
+  fi
+  echo "━━━━━━━━━━━━━━━━━━━━━" >&2
+  echo "" >&2
+  echo "Run 'bd show $EPIC_BD_ID --children' to view created tasks." >&2
 }
 
 # --- Main ---
