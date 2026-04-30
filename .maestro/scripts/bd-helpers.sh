@@ -121,7 +121,22 @@ bd_create_task() {
 bd_add_dep() {
   local dependent="$1"
   local blocker="$2"
-  bd dep add "$dependent" "$blocker" 2>/dev/null || true
+  local dep_stderr_file dep_exit=0
+  dep_stderr_file=$(mktemp)
+  bd dep add "$dependent" "$blocker" 2>"$dep_stderr_file" || dep_exit=$?
+  if [[ $dep_exit -ne 0 ]]; then
+    local stderr_content
+    stderr_content=$(cat "$dep_stderr_file")
+    rm -f "$dep_stderr_file"
+    # Duplicate edge is idempotent — not an error
+    if echo "$stderr_content" | grep -qi "already exists\|duplicate"; then
+      return 0
+    fi
+    echo "bd dep add failed: $stderr_content" >&2
+    return $dep_exit
+  fi
+  rm -f "$dep_stderr_file"
+  return 0
 }
 
 # Get ready tasks as JSON
