@@ -38,14 +38,144 @@ STATE_FILE="$MAESTRO_BASE/.maestro/state/$FEATURE_ID.json"
 # --- Function stubs ---
 
 # parse_plan: One-pass awk over plan.md TASK:BEGIN/TASK:END markers.
-# Populates global TASKS array with TSV records (id\ttitle\tlabel\tsize\tassignee\tdeps).
+# Populates global TASKS_FILE (path to a temp TSV) with records:
+#   id\ttitle\tlabel\tsize\tassignee\tdeps
 parse_plan() {
-  echo "TODO: parse_plan" >&2
+  if [[ ! -f "$PLAN_FILE" ]]; then
+    echo "parse_plan: plan file not found: $PLAN_FILE" >&2
+    exit 1
+  fi
+
+  TASKS_FILE="$(mktemp /tmp/tasks-from-plan.XXXXXX)"
+
+  awk '
+    /^<!-- TASK:BEGIN id=/ {
+      # Extract the id attribute from the marker (portable: no gawk arr form)
+      line = $0
+      sub(/.*id=/, "", line)
+      sub(/ .*/, "", line)
+      sub(/-->.*/, "", line)
+      gsub(/[[:space:]]/, "", line)
+      id = line
+      in_block = 1
+      title = ""
+      label = ""
+      size  = ""
+      assignee = ""
+      deps  = ""
+      got_title = 0
+      next
+    }
+
+    /^<!-- TASK:END -->/ {
+      in_block = 0
+      # Validate required fields
+      if (id == "") next
+      if (label == "") {
+        print "parse_plan: task " id " missing Label" > "/dev/stderr"
+        exit 2
+      }
+      if (size == "") {
+        print "parse_plan: task " id " missing Size" > "/dev/stderr"
+        exit 2
+      }
+      if (assignee == "") {
+        print "parse_plan: task " id " missing Assignee" > "/dev/stderr"
+        exit 2
+      }
+      if (size == "M" || size == "L") {
+        print "parse_plan: task " id " has disallowed size " size " (only XS/S allowed)" > "/dev/stderr"
+        exit 3
+      }
+      print id "\t" title "\t" label "\t" size "\t" assignee "\t" deps
+      task_count++
+      next
+    }
+
+    in_block {
+      # Capture the first H3 header as title (### T001: ... or ### R001: ...)
+      if (!got_title && /^### [A-Za-z0-9]+:/) {
+        # Strip leading "### T001: " prefix
+        line = $0
+        sub(/^### [A-Za-z0-9]+: */, "", line)
+        # Strip backticks
+        gsub(/`/, "", line)
+        title = line
+        got_title = 1
+        next
+      }
+      # Capture metadata fields
+      if (/^- \*\*Label:\*\*/) {
+        line = $0
+        sub(/^- \*\*Label:\*\* */, "", line)
+        gsub(/^ +| +$/, "", line)
+        label = line
+        next
+      }
+      if (/^- \*\*Size:\*\*/) {
+        line = $0
+        sub(/^- \*\*Size:\*\* */, "", line)
+        gsub(/^ +| +$/, "", line)
+        size = line
+        next
+      }
+      if (/^- \*\*Assignee:\*\*/) {
+        line = $0
+        sub(/^- \*\*Assignee:\*\* */, "", line)
+        # Strip any bracket annotations like [harness: claude] or [no-match: ...]
+        gsub(/ *\[[^]]*\]/, "", line)
+        gsub(/^ +| +$/, "", line)
+        assignee = line
+        next
+      }
+      if (/^- \*\*Dependencies:\*\*/) {
+        line = $0
+        sub(/^- \*\*Dependencies:\*\* */, "", line)
+        # Strip any parenthetical annotations like "(some note)"
+        gsub(/ *\([^)]*\)/, "", line)
+        gsub(/^ +| +$/, "", line)
+        # Normalize whitespace around commas
+        gsub(/ *, */, ",", line)
+        deps = line
+        next
+      }
+    }
+
+    END {
+      if (task_count == 0) {
+        print "parse_plan: plan.md has no tasks" > "/dev/stderr"
+        exit 4
+      }
+    }
+  ' task_count=0 "$PLAN_FILE" >> "$TASKS_FILE" || {
+    local awk_exit=$?
+    rm -f "$TASKS_FILE"
+    exit $awk_exit
+  }
+
+  local count
+  count=$(wc -l < "$TASKS_FILE")
+  if [[ "$count" -eq 0 ]]; then
+    echo "parse_plan: plan.md has no tasks" >&2
+    rm -f "$TASKS_FILE"
+    exit 4
+  fi
+
+  echo "parse_plan: parsed $count task(s) from $PLAN_FILE" >&2
 }
 
 # build_table: Pretty-print parsed tasks in column-aligned format for dry-run + report.
 build_table() {
-  echo "TODO: build_table" >&2
+  if [[ -z "${TASKS_FILE:-}" || ! -f "$TASKS_FILE" ]]; then
+    echo "build_table: no TASKS_FILE to display" >&2
+    return
+  fi
+  echo "ID      TITLE                                             LABEL        SIZE  ASSIGNEE              DEPS"
+  echo "------  ------------------------------------------------  -----------  ----  --------------------  ----"
+  while IFS=$'\t' read -r id title label size assignee deps; do
+    printf "%-6s  %-48s  %-11s  %-4s  %-20s  %s\n" \
+      "$id" "${title:0:48}" "$label" "$size" "$assignee" "$deps"
+  done < "$TASKS_FILE"
 }
 
 # create_epic: Call bd_create_epic, store returned epic ID in EPIC_BD_ID.
