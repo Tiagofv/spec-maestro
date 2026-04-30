@@ -24,6 +24,8 @@
 
 set -euo pipefail
 
+command -v jq >/dev/null 2>&1 || { echo "bd-helpers.sh: jq not found; install via 'brew install jq' or 'apt-get install jq'" >&2; exit 1; }
+
 # Check if bd is available
 bd_check() {
   if ! command -v bd &>/dev/null; then
@@ -46,7 +48,7 @@ bd_preflight() {
 bd_create_epic() {
   local title="$1"
   local desc="${2:-}"
-  bd create --title="$title" --type=epic --priority=2 ${desc:+--description="$desc"} --json 2>/dev/null | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4
+  bd create --title="$title" --type=epic --priority=2 ${desc:+--description="$desc"} --json 2>/dev/null | jq -r '.id // empty'
 }
 
 # Create task under epic
@@ -68,7 +70,7 @@ bd_create_task() {
     --assignee="$assignee" \
     --description="$desc" \
     --parent="$epic_id" \
-    --json 2>/dev/null | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4
+    --json 2>/dev/null | jq -r '.id // empty'
 }
 
 # Add dependency between tasks
