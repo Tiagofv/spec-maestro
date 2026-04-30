@@ -182,6 +182,7 @@ build_table() {
 # create_epic: Call bd_create_epic, store returned epic ID in EPIC_BD_ID.
 # Idempotent: if epic already exists, reuse it.
 EPIC_BD_ID=""
+EPIC_WAS_PREEXISTING=false
 create_epic() {
   # Idempotency: reuse if state.json already has epic_id
   if [[ -f "$STATE_FILE" ]]; then
@@ -189,6 +190,7 @@ create_epic() {
     existing_epic=$(jq -r '.epic_id // empty' "$STATE_FILE" 2>/dev/null || true)
     if [[ -n "$existing_epic" ]]; then
       EPIC_BD_ID="$existing_epic"
+      EPIC_WAS_PREEXISTING=true
       echo "create_epic: reusing existing epic $EPIC_BD_ID from state.json" >&2
       return 0
     fi
@@ -204,9 +206,50 @@ create_epic() {
   echo "Epic: $EPIC_BD_ID" >&2
 }
 
+# Global map: T001 -> altpay-woz.2 etc.
+declare -A TASK_ID_MAP
+
 # create_tasks: For each parsed task call bd_create_task, store T###->altpay-ID map.
 create_tasks() {
-  echo "TODO: create_tasks" >&2
+  # Idempotency: if the epic was pre-existing, tasks already exist — skip creation.
+  if [[ "$EPIC_WAS_PREEXISTING" == "true" ]]; then
+    echo "create_tasks: epic was pre-existing; skipping task creation (tasks already created)" >&2
+    return 0
+  fi
+
+  local plan_id title label size assignee deps
+
+  while IFS=$'\t' read -r plan_id title label size assignee deps; do
+    [[ -z "$plan_id" ]] && continue
+
+    # Idempotency: skip if we already have this T### in TASK_ID_MAP
+    if [[ -n "${TASK_ID_MAP[$plan_id]:-}" ]]; then
+      echo "  skipping $plan_id (already in map: ${TASK_ID_MAP[$plan_id]})" >&2
+      continue
+    fi
+
+    # Estimate minutes
+    local estimate=120
+    [[ "$size" == "S" ]] && estimate=360
+
+    # Build description: use plan task title + worktree note
+    local desc
+    desc="$plan_id: $title
+Size: $size | Label: $label | Deps: ${deps:-None}
+Worktree: ${WORKTREE_PATH:-}"
+
+    local bd_id
+    bd_id=$(bd_create_task "$plan_id: $title" "$desc" "$label" "$estimate" "$EPIC_BD_ID" "$assignee") || {
+      echo "create_tasks: bd_create_task failed for $plan_id" >&2
+      exit 1
+    }
+
+    TASK_ID_MAP["$plan_id"]="$bd_id"
+    echo "  created $plan_id → $bd_id" >&2
+
+  done < "$TASKS_FILE"
+
+  echo "Created ${#TASK_ID_MAP[@]} tasks" >&2
 }
 
 # wire_deps: Wire dependency edges using the T###->altpay-ID map.
@@ -235,6 +278,7 @@ main() {
     exit 0
   fi
 
+  WORKTREE_PATH=$(jq -r '.worktree_path // empty' "$STATE_FILE" 2>/dev/null || echo "")
   create_epic
   create_tasks
   wire_deps
