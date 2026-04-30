@@ -184,6 +184,10 @@ build_table() {
 EPIC_BD_ID=""
 EPIC_WAS_PREEXISTING=false
 create_epic() {
+  if [[ "${DRY_RUN:-false}" == "true" ]]; then
+    echo "  (dry-run: skipping ${FUNCNAME[0]})" >&2
+    return 0
+  fi
   # Idempotency: reuse if state.json already has epic_id
   if [[ -f "$STATE_FILE" ]]; then
     local existing_epic
@@ -215,6 +219,10 @@ DEP_COUNT=0
 # create_tasks: For each parsed task call bd_create_task, store T###->altpay-ID map.
 # Deps are wired inline via --deps (SINGLE_CALL per probe-bd-batch.md).
 create_tasks() {
+  if [[ "${DRY_RUN:-false}" == "true" ]]; then
+    echo "  (dry-run: skipping ${FUNCNAME[0]})" >&2
+    return 0
+  fi
   # Idempotency: if the epic was pre-existing, tasks already exist — skip creation.
   if [[ "$EPIC_WAS_PREEXISTING" == "true" ]]; then
     echo "create_tasks: epic was pre-existing; skipping task creation (tasks already created)" >&2
@@ -281,11 +289,19 @@ Worktree: ${WORKTREE_PATH:-}"
 # wire_deps: Deps are wired at create time via --deps flag (SINGLE_CALL per probe-bd-batch.md).
 # This function is a no-op; DEP_COUNT is already populated by create_tasks.
 wire_deps() {
+  if [[ "${DRY_RUN:-false}" == "true" ]]; then
+    echo "  (dry-run: skipping ${FUNCNAME[0]})" >&2
+    return 0
+  fi
   echo "wire_deps: $DEP_COUNT dep(s) wired at create time via --deps (SINGLE_CALL)" >&2
 }
 
 # update_state: Atomic write to state JSON (stage=tasks, epic_id, task_count, dep_count).
 update_state() {
+  if [[ "${DRY_RUN:-false}" == "true" ]]; then
+    echo "  (dry-run: skipping ${FUNCNAME[0]})" >&2
+    return 0
+  fi
   local feature_num
   feature_num=$(echo "$FEATURE_ID" | grep -oE '^[0-9]+')
   local task_count=${#TASK_ID_MAP[@]}
