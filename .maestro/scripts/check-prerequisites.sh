@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Check that required pipeline stages are complete before proceeding
-# Usage: check-prerequisites.sh <stage> [feature-dir]
+# Usage: check-prerequisites.sh <stage> <feature-dir>
 # Stages: clarify (needs spec), research (needs spec+state), plan (needs spec + research readiness validation), tasks (needs plan), implement (needs tasks)
 # Outputs JSON: {"ok":true} or {"ok":false,"error":"...","suggestion":"..."}
 
@@ -16,7 +16,11 @@ fi
 MAESTRO_BASE="${MAESTRO_MAIN_REPO:-.}"
 
 STAGE="${1:?Usage: check-prerequisites.sh <stage>}"
-FEATURE_DIR="${2:-${MAESTRO_BASE}/.maestro/specs/$(ls -1 "${MAESTRO_BASE}/.maestro/specs" 2>/dev/null | tail -1)}"
+FEATURE_DIR="${2:-}"
+if [[ -z "$FEATURE_DIR" ]]; then
+  echo '{"ok":false,"error":"feature directory required: pass an explicit <feature_dir>","suggestion":"Pass the full feature directory path, e.g.: check-prerequisites.sh tasks .maestro/specs/070-improve-maestro-tasks-command-speed"}' >&2
+  exit 1
+fi
 FEATURE_ID="$(basename "$FEATURE_DIR")"
 STATE_FILE="${MAESTRO_BASE}/.maestro/state/${FEATURE_ID}.json"
 
