@@ -55,6 +55,28 @@ Examples:
 3. Validate that research exists: `.maestro/state/research/{research_id}.json`
 4. Store valid research_ids for context injection
 
+## Step 0c: Find Existing Feature (for refine/update workflows)
+
+If `$ARGUMENTS` contains an explicit feature ID (e.g., `070`, `070-improve-...`), use it directly. If the user is describing a new feature from scratch, skip to Step 1.
+
+When re-specifying or refining an existing feature without an explicit ID, infer the active feature using the following rules.
+
+**Resolving the feature ID (AI inference):**
+
+1. If the user supplied an explicit feature ID or number (e.g., `070`, `070-improve-...`), use it directly.
+2. Otherwise, infer from context using these signals in priority order:
+   a. **Recent state activity**: List `.maestro/state/*.json` files, read their `updated_at` field, pick the most recently updated non-`complete` feature.
+   b. **Current git branch**: Run `git branch --show-current`. If the branch matches `feat/NNN-...` or `NNN-...`, extract and use that feature ID.
+   c. **Conversation context**: If the current conversation referenced a feature earlier, use that feature.
+3. Surface the inferred feature ID to the user BEFORE taking any action:
+   ```
+   Inferred feature: 070-improve-maestro-tasks-command-speed (from: recent state activity)
+   Proceeding… (reply with a different feature ID to override)
+   ```
+4. **On signal conflict** (e.g., state recency says 070 but branch says 069): Ask the user which to use.
+5. **On no signals**: Treat as a new feature and proceed to Step 1.
+6. **Exclude from inference**: Empty feature directories (spec.md missing or 0 bytes).
+
 ## Step 1: Create Feature Scaffold
 
 Run the helper script to create the feature directory and git branch:

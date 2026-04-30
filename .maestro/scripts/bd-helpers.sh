@@ -24,6 +24,10 @@
 
 set -euo pipefail
 
+# Calling pattern: EPIC_ID=$(fn ...) — functions exit non-zero on failure, never return empty string.
+
+command -v jq >/dev/null 2>&1 || { echo "bd-helpers.sh: jq not found; install via 'brew install jq' or 'apt-get install jq'" >&2; exit 1; }
+
 # Check if bd is available
 bd_check() {
   if ! command -v bd &>/dev/null; then
@@ -46,11 +50,33 @@ bd_preflight() {
 bd_create_epic() {
   local title="$1"
   local desc="${2:-}"
-  bd create --title="$title" --type=epic --priority=2 ${desc:+--description="$desc"} --json 2>/dev/null | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4
+  local bd_output bd_stderr bd_exit
+  local bd_stderr_file
+  bd_stderr_file=$(mktemp)
+  # Capture stdout and stderr separately; use || to capture non-zero exit without set -e aborting.
+  bd_output=$(bd create --title="$title" --type=epic --priority=2 ${desc:+--description="$desc"} --json 2>"$bd_stderr_file") && bd_exit=0 || bd_exit=$?
+  bd_stderr=$(cat "$bd_stderr_file")
+  rm -f "$bd_stderr_file"
+  # Surface any bd warning/diagnostic output even on success.
+  if [[ -n "$bd_stderr" ]]; then
+    printf '%s\n' "$bd_stderr" >&2
+  fi
+  if [[ $bd_exit -ne 0 ]]; then
+    echo "bd create failed: $bd_stderr" >&2
+    return $bd_exit
+  fi
+  local id
+  id=$(printf '%s' "$bd_output" | jq -r '.id // empty')
+  if [[ -z "$id" ]]; then
+    echo "bd create succeeded but ID could not be parsed from output: ${bd_output:0:200}" >&2
+    return 1
+  fi
+  printf '%s\n' "$id"
 }
 
 # Create task under epic
-# Usage: bd_create_task "Title" "Description" "label" estimate_minutes epic_id assignee
+# Usage: bd_create_task "Title" "Description" "label" estimate_minutes epic_id assignee [deps_csv]
+# deps_csv: optional comma-separated list of bd task IDs to set as dependencies (--deps flag)
 bd_create_task() {
   local title="$1"
   local desc="$2"
@@ -58,8 +84,12 @@ bd_create_task() {
   local estimate="$4"
   local epic_id="$5"
   local assignee="${6:-general}"
-
-  bd create \
+  local deps_csv="${7:-}"
+  local bd_output bd_stderr bd_exit
+  local bd_stderr_file
+  bd_stderr_file=$(mktemp)
+  # Capture stdout and stderr separately; use || to capture non-zero exit without set -e aborting.
+  bd_output=$(bd create \
     --title="$title" \
     --type=task \
     --priority=2 \
@@ -68,7 +98,25 @@ bd_create_task() {
     --assignee="$assignee" \
     --description="$desc" \
     --parent="$epic_id" \
-    --json 2>/dev/null | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4
+    ${deps_csv:+--deps="$deps_csv"} \
+    --json 2>"$bd_stderr_file") && bd_exit=0 || bd_exit=$?
+  bd_stderr=$(cat "$bd_stderr_file")
+  rm -f "$bd_stderr_file"
+  # Surface any bd warning/diagnostic output even on success.
+  if [[ -n "$bd_stderr" ]]; then
+    printf '%s\n' "$bd_stderr" >&2
+  fi
+  if [[ $bd_exit -ne 0 ]]; then
+    echo "bd create failed: $bd_stderr" >&2
+    return $bd_exit
+  fi
+  local id
+  id=$(printf '%s' "$bd_output" | jq -r '.id // empty')
+  if [[ -z "$id" ]]; then
+    echo "bd create succeeded but ID could not be parsed from output: ${bd_output:0:200}" >&2
+    return 1
+  fi
+  printf '%s\n' "$id"
 }
 
 # Add dependency between tasks
@@ -76,7 +124,22 @@ bd_create_task() {
 bd_add_dep() {
   local dependent="$1"
   local blocker="$2"
-  bd dep add "$dependent" "$blocker" 2>/dev/null || true
+  local dep_stderr_file dep_exit=0
+  dep_stderr_file=$(mktemp)
+  bd dep add "$dependent" "$blocker" 2>"$dep_stderr_file" || dep_exit=$?
+  if [[ $dep_exit -ne 0 ]]; then
+    local stderr_content
+    stderr_content=$(cat "$dep_stderr_file")
+    rm -f "$dep_stderr_file"
+    # Duplicate edge is idempotent — not an error
+    if echo "$stderr_content" | grep -qi "already exists\|duplicate"; then
+      return 0
+    fi
+    echo "bd dep add failed: $stderr_content" >&2
+    return $dep_exit
+  fi
+  rm -f "$dep_stderr_file"
+  return 0
 }
 
 # Get ready tasks as JSON

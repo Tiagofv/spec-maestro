@@ -12,7 +12,7 @@ REPO    := Tiagofv/spec-maestro
 OS      := $(shell uname -s)
 ARCH    := $(shell uname -m)
 
-.PHONY: build test install uninstall clean generate upgrade download
+.PHONY: build test test-scripts install uninstall clean generate upgrade download
 
 generate:
 	go generate ./...
@@ -54,6 +54,9 @@ download:
 	rm -rf $(TMPDIR)
 	@echo "✓ Installed $(TAG):"
 	@$(PREFIX)/bin/$(BINARY) --version
+
+test-scripts:
+	bash ../../.maestro/scripts/test-bd-helpers.sh
 
 clean:
 	rm -f $(BINARY)

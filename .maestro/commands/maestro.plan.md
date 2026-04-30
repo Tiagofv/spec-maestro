@@ -9,25 +9,41 @@ argument-hint: [feature-id] (optional, defaults to most recent)
 
 Generate an implementation plan for the feature.
 
-## Step 1: Prerequisites Check
+## Step 1: Find the Specification
 
-Run the prerequisite check:
+**Resolving the feature ID (AI inference):**
 
-```bash
-bash .maestro/scripts/check-prerequisites.sh plan
-```
+1. If the user supplied an explicit feature ID or number (e.g., `070`, `070-improve-...`), use it directly.
+2. Otherwise, infer from context using these signals in priority order:
+   a. **Recent state activity**: List `.maestro/state/*.json` files, read their `updated_at` field, pick the most recently updated non-`complete` feature.
+   b. **Current git branch**: Run `git branch --show-current`. If the branch matches `feat/NNN-...` or `NNN-...`, extract and use that feature ID.
+   c. **Conversation context**: If the current conversation referenced a feature earlier, use that feature.
+3. Surface the inferred feature ID to the user BEFORE taking any action:
+   ```
+   Inferred feature: 070-improve-maestro-tasks-command-speed (from: recent state activity)
+   Proceeding… (reply with a different feature ID to override)
+   ```
+4. **On signal conflict** (e.g., state recency says 070 but branch says 069): Ask the user which to use.
+5. **On no signals**: Ask the user for an explicit feature ID.
+6. **Exclude from inference**: Empty feature directories (spec.md missing or 0 bytes).
 
-If it fails, show the error and suggestion, then stop.
-
-## Step 2: Find the Specification
-
-If `$ARGUMENTS` contains a feature ID, use it. Otherwise, find the most recent feature in `.maestro/specs/`.
+Once `{feature_id}` is resolved, the feature directory is `.maestro/specs/{feature_id}`.
 
 Read:
 
 - The spec file: `.maestro/specs/{feature_id}/spec.md`
 - The constitution: `.maestro/constitution.md` (if exists)
 - The state: `.maestro/state/{feature_id}.json`
+
+## Step 2: Prerequisites Check
+
+Now that `{feature_id}` and `{feature_dir}` are resolved, run the prerequisite check with the feature directory as a positional argument:
+
+```bash
+bash .maestro/scripts/check-prerequisites.sh plan .maestro/specs/{feature_id}
+```
+
+If it fails, show the error and suggestion, then stop.
 
 ## Step 3: Validate Spec Readiness
 
@@ -258,7 +274,56 @@ Fill in the template based on the spec and constitution.
 
 If the spec is too vague to make architectural decisions, add items to "Open Questions" section and flag them.
 
-## Step 5b: Validate the Plan Before Writing
+After generating impl tasks, proceed to Step 5b to generate paired review tasks.
+
+## Step 5b: Generate Review Tasks
+
+After generating all implementation tasks, generate paired review tasks. Use LLM judgment to cluster impl tasks — one review task per cohesive cluster (tasks sharing the same file area or feature domain), not 1:1 per impl task.
+
+**Review task format:**
+
+Each review task uses `<!-- TASK:BEGIN id=R### -->` markers, with:
+- `**Label:** review`
+- `**Size:** XS` (or S for large clusters)
+- `**Assignee:**` — independently selected (do not inherit from impl task's assignee); prefer review-capable agents; fall back to `general` with `[review-fallback]`
+- `**Dependencies:**` — the T### IDs of impl tasks in this cluster (comma-separated)
+
+**Clustering heuristic:**
+
+Group impl tasks by the primary directory/module they touch. Tasks modifying scripts in `.maestro/scripts/` form one cluster; tasks modifying `.maestro/commands/*.md` form another; etc. Apply judgment — 3-6 impl tasks per review is a good target range.
+
+**Example:**
+
+If impl tasks T002, T003, T004, T005 all modify `.maestro/scripts/bd-helpers.sh` or its tests, they form one cluster:
+
+```markdown
+<!-- TASK:BEGIN id=R001 -->
+### R001: Review bd-helpers.sh changes (T002-T005)
+
+**Metadata:**
+- **Label:** review
+- **Size:** XS
+- **Assignee:** general [harness: claude]
+- **Dependencies:** T002, T003, T004, T005
+
+**Description:**
+Review bd-helpers.sh after T002-T005 land. Verify: (a) every helper returns non-empty ID or exits non-zero; (b) stderr surfaced on failure; (c) idempotent path correct.
+<!-- TASK:END -->
+```
+
+**Zero-review guard:**
+
+If after generating you have zero review tasks (impl-only plan), add a visible warning comment at the top of the tasks section:
+
+```markdown
+> ⚠ Warning: This plan has no review tasks. Consider adding at least one review cluster.
+```
+
+**PM-Validation task:**
+
+After all impl+review pairs, add a final PM-VAL task (label: `pm-validation`, XS, blocked by ALL review task IDs).
+
+## Step 5c: Validate the Plan Before Writing
 
 Before writing the plan to disk, run the format validator:
 
@@ -288,6 +353,7 @@ Update `.maestro/state/{feature_id}.json`:
 - Set `stage` to `plan`
 - Add `plan_path` field
 - Add `phases` count
+- Add `task_count` field: total number of tasks in the plan, including both impl tasks and review tasks (T### + R### + PM-VAL)
 - Add `components_new` and `components_modified` counts
 - Preserve any existing research metadata fields (`research_path`, `research_artifacts`, `research_artifact_pointers`, `research_ready`, `research_parallel_agents_default`, `research_parallel_agents_max`, `research_parallel_agents_used`)
 - If bypass path was used, set `research_bypass_acknowledged` to `true`
