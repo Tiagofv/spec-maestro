@@ -232,6 +232,14 @@ each existing bd task's status before applying the new selection:
 
 Use `bd show <id> --json` to read the existing status and assignee.
 
+## Step 4c: Read and Store the Repos Set
+
+Read the `**Repos:**` line from the spec header — this is the authoritative set of repositories for this feature. Store it as `repos_set`; every generated task in Step 5 must carry a matching `**Repo:**` field whose value is a member of this set.
+
+Example header line: `**Repos:** svc-accounts-receivable, alt-front-end`
+
+If the `**Repos:**` line is absent from the spec, stop and instruct the user to run `/maestro.specify` again (T017 added this field — its absence means the spec predates multi-repo support or was written incorrectly).
+
 ## Step 5: Generate the Plan
 
 Fill in the template based on the spec and constitution.
@@ -246,8 +254,21 @@ Fill in the template based on the spec and constitution.
 6. **Assign agent per task** — For each task, run Step 4b's procedure (discovery + scoring). Set the matched agent as the task's assignee. If scoring fails, use `general` and emit a `[no-match: <reason>]` annotation. Always include a `[harness: <name>]` annotation when known.
 7. **Split multi-agent tasks** — If a task touches files that score highest for *different* agents (e.g., a Go service file scoring for `golang-expert-payments` and a `.tsx` file scoring for `frontend-code` skill), split it into separate tasks — one per matched agent. Set dependencies between split tasks if they share interfaces.
 8. **Show agent assignments** — In the plan output, every task must include an `Assignee` field showing which agent will implement it.
+9. **Every task must carry a `**Repo:**` field** — Its value must be exactly one member of the `repos_set` captured in Step 4c. A task's `**Files to Modify:**` must not span multiple repos; if implementation naturally touches two repos, split it into two tasks (one per repo) and set dependencies between them.
 
 If the spec is too vague to make architectural decisions, add items to "Open Questions" section and flag them.
+
+## Step 5b: Validate the Plan Before Writing
+
+Before writing the plan to disk, run the format validator:
+
+```bash
+bash .maestro/scripts/validate-plan-format.sh <plan-file-path>
+```
+
+Where `<plan-file-path>` is the path that Step 7 would write to (`.maestro/specs/{feature_id}/plan.md`). Write the plan to a temporary location first if needed, then validate, then move it into place only on success.
+
+If the script exits nonzero, surface the full error output to the user and do **not** write (or keep) the plan file. Ask the user whether to fix the issues and retry, or abandon the plan generation.
 
 ## Step 6: Create Supporting Artifacts
 

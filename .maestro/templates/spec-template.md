@@ -5,6 +5,7 @@
 **Created:** {DATE}
 **Last Updated:** {DATE}
 **Status:** Draft | Review | Approved | Superseded
+**Repos:** <repo-a>, <repo-b>          <!-- replace with the comma-separated list of repo dirnames this feature touches; required at /maestro.specify time per spec §8.3 -->
 
 ---
 

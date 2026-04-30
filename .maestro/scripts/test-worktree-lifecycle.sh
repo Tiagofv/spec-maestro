@@ -20,12 +20,36 @@ fail() { echo "✗ FAIL: $1"; FAIL=$((FAIL + 1)); }
 # ---------------------------------------------------------------------------
 # Cleanup — run on EXIT via trap
 # ---------------------------------------------------------------------------
+
+# Multi-repo test temp directories (populated below, cleaned in cleanup).
+MULTI_REPO_DIR1=""
+MULTI_REPO_DIR2=""
+MULTI_FEATURE_SPEC_DIR=""
+MULTI_STATE_FILE=""
+COMPAT_TMP_DIR=""
+
 cleanup() {
   git -C "$REPO_ROOT" worktree remove "$REPO_ROOT/.worktrees/test-wt" --force 2>/dev/null || true
   git -C "$REPO_ROOT" branch -D feat/test-wt 2>/dev/null || true
   rm -f "$REPO_ROOT/.maestro/state/test-999-mock.json" 2>/dev/null || true
   # Remove any spec dirs created by backward-compat test
   rm -rf "$REPO_ROOT/.maestro/specs/"*"-lifecycle-compat-test" 2>/dev/null || true
+  # Multi-repo test cleanup
+  if [[ -n "$MULTI_REPO_DIR1" ]]; then
+    rm -rf "$MULTI_REPO_DIR1" 2>/dev/null || true
+  fi
+  if [[ -n "$MULTI_REPO_DIR2" ]]; then
+    rm -rf "$MULTI_REPO_DIR2" 2>/dev/null || true
+  fi
+  if [[ -n "$MULTI_FEATURE_SPEC_DIR" ]]; then
+    rm -rf "$MULTI_FEATURE_SPEC_DIR" 2>/dev/null || true
+  fi
+  if [[ -n "$MULTI_STATE_FILE" ]]; then
+    rm -f "$MULTI_STATE_FILE" 2>/dev/null || true
+  fi
+  if [[ -n "$COMPAT_TMP_DIR" ]]; then
+    rm -rf "$COMPAT_TMP_DIR" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT
 
@@ -298,6 +322,190 @@ if [[ "$NONGIT_IN_WORKTREE" == "false" ]]; then
   pass "Test 8b: MAESTRO_IN_WORKTREE=false in non-git directory"
 else
   fail "Test 8b: MAESTRO_IN_WORKTREE expected 'false', got '$NONGIT_IN_WORKTREE'"
+fi
+
+# ---------------------------------------------------------------------------
+# Multi-repo test helpers
+# ---------------------------------------------------------------------------
+
+# make_git_repo <dir>
+# Initialise a minimal git repo at <dir> so that `git worktree add` works:
+# init, configure local user, create an initial commit on main/master.
+make_git_repo() {
+  local dir="$1"
+  mkdir -p "$dir"
+  git -C "$dir" init -q
+  git -C "$dir" config user.email "test@example.com"
+  git -C "$dir" config user.name "Test"
+  # Create a commit so git considers the repo non-empty.
+  printf 'test repo\n' > "$dir/README.md"
+  git -C "$dir" add README.md
+  git -C "$dir" commit -q -m "initial commit"
+  # Rename default branch to "main" if needed (git < 2.28 defaults to master).
+  local cur_branch
+  cur_branch="$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo master)"
+  if [[ "$cur_branch" != "main" ]]; then
+    git -C "$dir" branch -m "$cur_branch" main 2>/dev/null || true
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Test 9: Two-repo create
+#
+# Strategy: worktree-detect.sh always resolves MAESTRO_BASE from the script's
+# physical location — it cannot be overridden via env. So we need to use the
+# real MAESTRO_BASE (REPO_ROOT) and place the fake repos where
+# resolve_repo_root will find them: dirname(MAESTRO_BASE)/<repo>, i.e.
+# at the parent of REPO_ROOT.
+#
+# The feature spec is created temporarily inside the real .maestro/specs/.
+# Both artefacts are registered in the cleanup trap.
+# ---------------------------------------------------------------------------
+echo ""
+echo "--- Test 9: Two-repo create (multi-repo --repo flag) ---"
+
+# Unique suffix to avoid name collisions when tests run concurrently.
+MULTI_SUFFIX="t9-$$"
+MULTI_FEATURE_ID="098-multi-repo-${MULTI_SUFFIX}"
+MULTI_SLUG="multi-repo-${MULTI_SUFFIX}"
+
+# resolve_repo_root checks dirname(MAESTRO_BASE)/<repo> as its fallback.
+# MAESTRO_BASE == REPO_ROOT, so dirname is the parent of the worktree dir.
+MULTI_PARENT="$(dirname "$REPO_ROOT")"
+MULTI_REPO_DIR1="$MULTI_PARENT/repo-alpha-${MULTI_SUFFIX}"
+MULTI_REPO_DIR2="$MULTI_PARENT/repo-beta-${MULTI_SUFFIX}"
+make_git_repo "$MULTI_REPO_DIR1"
+make_git_repo "$MULTI_REPO_DIR2"
+
+# Create the feature spec in the real .maestro/specs/ directory.
+MULTI_FEATURE_SPEC_DIR="$REPO_ROOT/.maestro/specs/$MULTI_FEATURE_ID"
+mkdir -p "$MULTI_FEATURE_SPEC_DIR"
+printf '# Feature %s\n\n**Repos:** repo-alpha-%s, repo-beta-%s\n' \
+  "$MULTI_FEATURE_ID" "$MULTI_SUFFIX" "$MULTI_SUFFIX" \
+  > "$MULTI_FEATURE_SPEC_DIR/spec.md"
+
+MULTI_STATE_FILE="$REPO_ROOT/.maestro/state/${MULTI_FEATURE_ID}.json"
+
+CREATE9A_EXIT=0
+CREATE9A_OUT=$(bash "$SCRIPTS_DIR/worktree-create.sh" \
+  --repo "repo-alpha-${MULTI_SUFFIX}" \
+  --feature "$MULTI_FEATURE_ID" \
+  --base-branch main \
+  2>/dev/null) || CREATE9A_EXIT=$?
+
+if [[ $CREATE9A_EXIT -eq 0 ]] && [[ -d "$MULTI_REPO_DIR1/.worktrees/$MULTI_SLUG" ]]; then
+  pass "Test 9a: repo-alpha worktree created at repo-alpha/.worktrees/$MULTI_SLUG"
+else
+  fail "Test 9a: repo-alpha worktree NOT created (exit=$CREATE9A_EXIT)"
+fi
+
+CREATE9B_EXIT=0
+CREATE9B_OUT=$(bash "$SCRIPTS_DIR/worktree-create.sh" \
+  --repo "repo-beta-${MULTI_SUFFIX}" \
+  --feature "$MULTI_FEATURE_ID" \
+  --base-branch main \
+  2>/dev/null) || CREATE9B_EXIT=$?
+
+if [[ $CREATE9B_EXIT -eq 0 ]] && [[ -d "$MULTI_REPO_DIR2/.worktrees/$MULTI_SLUG" ]]; then
+  pass "Test 9b: repo-beta worktree created at repo-beta/.worktrees/$MULTI_SLUG"
+else
+  fail "Test 9b: repo-beta worktree NOT created (exit=$CREATE9B_EXIT)"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 10: Missing repo root error
+# ---------------------------------------------------------------------------
+echo ""
+echo "--- Test 10: Missing repo root returns nonzero exit ---"
+
+CREATE10_EXIT=0
+CREATE10_STDERR=$(bash "$SCRIPTS_DIR/worktree-create.sh" \
+  --repo "nonexistent-repo-${MULTI_SUFFIX}" \
+  --feature "$MULTI_FEATURE_ID" \
+  --base-branch main \
+  2>&1 >/dev/null) || CREATE10_EXIT=$?
+
+if [[ $CREATE10_EXIT -ne 0 ]]; then
+  pass "Test 10a: nonexistent-repo exits nonzero (exit=$CREATE10_EXIT)"
+else
+  fail "Test 10a: nonexistent-repo unexpectedly exited 0"
+fi
+
+# stderr should mention the repo name or "not found" or "Repo root".
+if echo "$CREATE10_STDERR" | grep -qiE 'not found|nonexistent|repo root|not declared'; then
+  pass "Test 10b: stderr contains identifiable error for missing repo"
+else
+  fail "Test 10b: stderr did not contain expected error text (got: '$CREATE10_STDERR')"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 11: Two-repo cleanup --all
+# ---------------------------------------------------------------------------
+echo ""
+echo "--- Test 11: Two-repo cleanup --all removes both worktrees ---"
+
+# Depends on Test 9 having created both worktrees and written the state file.
+# worktree-cleanup.sh --all reads state.worktrees to discover paths.
+
+CLEANUP11_EXIT=0
+CLEANUP11_OUT=$(bash "$SCRIPTS_DIR/worktree-cleanup.sh" \
+  --all \
+  --feature "$MULTI_FEATURE_ID" \
+  2>/dev/null) || CLEANUP11_EXIT=$?
+
+if [[ $CLEANUP11_EXIT -eq 0 ]]; then
+  pass "Test 11a: worktree-cleanup.sh --all exited 0"
+else
+  fail "Test 11a: worktree-cleanup.sh --all exited nonzero (exit=$CLEANUP11_EXIT)"
+fi
+
+if [[ ! -d "$MULTI_REPO_DIR1/.worktrees/$MULTI_SLUG" ]]; then
+  pass "Test 11b: repo-alpha worktree removed after --all cleanup"
+else
+  fail "Test 11b: repo-alpha worktree still exists after --all cleanup"
+fi
+
+if [[ ! -d "$MULTI_REPO_DIR2/.worktrees/$MULTI_SLUG" ]]; then
+  pass "Test 11c: repo-beta worktree removed after --all cleanup"
+else
+  fail "Test 11c: repo-beta worktree still exists after --all cleanup"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 12: Single-repo backward compat regression (legacy positional form)
+# ---------------------------------------------------------------------------
+echo ""
+echo "--- Test 12: Single-repo backward compat (legacy positional form) ---"
+
+COMPAT_TMP_DIR=$(mktemp -d)
+make_git_repo "$COMPAT_TMP_DIR"
+
+COMPAT_WT_NAME="compat-wt-test"
+COMPAT_BRANCH="feat/compat-wt-test"
+
+COMPAT12_EXIT=0
+COMPAT12_OUT=$(
+  cd "$COMPAT_TMP_DIR"
+  bash "$SCRIPTS_DIR/worktree-create.sh" "$COMPAT_WT_NAME" "$COMPAT_BRANCH" 2>/dev/null
+) || COMPAT12_EXIT=$?
+
+if [[ $COMPAT12_EXIT -eq 0 ]]; then
+  pass "Test 12a: legacy positional form exits 0"
+else
+  fail "Test 12a: legacy positional form exited nonzero (exit=$COMPAT12_EXIT)"
+fi
+
+if [[ -d "$COMPAT_TMP_DIR/.worktrees/$COMPAT_WT_NAME" ]]; then
+  pass "Test 12b: worktree created at .worktrees/$COMPAT_WT_NAME (legacy path)"
+else
+  fail "Test 12b: worktree NOT found at .worktrees/$COMPAT_WT_NAME"
+fi
+
+# JSON output should contain worktree_path (legacy shape, not new shape).
+if echo "$COMPAT12_OUT" | grep -q '"worktree_path"'; then
+  pass "Test 12c: legacy form output contains 'worktree_path' field"
+else
+  fail "Test 12c: legacy form output missing 'worktree_path' field (got: '$COMPAT12_OUT')"
 fi
 
 # ---------------------------------------------------------------------------
