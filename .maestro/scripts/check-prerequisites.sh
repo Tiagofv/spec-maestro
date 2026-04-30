@@ -21,6 +21,22 @@ if [[ -z "$FEATURE_DIR" ]]; then
   echo '{"ok":false,"error":"feature directory required: pass an explicit <feature_dir>","suggestion":"Pass the full feature directory path, e.g.: check-prerequisites.sh tasks .maestro/specs/070-improve-maestro-tasks-command-speed"}' >&2
   exit 1
 fi
+
+# Validate feature directory has a spec with required H1
+SPEC_FILE="$FEATURE_DIR/spec.md"
+if [[ ! -f "$SPEC_FILE" ]]; then
+  echo "{\"ok\":false,\"error\":\"$FEATURE_DIR/spec.md not found\",\"suggestion\":\"Check that the feature directory path is correct\"}"
+  exit 1
+fi
+if [[ ! -s "$SPEC_FILE" ]]; then
+  echo "{\"ok\":false,\"error\":\"$FEATURE_DIR/spec.md is empty or missing required H1\",\"suggestion\":\"The spec file exists but is empty — run /maestro.specify to initialize it\"}"
+  exit 1
+fi
+if ! grep -q "^# " "$SPEC_FILE"; then
+  echo "{\"ok\":false,\"error\":\"$FEATURE_DIR/spec.md is missing required H1 heading\",\"suggestion\":\"The spec file has no H1 (# ...) heading — it may be a placeholder. Run /maestro.specify to initialize it properly\"}"
+  exit 1
+fi
+
 FEATURE_ID="$(basename "$FEATURE_DIR")"
 STATE_FILE="${MAESTRO_BASE}/.maestro/state/${FEATURE_ID}.json"
 
