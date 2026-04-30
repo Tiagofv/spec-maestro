@@ -18,6 +18,28 @@ Before starting, verify the project has been initialized:
 2. Confirm `.maestro/templates/research-template.md` exists
 3. If either is missing, tell the user to run `/maestro.init` first and stop
 
+## Step 0c: Find the Feature (for research linking)
+
+If the user's query references a feature explicitly, extract that feature ID. Otherwise, infer the active feature to associate this research with using the following rules.
+
+**Resolving the feature ID (AI inference):**
+
+1. If the user supplied an explicit feature ID or number (e.g., `070`, `070-improve-...`), use it directly.
+2. Otherwise, infer from context using these signals in priority order:
+   a. **Recent state activity**: List `.maestro/state/*.json` files, read their `updated_at` field, pick the most recently updated non-`complete` feature.
+   b. **Current git branch**: Run `git branch --show-current`. If the branch matches `feat/NNN-...` or `NNN-...`, extract and use that feature ID.
+   c. **Conversation context**: If the current conversation referenced a feature earlier, use that feature.
+3. Surface the inferred feature ID to the user BEFORE taking any action:
+   ```
+   Inferred feature: 070-improve-maestro-tasks-command-speed (from: recent state activity)
+   Proceeding… (reply with a different feature ID to override)
+   ```
+4. **On signal conflict** (e.g., state recency says 070 but branch says 069): Ask the user which to use.
+5. **On no signals**: Ask the user for an explicit feature ID.
+6. **Exclude from inference**: Empty feature directories (spec.md missing or 0 bytes).
+
+The inferred `feature_id` is used when linking research to a feature in Step 7.
+
 ## Step 1: Detect Research Type
 
 Analyze the query to determine the research source type:

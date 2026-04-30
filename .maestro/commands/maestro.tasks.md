@@ -55,7 +55,21 @@ That document is the single source of truth for safe recovery.
 
 ## Step 2: Find the Plan
 
-If `$ARGUMENTS` contains a feature ID, use it. Otherwise, find the most recent feature in `.maestro/specs/`.
+**Resolving the feature ID (AI inference):**
+
+1. If the user supplied an explicit feature ID or number (e.g., `070`, `070-improve-...`), use it directly.
+2. Otherwise, infer from context using these signals in priority order:
+   a. **Recent state activity**: List `.maestro/state/*.json` files, read their `updated_at` field, pick the most recently updated non-`complete` feature.
+   b. **Current git branch**: Run `git branch --show-current`. If the branch matches `feat/NNN-...` or `NNN-...`, extract and use that feature ID.
+   c. **Conversation context**: If the current conversation referenced a feature earlier, use that feature.
+3. Surface the inferred feature ID to the user BEFORE taking any action:
+   ```
+   Inferred feature: 070-improve-maestro-tasks-command-speed (from: recent state activity)
+   Proceeding… (reply with a different feature ID to override)
+   ```
+4. **On signal conflict** (e.g., state recency says 070 but branch says 069): Ask the user which to use.
+5. **On no signals**: Ask the user for an explicit feature ID.
+6. **Exclude from inference**: Empty feature directories (spec.md missing or 0 bytes).
 
 Read:
 
