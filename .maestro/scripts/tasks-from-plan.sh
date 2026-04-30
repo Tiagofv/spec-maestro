@@ -3,6 +3,14 @@
 # Usage: tasks-from-plan.sh <feature_id> [--dry-run]
 set -euo pipefail
 
+if (( BASH_VERSINFO[0] < 4 )); then
+  echo "tasks-from-plan.sh requires bash 4+. Detected bash ${BASH_VERSION}." >&2
+  echo "macOS ships bash 3.2 by default. Install via: brew install bash" >&2
+  echo "Then invoke as: /opt/homebrew/bin/bash $0 \"\$@\"  (Apple Silicon)" >&2
+  echo "             or /usr/local/bin/bash $0 \"\$@\"     (Intel)" >&2
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/bd-helpers.sh"
 
@@ -315,27 +323,40 @@ update_state() {
     echo "  (dry-run: skipping ${FUNCNAME[0]})" >&2
     return 0
   fi
-  local feature_num
+
+  local feature_num task_count dep_count timestamp note action
   feature_num=$(echo "$FEATURE_ID" | grep -oE '^[0-9]+')
-  local task_count=${#TASK_ID_MAP[@]}
-  local timestamp
   timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  if [[ "$EPIC_WAS_PREEXISTING" == "true" ]]; then
+    # Preserve existing counts on idempotent re-run — do not clobber to 0.
+    task_count=$(jq -r '.task_count // 0' "$STATE_FILE")
+    dep_count=$(jq -r '.dep_count // 0' "$STATE_FILE")
+    note="idempotent re-run; epic and tasks preserved"
+    action="tasks re-run (idempotent: existing epic preserved)"
+  else
+    task_count=${#TASK_ID_MAP[@]}
+    dep_count=$DEP_COUNT
+    note="epic=$EPIC_BD_ID; tasks=$task_count; deps=$dep_count"
+    action="tasks created"
+  fi
 
   jq \
     --arg epic_id "$EPIC_BD_ID" \
     --arg bd_label "feature:$feature_num" \
     --argjson task_count "$task_count" \
-    --argjson dep_count "$DEP_COUNT" \
+    --argjson dep_count "$dep_count" \
     --arg stage "tasks" \
     --arg ts "$timestamp" \
-    --arg note "epic=$EPIC_BD_ID; tasks=$task_count; deps=$DEP_COUNT" \
+    --arg note "$note" \
+    --arg action "$action" \
     '.epic_id = $epic_id |
      .bd_label = $bd_label |
      .task_count = $task_count |
      .dep_count = $dep_count |
      .stage = $stage |
      .updated_at = $ts |
-     .history += [{"stage": "tasks", "timestamp": $ts, "action": "tasks created", "note": $note}]' \
+     .history += [{"stage": "tasks", "timestamp": $ts, "action": $action, "note": $note}]' \
     "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
 
   echo "Updated state file: $STATE_FILE" >&2
@@ -343,10 +364,19 @@ update_state() {
 
 # report: One-line stdout summary + multi-line stderr breakdown.
 report() {
-  local task_count=${#TASK_ID_MAP[@]}
+  local task_count dep_count
+  if [[ "$EPIC_WAS_PREEXISTING" == "true" ]]; then
+    # Idempotent re-run: surface the preserved counts from state.json so
+    # stdout matches the "epic existed" stderr line instead of printing 0/0.
+    task_count=$(jq -r '.task_count // 0' "$STATE_FILE")
+    dep_count=$(jq -r '.dep_count // 0' "$STATE_FILE")
+  else
+    task_count=${#TASK_ID_MAP[@]}
+    dep_count=$DEP_COUNT
+  fi
 
   # Stdout: machine-parseable
-  echo "epic=$EPIC_BD_ID tasks=$task_count deps=$DEP_COUNT"
+  echo "epic=$EPIC_BD_ID tasks=$task_count deps=$dep_count"
 
   # Stderr: human-readable
   echo "" >&2
@@ -354,7 +384,7 @@ report() {
   echo "Feature:  $FEATURE_ID" >&2
   echo "Epic:     $EPIC_BD_ID" >&2
   echo "Tasks:    $task_count" >&2
-  echo "Deps:     $DEP_COUNT" >&2
+  echo "Deps:     $dep_count" >&2
   if [[ "$EPIC_WAS_PREEXISTING" == "true" ]]; then
     echo "Note:     Epic existed; no tasks created (idempotent re-run)" >&2
   fi
