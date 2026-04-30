@@ -24,6 +24,8 @@
 
 set -euo pipefail
 
+# Calling pattern: EPIC_ID=$(fn ...) — functions exit non-zero on failure, never return empty string.
+
 command -v jq >/dev/null 2>&1 || { echo "bd-helpers.sh: jq not found; install via 'brew install jq' or 'apt-get install jq'" >&2; exit 1; }
 
 # Check if bd is available
@@ -48,7 +50,28 @@ bd_preflight() {
 bd_create_epic() {
   local title="$1"
   local desc="${2:-}"
-  bd create --title="$title" --type=epic --priority=2 ${desc:+--description="$desc"} --json 2>/dev/null | jq -r '.id // empty'
+  local bd_output bd_stderr bd_exit
+  local bd_stderr_file
+  bd_stderr_file=$(mktemp)
+  # Capture stdout and stderr separately; use || to capture non-zero exit without set -e aborting.
+  bd_output=$(bd create --title="$title" --type=epic --priority=2 ${desc:+--description="$desc"} --json 2>"$bd_stderr_file") && bd_exit=0 || bd_exit=$?
+  bd_stderr=$(cat "$bd_stderr_file")
+  rm -f "$bd_stderr_file"
+  # Surface any bd warning/diagnostic output even on success.
+  if [[ -n "$bd_stderr" ]]; then
+    printf '%s\n' "$bd_stderr" >&2
+  fi
+  if [[ $bd_exit -ne 0 ]]; then
+    echo "bd create failed: $bd_stderr" >&2
+    return $bd_exit
+  fi
+  local id
+  id=$(printf '%s' "$bd_output" | jq -r '.id // empty')
+  if [[ -z "$id" ]]; then
+    echo "bd create succeeded but ID could not be parsed from output: ${bd_output:0:200}" >&2
+    return 1
+  fi
+  printf '%s\n' "$id"
 }
 
 # Create task under epic
@@ -60,8 +83,11 @@ bd_create_task() {
   local estimate="$4"
   local epic_id="$5"
   local assignee="${6:-general}"
-
-  bd create \
+  local bd_output bd_stderr bd_exit
+  local bd_stderr_file
+  bd_stderr_file=$(mktemp)
+  # Capture stdout and stderr separately; use || to capture non-zero exit without set -e aborting.
+  bd_output=$(bd create \
     --title="$title" \
     --type=task \
     --priority=2 \
@@ -70,7 +96,24 @@ bd_create_task() {
     --assignee="$assignee" \
     --description="$desc" \
     --parent="$epic_id" \
-    --json 2>/dev/null | jq -r '.id // empty'
+    --json 2>"$bd_stderr_file") && bd_exit=0 || bd_exit=$?
+  bd_stderr=$(cat "$bd_stderr_file")
+  rm -f "$bd_stderr_file"
+  # Surface any bd warning/diagnostic output even on success.
+  if [[ -n "$bd_stderr" ]]; then
+    printf '%s\n' "$bd_stderr" >&2
+  fi
+  if [[ $bd_exit -ne 0 ]]; then
+    echo "bd create failed: $bd_stderr" >&2
+    return $bd_exit
+  fi
+  local id
+  id=$(printf '%s' "$bd_output" | jq -r '.id // empty')
+  if [[ -z "$id" ]]; then
+    echo "bd create succeeded but ID could not be parsed from output: ${bd_output:0:200}" >&2
+    return 1
+  fi
+  printf '%s\n' "$id"
 }
 
 # Add dependency between tasks
