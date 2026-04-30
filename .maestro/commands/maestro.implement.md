@@ -4,7 +4,7 @@ description: >
   routes by label, spawns sub-agents, runs reviews, enforces compile gates,
   triggers PM validation, and runs post-epic analysis when done.
   Never implements directly — always delegates to sub-agents.
-argument-hint: [feature-id] [--no-worktree]
+argument-hint: "[feature-id] [--no-worktree] [--resume]"
 ---
 
 # maestro.implement
@@ -54,23 +54,78 @@ Determine worktree mode:
 2. Else if state has `worktree_required: false`, set `worktree_required=false`.
 3. Else set `worktree_required=true` (default behavior).
 
+> **Recovery flag:** Use `--resume {feature_id}` to resume a partially provisioned feature without triggering the half-provisioned guard. When `--resume` is present, the provisioning loop skips repos that are already created and only provisions the missing ones. Rerunning on a fully provisioned feature is a no-op.
+
 If `worktree_required=true`, enforce the worktree invariant:
 
-1. Read `worktree_name`, `worktree_path`, `worktree_branch`, `worktree_created` from state.json.
-2. If any of `worktree_name`, `worktree_path`, or `worktree_branch` is missing (legacy/pre-worktree state):
-   - Derive defaults:
-     - `worktree_name`: `{feature_id}` with leading `NNN-` removed if present
-     - `worktree_path`: `.worktrees/{worktree_name}`
-     - `worktree_branch`: `{branch}`
-     - `worktree_created`: `false` if missing
-   - Update state.json with derived fields and append history action `"worktree metadata backfilled"`.
-3. If `worktree_created` is `false`:
-   - Run: `bash .maestro/scripts/worktree-create.sh {worktree_name} {worktree_branch}`
-   - If successful, update state.json: set `worktree_created` to `true`.
-   - If it fails with "worktree already exists", treat as already created (idempotent) and set `worktree_created` to `true`.
-4. If `worktree_created` is `true`:
-   - Verify the worktree directory still exists on disk.
-   - If missing, re-run `worktree-create.sh` as in step 3 above.
+**Half-provisioned guard (check before any `worktree-create.sh` calls):**
+
+Read `state.worktrees` and compute:
+- `N_created` = count of repos where `state.worktrees[repo].created == true`
+- `N_total`   = `len(state.repos)`
+
+If `N_created > 0` AND `N_created < N_total` AND the invocation is NOT `--resume`:
+
+```
+╔══════════════════════════════════════════════════════╗
+║  HALF-PROVISIONED WORKTREES DETECTED                 ║
+║  {N_created}/{N_total} repos have worktrees.         ║
+║                                                      ║
+║  Recovery options:                                   ║
+║  1. Resume:  /maestro.implement --resume {feature}   ║
+║  2. Restart: bash .maestro/scripts/worktree-cleanup.sh --all --feature {feature}  ║
+║             then /maestro.implement {feature}        ║
+╚══════════════════════════════════════════════════════╝
+```
+
+Stop immediately. Do not silently re-provision. Do not auto-tear-down.
+
+Fully provisioned (`N_created == N_total`) and fully unprovisioned (`N_created == 0`) proceed normally.
+
+**Provision one worktree per repo.** Iterate over `state.repos` and run `worktree-create.sh` for each entry:
+
+```
+For each repo in state.repos:
+  If invoked with --resume AND state.worktrees[repo].created == true:
+    Skip this repo (already provisioned).
+  Else:
+    Run: bash .maestro/scripts/worktree-create.sh --repo {repo} --feature {feature_id}
+    - If successful, record the worktree path in state.worktrees[repo].
+    - If it fails with "worktree already exists", treat as already created (idempotent).
+    - If any worktree creation fails for any other reason, stop immediately.
+      See the recovery section below.
+
+If invoked with --resume AND all repos were skipped (all already created):
+  Emit: "All worktrees already provisioned; resuming task execution."
+  Proceed directly to task execution.
+```
+
+> **Single-repo note:** For single-repo features, `state.repos` has exactly one entry. The loop above runs once; behavior is indistinguishable from pre-062.
+
+After the loop, update state.json:
+
+1. Set `worktree_created: true` for each successfully provisioned repo.
+2. Append history action `"worktrees provisioned: {repos}"`.
+
+**Empty `state.repos` guard:**
+
+If `state.repos` is present but is an empty array (`[]`):
+
+```
+ERROR: state.repos is empty. Run /maestro.tasks first,
+or add repo entries to .maestro/state/{feature_id}.json before running /maestro.implement.
+```
+
+Stop immediately. This is distinct from the legacy fallback below (which triggers only when `state.repos` is absent).
+
+**Legacy/pre-worktree state (missing `state.repos`):**
+
+If `state.repos` is absent, derive a single-entry default:
+
+- `repo`: basename of the project root
+- Derive `worktree_name`, `worktree_path`, `worktree_branch`, `worktree_created` as before.
+- Update state.json with derived fields and append history action `"worktree metadata backfilled"`.
+- Then run the loop above with the single derived entry.
 
 If `worktree_required=false` (explicit opt-out only):
 
@@ -78,6 +133,10 @@ If `worktree_required=false` (explicit opt-out only):
 - Append state history action `"worktree opt-out for implement"` (include source: `--no-worktree` or state override).
 
 **Invariant:** Unless explicitly opted out, implementation must run from a feature worktree.
+
+---
+
+> **Recovery:** If any worktree creation fails, stop and do not proceed to task execution.
 
 ## Step 2: Get Ready Tasks
 
@@ -217,7 +276,37 @@ If convention memories exist in Claude Code project memory (files matching `conv
 
 If no convention memories exist, skip this step silently.
 
-### 4d: Spawn implementation agent
+### 4d: Resolve repo and assert worktree context
+
+Before spawning the implementer agent, identify which repo this task belongs to and verify the worktree is ready.
+
+**1. Read the task's `repo:*` bd label:**
+
+```bash
+repo_label=$(bd show {task_id} | grep -oP 'repo:\K[^ ]+' | head -1)
+```
+
+> **Routing rule (Decision 8.1):** The bd `repo:*` label is the authoritative source for routing. If the label is absent, **fail loudly — do not guess.**
+> ```
+> ERROR: Task {task_id} has no repo:* label. Cannot determine worktree.
+> Set the label with: bd update {task_id} --label repo:<name>
+> ```
+
+**2. Assert worktree context for this repo:**
+
+```bash
+bash .maestro/scripts/assert-worktree-context.sh --repo {repo_label} --feature {feature_id}
+```
+
+Stop if the script exits non-zero.
+
+**3. Set the implementer agent's working directory:**
+
+Resolve `worktree_path = state.worktrees[{repo_label}].path`. Pass this as the working directory when spawning the agent (see `## Worktree Context` in the prompt below).
+
+---
+
+### 4e: Spawn implementation agent
 
 **Agent Resolution:**
 
@@ -259,9 +348,10 @@ Task(
 
   ## Worktree Context
   {If worktree_required=true:}
-  Work in directory: {worktree_path}
+  Repo: {repo_label}
+  Work in directory: {worktree_path}   (= state.worktrees[{repo_label}].path)
   All file read/write operations and git commands must be performed from this worktree directory.
-  Run preflight before editing: bash .maestro/scripts/assert-worktree-context.sh {worktree_path}
+  Run preflight before editing: bash .maestro/scripts/assert-worktree-context.sh --repo {repo_label} --feature {feature_id}
   The compile gate is run as: bash .maestro/scripts/compile-gate.sh {worktree_path}
   {If worktree_required=false:}
   Worktree use was explicitly disabled for this run.
@@ -280,7 +370,7 @@ Task(
      - When in doubt, ADD a new case/handler rather than replacing an
        existing one
   4. If worktree_required=true, run preflight before edits:
-     bash .maestro/scripts/assert-worktree-context.sh {worktree_path}
+     bash .maestro/scripts/assert-worktree-context.sh --repo {repo_label} --feature {feature_id}
   5. After implementing, you MUST run the compile gate:
      - worktree_required=true: bash .maestro/scripts/compile-gate.sh {worktree_path}
      - worktree_required=false: bash .maestro/scripts/compile-gate.sh
@@ -297,7 +387,7 @@ Task(
 )
 ```
 
-### 4e: Parse result and close
+### 4f: Parse result and close
 
 **If DONE:**
 
@@ -447,12 +537,12 @@ Next Steps:
 
 **Worktree Cleanup (if worktree-enabled feature):**
 
-If `worktree_path` is set in state.json:
+If `state.worktrees` is set in state.json:
 
-1. Run: `bash .maestro/scripts/worktree-cleanup.sh {worktree_path}`
-2. Update state.json: set `worktree_created` to `false`
+1. Run: `bash .maestro/scripts/worktree-cleanup.sh --all --feature {feature_id}`
+2. (`worktree-cleanup.sh` updates `state.worktrees[repo].created = false` for each repo internally.)
 3. Add to Next Steps:
-   - "Open PR: Branch `{worktree_branch}` → `{base_branch}` (run `git push origin {worktree_branch}` first)"
+   - "Open PR per repo: run `bash .maestro/scripts/list-feature-branches.sh --feature {feature_id}` to get `<repo>:<branch>` pairs."
 
 **Update the state file** to reflect completion:
 
@@ -482,3 +572,24 @@ If `worktree_path` is set in state.json:
 7. **Agent from assignee** — The agent (subagent_type) is always read from the task's assignee field. If the assignee is empty or invalid, fall back to `general`. Never read agent_routing from config.yaml.
 
 8. **Worktree-first invariant** — Worktree usage is mandatory by default. Only bypass when explicitly requested (`--no-worktree`) or state sets `worktree_required: false`.
+
+---
+
+## Final Step: Push Feature Branches
+
+After all tasks close (following Step 9), push each repo's feature branch:
+
+```
+For each repo in state.repos:
+  Run: git -C {state.worktrees[repo].path} push origin {state.worktrees[repo].branch}
+```
+
+Then remind the user:
+
+```
+Each repo's feature branch is now pushed. Open PRs manually per repo:
+Run `bash .maestro/scripts/list-feature-branches.sh --feature {feature_id}`
+to get the <repo>:<branch> pairs for your linear-pr workflow.
+```
+
+> **Note (Decision 8.2):** Do NOT run `gh pr create` or `linear-pr` — PR creation is out of scope for this command.

@@ -2,6 +2,7 @@
 
 **Feature ID:** {FEATURE_ID}
 **Spec:** {SPEC_PATH}
+**Repos:** <repo-a>, <repo-b>          <!-- comma-separated list of repo dirnames this feature touches; must match the spec's `**Repos:**` header and contain every value used in per-task `**Repo:**` fields below -->
 **Created:** {DATE}
 **Status:** Draft
 
@@ -100,8 +101,10 @@ FORMAT VALIDATION RULES:
 3. Size MUST be one of: XS, S (M and L are rejected - must split)
 4. Assignee MUST be a valid agent name from maestro.plan.md
 5. Dependencies MUST reference valid task IDs (comma-separated for multiple)
-6. Files to modify must use relative paths from repository root
+6. Files to modify must use relative paths from the task's declared repo root
 7. All checkboxes in Acceptance Criteria must be unchecked initially
+8. The plan header MUST include a `**Repos:**` line with a comma-separated, non-empty list of repo dirnames; this list MUST match the spec's `**Repos:**` header
+9. Each task's `**Metadata:**` block MUST include a `**Repo:**` field whose value (a) matches the regex `^[a-z0-9][a-z0-9-]*$` and (b) is a member of the plan header's `**Repos:**` list
 -->
 
 <!-- TASK:BEGIN id=T001 -->
@@ -110,6 +113,7 @@ FORMAT VALIDATION RULES:
 **Metadata:**
 - **Label:** {component-area}
 - **Size:** {XS|S}
+- **Repo:** {repo-dirname}
 - **Assignee:** {agent-name}
 - **Dependencies:** {TXXX, TYYY or None}
 
@@ -133,6 +137,7 @@ FORMAT VALIDATION RULES:
 **Metadata:**
 - **Label:** {component-area}
 - **Size:** {XS|S}
+- **Repo:** {repo-dirname}
 - **Assignee:** {agent-name}
 - **Dependencies:** T001
 

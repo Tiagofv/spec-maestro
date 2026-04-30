@@ -31,8 +31,22 @@ compile_gate:
   # If present, overrides 'stack' (single value). Add entries as YAML list items.
   stacks:
     - go
+    - bash
+  bash: "find . -name '*.sh' -print0 | xargs -0 -n1 bash -n"  # syntax-check all .sh files
   # The stack to use for this project (must match a key above)
   stack: go
+  repos:
+    # NEW (062): per-repo stack assignment used by post-062 compile-gate.sh.
+    # Lookup is dirname-based — match the worktree's repo dirname against
+    # these keys (literal first, then glob). If no entry matches the
+    # gate refuses to run rather than guessing.
+    spec-maestro: go,ts        # this repo: Go CLI in cmd/maestro-cli + TS frontend in src/
+    # Add entries for common AltPayments patterns:
+    svc-example-go: go           # Go microservice example
+    scripts: bash                # pure-bash repo or scripts-only context
+    # Example consumer-project entries (downstream projects supply their own):
+    # "svc-*": go              # AltPayments services
+    # alt-front-end: typescript
 
 # Size mapping — converts T-shirt sizes to minutes for bd estimates
 size_mapping:

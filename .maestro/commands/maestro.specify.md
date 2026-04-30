@@ -142,11 +142,38 @@ This context will be injected into the spec generation.
 
 Read the template from `.maestro/templates/spec-template.md`.
 
+## Step 2b: Determine the Repos Set
+
+Determine which repos this feature touches and lock the value into `**Repos:**` before writing the spec. This field is required at specify-time and cannot be changed later (Decision 8.3).
+
+**Inference (do this first):**
+
+1. Read `$ARGUMENTS` and any problem-statement file paths mentioned for repo names or service names (e.g., `svc-accounts-receivable`, `alt-front-end`).
+2. If none are found, default to the basename of the current `MAESTRO_BASE` directory (single-repo default).
+
+**Confirmation:**
+
+Present the inferred value to the user in one line:
+
+> Repos this feature touches: **`<inferred value>`** — correct? (Add or remove names, or press Enter to accept.)
+
+Wait for the user's response. Accept the corrected value if they provide one; otherwise use the inferred value.
+
+**Examples of the final header line:**
+
+- Single-repo: `**Repos:** spec-maestro`
+- Multi-repo: `**Repos:** svc-accounts-receivable, alt-front-end`
+
+Store the confirmed value as `repos_value` for use in Step 3.
+
 ## Step 3: Generate the Specification
 
 Fill in the template based on the feature description provided in `$ARGUMENTS`.
 
 **Rules for specification generation:**
+
+0. **Write `repos_value` into the spec header**
+   - Replace the `**Repos:**` placeholder in the template with the confirmed `repos_value` from Step 2b
 
 1. **Focus on WHAT and WHY, never HOW**
    - Describe user-visible behavior
@@ -203,11 +230,11 @@ Create or update the state file at `.maestro/state/{feature_id}.json`:
   "created_at": "{ISO timestamp}",
   "updated_at": "{ISO timestamp}",
   "stage": "specify",
-  "spec_path": "{spec_dir}/spec.md",
-  "branch": "{branch}",
-  "worktree_name": "{worktree_name}",
-  "worktree_path": "{worktree_path}",
-  "worktree_branch": "{branch}",
+  "repos": ["{repos_value}"],
+  "worktrees": {},
+  "spec_path": ".maestro/specs/{feature_id}/spec.md",
+  "branch": "feat/{feature_slug}",
+  "worktree_required": true,
   "worktree_created": false,
   "clarification_count": 0,
   "user_stories": 0,

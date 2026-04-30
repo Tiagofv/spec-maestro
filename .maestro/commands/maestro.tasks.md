@@ -141,6 +141,7 @@ Use regex to extract tasks from plan.md:
    - **Size**: From `**Size:**` field (XS/S/M/L) — reject M/L with warning
    - **Assignee**: From `**Assignee:**` field — default to `general` if blank
    - **Dependencies**: From `**Dependencies:**` field (comma-separated T### IDs, or "None")
+   - **Repo**: From `**Repo:**` field — the repository dirname this task targets (e.g. `spec-maestro`); required for multi-repo plans, optional for single-repo (use the sole repo name if absent)
 4. Extract file paths from `**Files to Modify:**` section (bullet list)
 5. Store in structured array for processing
 
@@ -174,6 +175,7 @@ Extracts to:
   "size": "S",
   "assignee": "general",
   "dependencies": [],
+  "repo": "spec-maestro",
   "files": [".maestro/scripts/research-state.sh"]
 }
 ```
@@ -387,7 +389,14 @@ TASK_ID=$(bd_create_task \
   {estimate_minutes} \
   "$EPIC_ID" \
   "{assignee}")
+bd label add "$TASK_ID" "repo:{repo}"
 ```
+
+Where `{repo}` is the `repo` field parsed from the task's `**Repo:**` metadata in Step 4a. For single-repo plans where `**Repo:**` is absent, use the sole repository dirname from the spec header.
+
+**Review task repo label:** Each auto-generated review task (Step 6.2) inherits the `repo:*` label of its corresponding impl task. Apply the same `bd label add "$REVIEW_TASK_ID" "repo:{repo}"` immediately after creating the review task.
+
+> **`repo:*` label authority (Decision 8.1, spec 062):** The `repo:*` bd label is the authoritative source of repo attribution at implementation time. If the plan's `**Repo:**` field and the bd label drift, `/maestro.implement` and `assert-worktree-context.sh` trust the bd label.
 
 **Worktree context:**
 
