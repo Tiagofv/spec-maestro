@@ -92,26 +92,26 @@ Render a column-aligned table with these 6 columns:
 ```
 Features (10 total)
 
-ID    Name                          Stage        Stories  Tasks  Next Action
-----  ----------------------------  -----------  -------  -----  --------------------------
-010   ↳ from 005 Multi-currency v2  specify           0      0   /maestro.clarify
-009   Payment reconciliation        plan              4      0   /maestro.tasks
-008   Invoice templates             implement         6     12   (in progress)
-007   Vendor onboarding             ⚠ STALLED (21d) specify  3   0   /maestro.clarify
-005   Multi-currency support        clarify           5      0   /maestro.plan
-004   Dashboard analytics           tasks             3      8   /maestro.implement
-003   User notifications            ⚠ No state        0      0   /maestro.specify
-──────────────────────────────────────────────────────────────────────────────
-002   Batch payments                complete          4     10   /maestro.analyze
-001   Basic invoicing               complete          3      6   /maestro.analyze
-──────────────────────────────────────────────────────────────────────────────
-006   Legacy export                 cancelled         2      0   —
+ID    Name                                                  Stage        Stories  Tasks  Next Action
+----  ----------------------------------------------------  -----------  -------  -----  --------------------------
+010   ↳ from 005 Multi-currency support v2                  specify           0      0   /maestro.clarify
+009   Payment reconciliation across providers               plan              4      0   /maestro.tasks
+008   Invoice templates with custom branding                implement         6     12   (in progress)
+007   Vendor onboarding                                     ⚠ STALLED (21d) specify  3   0   /maestro.clarify
+005   Multi-currency support                                clarify           5      0   /maestro.plan
+004   Dashboard analytics                                   tasks             3      8   /maestro.implement
+003   User notifications                                    ⚠ No state        0      0   /maestro.specify
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+002   Batch payments                                        complete          4     10   /maestro.analyze
+001   Basic invoicing                                       complete          3      6   /maestro.analyze
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+006   Legacy export                                         cancelled         2      0   —
 ```
 
 **Column Details:**
 
 - **ID:** Numeric prefix from `feature_id` (e.g. `009`)
-- **Name:** Feature title, truncated to 28 characters with `..` if longer. If the feature has a non-null `forked_from` field, prepend `↳ from {NNN} ` to the title, where NNN is the numeric ID prefix extracted from the `forked_from` feature_id (e.g., `005` from `005-multi-currency-support`). The truncation limit applies to the combined string including the fork prefix.
+- **Name:** Feature title, truncated to 52 characters with `..` if longer. If the feature has a non-null `forked_from` field, prepend `↳ from {NNN} ` to the title, where NNN is the numeric ID prefix extracted from the `forked_from` feature_id (e.g., `005` from `005-multi-currency-support`). The truncation limit applies to the combined string including the fork prefix.
 - **Stage:** Current stage; see Steps 8-9 for special indicators. Cancelled features show `cancelled`.
 - **Stories:** Count of user stories (`user_stories`)
 - **Tasks:** Count of tasks (`task_count`)
