@@ -109,18 +109,95 @@ run_list_features() {
     bash "$TEST_DIR/.maestro/scripts/list-features.sh" "$@"
 }
 
-# ── Test: Correct feature count ─────────────────────────────────────
+# ── Test: Correct feature count (with --all to include all groups) ──
 test_feature_count() {
+    local output
+    output=$(run_list_features --all 2>/dev/null)
+
+    local count
+    count=$(echo "$output" | jq 'length')
+
+    if [[ "$count" -ne 6 ]]; then
+        FAIL_REASON="Expected 6 features (with --all), got $count"
+        return 1
+    fi
+    return 0
+}
+
+# ── Test: Default scope hides completed and cancelled ───────────────
+test_default_excludes_completed_and_cancelled() {
     local output
     output=$(run_list_features 2>/dev/null)
 
     local count
     count=$(echo "$output" | jq 'length')
 
-    if [[ "$count" -ne 5 ]]; then
-        FAIL_REASON="Expected 5 features, got $count"
+    # 6 fixtures: 4 active (specify, plan, no-state x2) + 1 completed + 1 cancelled
+    if [[ "$count" -ne 4 ]]; then
+        FAIL_REASON="Expected 4 active features by default, got $count"
         return 1
     fi
+
+    # Confirm no completed or cancelled leaked through
+    local groups
+    groups=$(echo "$output" | jq -r '[.[] | .group] | unique | join(",")')
+    if [[ "$groups" != "active" ]]; then
+        FAIL_REASON="Expected only active group, got groups: $groups"
+        return 1
+    fi
+
+    return 0
+}
+
+# ── Test: --all flag includes everything ────────────────────────────
+test_all_flag_includes_everything() {
+    local output
+    output=$(run_list_features --all 2>/dev/null)
+
+    local count
+    count=$(echo "$output" | jq 'length')
+    if [[ "$count" -ne 6 ]]; then
+        FAIL_REASON="Expected 6 features with --all, got $count"
+        return 1
+    fi
+
+    # Confirm all three groups are present
+    local has_completed
+    has_completed=$(echo "$output" | jq '[.[] | select(.group == "completed")] | length')
+    if [[ "$has_completed" -lt 1 ]]; then
+        FAIL_REASON="Expected at least 1 completed feature with --all, got $has_completed"
+        return 1
+    fi
+
+    local has_cancelled
+    has_cancelled=$(echo "$output" | jq '[.[] | select(.group == "cancelled")] | length')
+    if [[ "$has_cancelled" -lt 1 ]]; then
+        FAIL_REASON="Expected at least 1 cancelled feature with --all, got $has_cancelled"
+        return 1
+    fi
+
+    return 0
+}
+
+# ── Test: --stage overrides default group filter ────────────────────
+test_stage_complete_works_without_all() {
+    local output
+    output=$(run_list_features --stage complete 2>/dev/null)
+
+    local count
+    count=$(echo "$output" | jq 'length')
+    if [[ "$count" -ne 1 ]]; then
+        FAIL_REASON="Expected 1 feature in 'complete' stage (no --all), got $count"
+        return 1
+    fi
+
+    local fid
+    fid=$(echo "$output" | jq -r '.[0].feature_id')
+    if [[ "$fid" != "002-payment-reconciliation" ]]; then
+        FAIL_REASON="Expected 002-payment-reconciliation, got $fid"
+        return 1
+    fi
+
     return 0
 }
 
@@ -178,8 +255,9 @@ test_specify_stage() {
 
 # ── Test: Complete stage with task count ─────────────────────────────
 test_complete_stage() {
+    # Need --all because completed features are hidden by default
     local output
-    output=$(run_list_features 2>/dev/null)
+    output=$(run_list_features --all 2>/dev/null)
 
     local feature
     feature=$(echo "$output" | jq '.[] | select(.feature_id == "002-payment-reconciliation")')
@@ -366,8 +444,9 @@ test_stalled_detection() {
 
 # ── Test: JSON output structure ─────────────────────────────────────
 test_json_structure() {
+    # --all so we exercise the schema across all groups (including cancelled)
     local output
-    output=$(run_list_features 2>/dev/null)
+    output=$(run_list_features --all 2>/dev/null)
 
     # Must be valid JSON array
     if ! echo "$output" | jq -e 'type == "array"' >/dev/null 2>&1; then
@@ -393,8 +472,9 @@ test_json_structure() {
 
 # ── Test: Sorting order (active first desc, then completed desc) ────
 test_sorting_order() {
+    # --all so we can assert the ordering between active and completed groups
     local output
-    output=$(run_list_features 2>/dev/null)
+    output=$(run_list_features --all 2>/dev/null)
 
     # Active features should come before completed
     local first_completed_idx
@@ -486,7 +566,10 @@ main() {
     echo ""
 
     # Run all tests
-    run_test "Feature count: discovers all 5 fixtures"           test_feature_count
+    run_test "Feature count: --all discovers all 6 fixtures"      test_feature_count
+    run_test "Default scope: hides completed and cancelled"       test_default_excludes_completed_and_cancelled
+    run_test "--all flag: includes completed and cancelled"       test_all_flag_includes_everything
+    run_test "--stage complete: works without --all"              test_stage_complete_works_without_all
     run_test "Specify stage: clarification markers + next action" test_specify_stage
     run_test "Complete stage: task count + group assignment"      test_complete_stage
     run_test "Orphan spec: no state file detected"               test_orphan_spec

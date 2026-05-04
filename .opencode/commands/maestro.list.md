@@ -1,13 +1,14 @@
 ---
 description: >
-  List all features with status and suggested actions.
-  Shows a dashboard of every feature in the project with stage, progress, and recommended next steps.
-argument-hint: [--stage {specify|clarify|plan|tasks|implement|complete|cancelled}]
+  List active features with status and suggested actions.
+  Shows a dashboard of in-flight features with stage, progress, and recommended next steps.
+  Use --all to also include completed and cancelled features.
+argument-hint: [--all] [--stage {specify|clarify|plan|tasks|implement|complete|cancelled}]
 ---
 
 # maestro.list
 
-List all features in the project with their current stage, progress metrics, and suggested next actions.
+List active features in the project with their current stage, progress metrics, and suggested next actions. Completed and cancelled features are hidden by default — use `--all` to include them.
 
 ## Step 1: Prerequisites Check
 
@@ -21,18 +22,21 @@ Verify the project is initialized:
 
 Extract optional filters from `$ARGUMENTS`:
 
-| Flag      | Description              | Values                                                  |
-| --------- | ------------------------ | ------------------------------------------------------- |
-| `--stage` | Filter by feature stage  | `specify`, `clarify`, `plan`, `tasks`, `implement`, `complete`, `cancelled` |
+| Flag      | Description                                            | Values                                                  |
+| --------- | ------------------------------------------------------ | ------------------------------------------------------- |
+| `--all`   | Include completed and cancelled features               | (no value — flag only)                                  |
+| `--stage` | Filter by feature stage                                | `specify`, `clarify`, `plan`, `tasks`, `implement`, `complete`, `cancelled` |
 
-If `--stage` is provided, only features in that stage will be shown.
+**Default scope:** when neither flag is provided, only active features (anything not `complete` and not `cancelled`) are shown.
+
+**Precedence:** `--stage X` overrides the default scope — running `/maestro.list --stage complete` returns completed features without needing `--all`. If both flags are passed, `--stage` wins (you get only that stage).
 
 ## Step 3: Run Discovery Script
 
 Execute the list-features script to collect feature data:
 
 ```bash
-bash .maestro/scripts/list-features.sh [--stage <stage>]
+bash .maestro/scripts/list-features.sh [--all] [--stage <stage>]
 ```
 
 Capture the JSON array output. Each element contains:
@@ -55,25 +59,34 @@ Capture the JSON array output. Each element contains:
 
 If the JSON array is empty:
 
-- **No filter applied:** Show onboarding message:
+- **No flags, no specs at all:** Show onboarding message:
 
   ```
   No features found. Run /maestro.specify to create your first feature.
   ```
 
-- **Filter applied:** Show filtered-empty message:
+- **No flags, but completed/cancelled specs exist** (default scope filtered everything out): Show:
+
+  ```
+  No active features. Run /maestro.list --all to see completed and cancelled features, or /maestro.specify to start a new one.
+  ```
+
+  To detect this case, re-run the discovery script with `--all` and check
+  if it returns any features.
+
+- **`--stage` filter applied:** Show filtered-empty message:
 
   ```
   No features found in stage "{stage}".
 
-  Run /maestro.list to see all features, or /maestro.specify to create a new one.
+  Run /maestro.list --all to see every feature, or /maestro.specify to create a new one.
   ```
 
 Stop here if empty.
 
 ## Step 5: Stage Summary Header
 
-Before the table, show a one-line summary counting features per stage:
+Before the table, show a one-line summary counting features per stage. **The summary always counts every feature in the project, regardless of the current filter** — so the user can see how many completed/cancelled features exist even when the default scope hides them. To get an accurate total, re-run the discovery script with `--all` for the count (or invoke it once with `--all` and reuse the result for both the count and any later filtering).
 
 ```
 Summary: 2 specify | 1 clarify | 3 plan | 0 tasks | 1 implement | 2 complete | 1 cancelled
@@ -131,6 +144,8 @@ Separate active, completed, and cancelled features visually:
 
 Omit any separator that would precede an empty group. If only one group has features, show that group with no separators.
 
+In the default scope (no `--all`, no `--stage`), the completed and cancelled groups are absent from the data, so only the active section renders — no separators. With `--all`, all three sections appear (subject to which groups have features). With `--stage X`, only features in that stage render — no separators.
+
 ## Step 8: Show Stalled Indicators
 
 For features where `is_stalled` is `true`:
@@ -168,6 +183,21 @@ Cancelled features are excluded from these counts — they are terminal and need
 ───
 Next steps: 🚀 2 feature(s) ready for implementation. Run /maestro.implement to start building.
 ```
+
+### Hidden-features hint
+
+When the default scope is in effect (no `--all` and no `--stage`) AND the unfiltered data contains completed or cancelled features, append one more line after `Next steps:` so the user knows what's hidden:
+
+```
+3 completed and 1 cancelled hidden — run /maestro.list --all to show.
+```
+
+Rules:
+
+- Skip the line entirely when nothing is hidden.
+- Skip when `--all` or `--stage` was used (the user already controlled scope explicitly).
+- Pluralize "completed"/"cancelled" only by count — write `1 completed and 2 cancelled hidden`, never `completeds` or `cancelleds`.
+- If only one group has anything to hide, write just that half — `3 completed hidden` or `2 cancelled hidden`.
 
 ## Marking a Feature as Cancelled
 
