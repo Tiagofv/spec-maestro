@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # ── Argument parsing ────────────────────────────────────────────────
-VALID_STAGES=("specify" "clarify" "research" "plan" "tasks" "implement" "complete" "no-state")
+VALID_STAGES=("specify" "clarify" "research" "plan" "tasks" "implement" "complete" "cancelled" "no-state")
 FILTER_STAGE=""
 
 while [[ $# -gt 0 ]]; do
@@ -106,8 +106,8 @@ compute_stalled() {
     return
   fi
 
-  # Completed features are never stalled
-  if [[ "$stage" == "complete" ]]; then
+  # Completed and cancelled features are never stalled
+  if [[ "$stage" == "complete" || "$stage" == "cancelled" ]]; then
     echo '{"is_stalled":false,"days_since_update":0}'
     return
   fi
@@ -209,6 +209,10 @@ compute_next_action() {
       next_action="/maestro.analyze"
       reason="Ready for post-epic analysis"
       ;;
+    cancelled)
+      next_action=""
+      reason="Feature was cancelled"
+      ;;
     *)
       next_action=""
       reason="Unknown stage"
@@ -254,6 +258,8 @@ build_feature_json() {
       local group="active"
       if [[ "$stage" == "complete" ]]; then
         group="completed"
+      elif [[ "$stage" == "cancelled" ]]; then
+        group="cancelled"
       fi
 
       # Build --arg or --argjson for forked_from depending on null vs string
@@ -356,10 +362,11 @@ for spec_dir in "$SPECS_DIR"/*/; do
   features=$(echo "$features" | jq --argjson obj "$feature_json" '. += [$obj]')
 done
 
-# ── Sorting: active first (by numeric_id desc), then completed (by numeric_id desc)
+# ── Sorting: active first, then completed, then cancelled (each by numeric_id desc)
 features=$(echo "$features" | jq '
   ([.[] | select(.group == "active")] | sort_by(-.numeric_id)) +
-  ([.[] | select(.group == "completed")] | sort_by(-.numeric_id))
+  ([.[] | select(.group == "completed")] | sort_by(-.numeric_id)) +
+  ([.[] | select(.group == "cancelled")] | sort_by(-.numeric_id))
 ')
 
 # ── Filtering: apply --stage filter if provided

@@ -2,7 +2,7 @@
 description: >
   List all features with status and suggested actions.
   Shows a dashboard of every feature in the project with stage, progress, and recommended next steps.
-argument-hint: [--stage {specify|clarify|plan|tasks|implement|complete}]
+argument-hint: [--stage {specify|clarify|plan|tasks|implement|complete|cancelled}]
 ---
 
 # maestro.list
@@ -23,7 +23,7 @@ Extract optional filters from `$ARGUMENTS`:
 
 | Flag      | Description              | Values                                                  |
 | --------- | ------------------------ | ------------------------------------------------------- |
-| `--stage` | Filter by feature stage  | `specify`, `clarify`, `plan`, `tasks`, `implement`, `complete` |
+| `--stage` | Filter by feature stage  | `specify`, `clarify`, `plan`, `tasks`, `implement`, `complete`, `cancelled` |
 
 If `--stage` is provided, only features in that stage will be shown.
 
@@ -40,8 +40,8 @@ Capture the JSON array output. Each element contains:
 - `feature_id` — directory name (e.g. `001-my-feature`)
 - `numeric_id` — integer prefix for sorting
 - `title` — feature name extracted from spec
-- `stage` — current workflow stage
-- `group` — `active` or `completed`
+- `stage` — current workflow stage (includes `cancelled` for abandoned features)
+- `group` — `active`, `completed`, or `cancelled`
 - `has_state` — whether a state file exists
 - `user_stories` — count of user stories
 - `task_count` — count of tasks
@@ -76,7 +76,7 @@ Stop here if empty.
 Before the table, show a one-line summary counting features per stage:
 
 ```
-Summary: 2 specify | 1 clarify | 3 plan | 0 tasks | 1 implement | 2 complete
+Summary: 2 specify | 1 clarify | 3 plan | 0 tasks | 1 implement | 2 complete | 1 cancelled
 ```
 
 Only include stages that have features (skip stages with 0 count). Example with sparse stages:
@@ -104,27 +104,30 @@ ID    Name                          Stage        Stories  Tasks  Next Action
 ──────────────────────────────────────────────────────────────────────────────
 002   Batch payments                complete          4     10   /maestro.analyze
 001   Basic invoicing               complete          3      6   /maestro.analyze
+──────────────────────────────────────────────────────────────────────────────
+006   Legacy export                 cancelled         2      0   —
 ```
 
 **Column Details:**
 
 - **ID:** Numeric prefix from `feature_id` (e.g. `009`)
 - **Name:** Feature title, truncated to 28 characters with `..` if longer. If the feature has a non-null `forked_from` field, prepend `↳ from {NNN} ` to the title, where NNN is the numeric ID prefix extracted from the `forked_from` feature_id (e.g., `005` from `005-multi-currency-support`). The truncation limit applies to the combined string including the fork prefix.
-- **Stage:** Current stage; see Steps 8-9 for special indicators
+- **Stage:** Current stage; see Steps 8-9 for special indicators. Cancelled features show `cancelled`.
 - **Stories:** Count of user stories (`user_stories`)
 - **Tasks:** Count of tasks (`task_count`)
-- **Next Action:** The `next_action` value; show `(in progress)` if empty and stage is `implement`
+- **Next Action:** The `next_action` value; show `(in progress)` if empty and stage is `implement`; show `—` if empty and stage is `cancelled`
 
 ## Step 7: Group Output
 
-Separate active and completed features visually:
+Separate active, completed, and cancelled features visually:
 
 1. **Active features first** — sorted by `numeric_id` descending (newest first)
 2. **Separator line** — a horizontal rule (`──────...`) spanning the table width
 3. **Completed features** — sorted by `numeric_id` descending
+4. **Separator line** — a second horizontal rule before the cancelled group
+5. **Cancelled features** — sorted by `numeric_id` descending
 
-If there are no completed features, omit the separator and completed section.
-If there are no active features (all completed), omit the separator and show only completed.
+Omit any separator that would precede an empty group. If only one group has features, show that group with no separators.
 
 ## Step 8: Show Stalled Indicators
 
@@ -157,10 +160,25 @@ After the table, recommend the most impactful action based on the feature landsc
 5. **All features complete:** "All features are complete. Run `/maestro.specify` to start a new feature, or `/maestro.analyze` to review outcomes."
 6. **Default:** "Run the Next Action for any feature to advance your project."
 
+Cancelled features are excluded from these counts — they are terminal and need no follow-up.
+
 ```
 ───
 Next steps: 🚀 2 feature(s) ready for implementation. Run /maestro.implement to start building.
 ```
+
+## Marking a Feature as Cancelled
+
+There is no dedicated `/maestro.cancel` command. When the user explicitly asks
+to cancel/abandon a feature, edit `.maestro/state/<feature_id>.json` directly:
+
+1. Set `"stage": "cancelled"`.
+2. Update `"updated_at"` to the current ISO-8601 timestamp.
+3. Append a history entry:
+   `{ "stage": "cancelled", "timestamp": "<now>", "action": "<reason>" }`.
+
+The feature will then appear in the cancelled section of `/maestro.list` with
+no `Next Action` and will never be flagged as stalled.
 
 ---
 
