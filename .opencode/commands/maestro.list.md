@@ -111,7 +111,9 @@ ID    Name                                                  Stage        Stories
 **Column Details:**
 
 - **ID:** Numeric prefix from `feature_id` (e.g. `009`)
-- **Name:** Feature title, truncated to 52 characters with `..` if longer. If the feature has a non-null `forked_from` field, prepend `↳ from {NNN} ` to the title, where NNN is the numeric ID prefix extracted from the `forked_from` feature_id (e.g., `005` from `005-multi-currency-support`). The truncation limit applies to the combined string including the fork prefix.
+- **Name:** Feature title, padded with spaces so every row aligns. The column width is **dynamic**: compute it as the length of the longest rendered Name across all rows (including any `↳ from {NNN} ` fork prefix), then add 2 spaces of right-padding. Cap the column at **80 characters** — only truncate with `..` when a single title exceeds that cap. Do not apply a fixed 28- or 52-char truncation; let short titles share a tight column and let medium titles render in full.
+
+  If the feature has a non-null `forked_from` field, prepend `↳ from {NNN} ` to the title, where NNN is the numeric ID prefix extracted from the `forked_from` feature_id (e.g., `005` from `005-multi-currency-support`). The 80-char cap applies to the combined string including the fork prefix.
 - **Stage:** Current stage; see Steps 8-9 for special indicators. Cancelled features show `cancelled`.
 - **Stories:** Count of user stories (`user_stories`)
 - **Tasks:** Count of tasks (`task_count`)
