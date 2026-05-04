@@ -3,17 +3,26 @@
 # Scans .maestro/specs/ for feature directories, merges with state from
 # .maestro/state/{feature_id}.json, and outputs a JSON array to stdout.
 #
-# Usage: list-features.sh [--stage <stage>]
+# Usage: list-features.sh [--all] [--stage <stage>]
 # Output: JSON array of feature objects to stdout; errors go to stderr.
+#
+# By default only active features are emitted (completed + cancelled hidden).
+# Use --all to include every group. --stage <stage> overrides the default
+# group filter and returns features in that stage regardless of group.
 
 set -euo pipefail
 
 # ── Argument parsing ────────────────────────────────────────────────
 VALID_STAGES=("specify" "clarify" "research" "plan" "tasks" "implement" "complete" "cancelled" "no-state")
 FILTER_STAGE=""
+INCLUDE_ALL=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --all)
+      INCLUDE_ALL=true
+      shift
+      ;;
     --stage)
       if [[ $# -lt 2 ]]; then
         echo "Error: --stage requires a value. Valid stages: ${VALID_STAGES[*]}" >&2
@@ -35,7 +44,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      echo "Error: unknown argument '$1'. Usage: list-features.sh [--stage <stage>]" >&2
+      echo "Error: unknown argument '$1'. Usage: list-features.sh [--all] [--stage <stage>]" >&2
       exit 1
       ;;
   esac
@@ -368,6 +377,11 @@ features=$(echo "$features" | jq '
   ([.[] | select(.group == "completed")] | sort_by(-.numeric_id)) +
   ([.[] | select(.group == "cancelled")] | sort_by(-.numeric_id))
 ')
+
+# ── Filtering: default scope is active-only; --all and --stage opt out
+if [[ "$INCLUDE_ALL" == "false" && -z "$FILTER_STAGE" ]]; then
+  features=$(echo "$features" | jq '[.[] | select(.group == "active")]')
+fi
 
 # ── Filtering: apply --stage filter if provided
 if [[ -n "$FILTER_STAGE" ]]; then
