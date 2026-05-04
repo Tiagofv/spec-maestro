@@ -1,20 +1,21 @@
 # Maestro
 
-A spec-driven development kit delivered as slash commands and skills for AI coding agents. No binary, no runtime — just markdown files that turn your agent into a disciplined engineer.
+A spec-driven development kit delivered as slash commands and skills for AI coding agents. The runtime is your agent (Claude Code, OpenCode, Codex) reading markdown — the only binary is a small Go CLI (`maestro`) that installs and refreshes the markdown into your project.
 
-Maestro gives AI agents (Claude Code, OpenCode, Cursor, Copilot) a structured pipeline:
+Maestro gives AI agents a structured pipeline:
 
 ```
-specify → clarify → research → plan → tasks → implement → review → pm-validate → analyze
+specify → clarify → research → plan → tasks → implement → analyze
+                                                  └── inline review + pm-validate
 ```
 
 Each stage produces an artifact that feeds the next. The agent never skips ahead.
 
 ## How It Works
 
-Maestro is a `.maestro/` directory you drop into any project. It contains slash commands (`.md` files) that AI agents execute as workflows. When you type `/maestro.specify add user authentication`, the agent reads the command file and follows the steps — reading templates, creating specs, checking prerequisites — without any custom runtime.
+Maestro is a `.maestro/` directory you drop into any project, plus per-harness mirrors (`.claude/`, `.opencode/`, `.codex/`). It contains slash commands (`.md` files) that AI agents execute as workflows. When you type `/maestro.specify add user authentication`, the agent reads the command file and follows the steps — reading templates, creating specs, checking prerequisites — without any custom runtime.
 
-This follows the [spec-kit](https://github.com/github/spec-kit) pattern: slash commands as the interface, markdown as the implementation.
+This follows the [spec-kit](https://github.com/github/spec-kit) pattern: slash commands as the interface, markdown as the implementation. The `maestro` Go CLI exists only to install, update, and doctor those markdown files — the actual workflow logic lives entirely in the `.md` files your agent reads.
 
 ## Prerequisites
 
@@ -31,58 +32,56 @@ This follows the [spec-kit](https://github.com/github/spec-kit) pattern: slash c
 - An AI coding agent that supports slash commands:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
   - [OpenCode](https://opencode.ai)
+  - [Codex](https://github.com/openai/codex) (optional — gets `.codex/commands/` mirrored alongside the others)
 
 ## Installation
 
-### 1. Copy `.maestro/` into your project
+### 1. Install the `maestro` CLI
+
+The CLI ships pre-built resources embedded in the binary, so installation is a single build step.
 
 ```bash
-# From a project that already has maestro:
-cp -r /path/to/agent-maestro/.maestro /path/to/your-project/.maestro
+git clone https://github.com/Tiagofv/spec-maestro /tmp/spec-maestro
+cd /tmp/spec-maestro/cmd/maestro-cli
+make download TAG=v0.0.24            # builds + sudo-installs to /usr/local/bin/maestro
+maestro --version                     # confirm
 ```
 
-Or clone this repo and copy:
+Or if you have the repo already, `make upgrade` builds from the local source instead.
+
+### 2. Initialize your project
+
+From the root of any project:
 
 ```bash
-git clone <this-repo> /tmp/agent-maestro
-cp -r /tmp/agent-maestro/.maestro /path/to/your-project/.maestro
+maestro init                  # installs .maestro/, .claude/commands/, .opencode/commands/
+maestro init --with-claude    # opt-in: also installs .claude/skills/, .claude/agents/
+maestro init --with-opencode  # opt-in: also installs .opencode/skills/
 ```
 
-### 2. Register commands and skills
-
-Run the init command through your agent:
-
-```
-/maestro.init
-```
-
-Or run the script directly:
-
-```bash
-bash .maestro/scripts/init.sh .
-```
-
-This does three things:
-
-1. **Creates the directory structure** — specs, state, memory
-2. **Registers commands** — copies `maestro.*.md` files to `.claude/commands/` and `.opencode/commands/`
-3. **Registers skills** — copies each skill to `.claude/skills/maestro-<name>/` and `.opencode/skills/maestro-<name>/`
-
-After init, your project looks like this:
+This installs the markdown commands and skills from the embedded resources into the harness directories your agent reads. After init, your project looks like this:
 
 ```
 your-project/
 ├── .maestro/              # Source of truth (commands, templates, scripts, skills)
 ├── .claude/
-│   ├── commands/          # maestro.*.md (copied by init)
-│   └── skills/            # maestro-review/, maestro-constitution/, etc. (copied by init)
+│   ├── commands/          # maestro.*.md
+│   └── skills/            # maestro-review/, maestro-constitution/, etc. (with --with-claude)
 ├── .opencode/
-│   ├── commands/          # maestro.*.md (copied by init)
-│   └── skills/            # maestro-review/, maestro-constitution/, etc. (copied by init)
+│   ├── commands/          # maestro.*.md
+│   └── skills/            # maestro-review/, maestro-constitution/, etc. (with --with-opencode)
+├── .codex/
+│   └── commands/          # maestro.*.md (if you use Codex)
 └── ...
 ```
 
-### 3. Configure
+### 3. Keep it fresh
+
+Run `maestro update` periodically — it checks for a newer release and refreshes `.maestro/` assets when there is one. (Note: when the installed binary already matches the latest tag, `update` is a no-op. To force-refresh assets from the current binary, re-run `maestro init` and choose `o` to overwrite, or copy the files manually from this repo.)
+
+`maestro doctor` validates a project's setup (required tools, directory structure, command files in sync).
+
+### 4. Configure
 
 Edit `.maestro/config.yaml`:
 
@@ -100,47 +99,49 @@ agent_routing:
   review: general
 ```
 
-### 4. Write your constitution
+### 5. Write your constitution
 
 Edit `.maestro/constitution.md` to define your project's rules — architectural boundaries, code standards, forbidden patterns. Every command reads this file before acting.
 
-### 5. Follow the quickstart
+### 6. Follow the quickstart
 
 See [QUICKSTART.md](./QUICKSTART.md) for a step-by-step walkthrough.
 
 ## How agents discover maestro
 
-Both Claude Code and OpenCode support slash commands and skills, but each looks in its own directory:
+Claude Code, OpenCode, and Codex all support slash commands but each looks in its own directory:
 
-| Resource | Claude Code                                   | OpenCode                           |
-| -------- | --------------------------------------------- | ---------------------------------- |
-| Commands | `.claude/commands/`                           | `.opencode/commands/`              |
-| Skills   | `.claude/skills/<name>/SKILL.md`              | `.opencode/skills/<name>/SKILL.md` |
-| Scripts  | N/A — invoked via `bash .maestro/scripts/...` | Same — invoked via bash            |
+| Resource | Claude Code                                   | OpenCode                           | Codex                  |
+| -------- | --------------------------------------------- | ---------------------------------- | ---------------------- |
+| Commands | `.claude/commands/`                           | `.opencode/commands/`              | `.codex/commands/`     |
+| Skills   | `.claude/skills/<name>/SKILL.md`              | `.opencode/skills/<name>/SKILL.md` | n/a (commands only)    |
+| Scripts  | N/A — invoked via `bash .maestro/scripts/...` | Same — invoked via bash            | Same — invoked via bash |
 
-The `init.sh` script copies from `.maestro/` (the source of truth) into the agent-specific directories. If you edit a command or skill in `.maestro/`, re-run init to propagate.
+The `maestro` CLI copies the embedded resources into the harness-specific directories on `init` (and on `update` when a new release lands). If you edit a command or skill directly in `.maestro/`, re-run `maestro init` (and choose `o` to overwrite) to propagate to the harness mirrors.
 
-**Scripts** live only in `.maestro/scripts/` and are invoked by commands via `bash .maestro/scripts/compile-gate.sh`. Both agents can run bash, so no registration is needed.
+**Scripts** live only in `.maestro/scripts/` and are invoked by commands via `bash .maestro/scripts/compile-gate.sh`. All harnesses can run bash, so no registration is needed.
 
 **Skills** are prefixed with `maestro-` when copied (e.g., `.maestro/skills/review/` becomes `.claude/skills/maestro-review/`) to avoid collisions with any agent-native skills you may have.
 
 ## Commands
 
-| Command                          | What it does                                                              |
-| -------------------------------- | ------------------------------------------------------------------------- |
-| `/maestro.init`                  | Initialize maestro in the project                                         |
-| `/maestro.specify <description>` | Generate a feature spec from plain language                               |
-| `/maestro.clarify`               | Resolve `[NEEDS CLARIFICATION]` markers in the spec                       |
-| `/maestro.research`              | Run pre-planning research and produce readiness artifacts                 |
-| `/maestro.plan`                  | Generate an implementation plan from the spec                             |
-| `/maestro.tasks`                 | Break the plan into bd issues with dependencies                           |
-| `/maestro.implement`             | Implement all tasks — loops through ready tasks, reviews inline, and PM validate |
-| `/maestro.pm-validate`           | Final validation gate — regression scan + acceptance criteria             |
-| `/maestro.commit`                | Layer-separated atomic commits                                            |
-| `/maestro.analyze`               | Post-epic learning — metrics, patterns, improvement proposals             |
-| `/maestro.list`                  | Show feature dashboard with pipeline stages, progress, and next actions   |
-| `/maestro.research.list`         | List all research artifacts with status                                   |
-| `/maestro.research.search`       | Search existing research by keyword or tag                                |
+| Command                          | What it does                                                                       |
+| -------------------------------- | ---------------------------------------------------------------------------------- |
+| `/maestro.init`                  | Initialize maestro in the project (also runnable as `maestro init` from CLI)       |
+| `/maestro.specify <description>` | Generate a feature spec from plain language                                        |
+| `/maestro.clarify`               | Resolve `[NEEDS CLARIFICATION]` markers in the spec                                |
+| `/maestro.research`              | Run pre-planning research and produce readiness artifacts                          |
+| `/maestro.research.list`         | List all research artifacts with status                                            |
+| `/maestro.research.search`       | Search existing research by keyword or tag                                         |
+| `/maestro.plan`                  | Generate an implementation plan from the spec                                      |
+| `/maestro.tasks`                 | Break the plan into bd issues with dependencies                                    |
+| `/maestro.implement`             | Loop through ready tasks — implement, inline review (assignee subagent + review skill), then PM-validate when all tasks are done |
+| `/maestro.pm-validate`           | Final validation gate — regression scan + acceptance criteria                      |
+| `/maestro.commit`                | Layer-separated atomic commits                                                     |
+| `/maestro.analyze`               | Post-epic learning — metrics, patterns, improvement proposals                      |
+| `/maestro.list [--all]`          | Feature dashboard. Default shows active features only; `--all` includes completed and cancelled |
+| `/maestro.fork <feature>`        | Branch a new feature off an existing one, copying spec/plan/research               |
+| `/maestro.respond`               | Answer PR review comments with learning memory; replies in threads + records findings |
 
 ### Pipeline flow
 
@@ -167,46 +168,59 @@ The `init.sh` script copies from `.maestro/` (the source of truth) into the agen
 
 ## Directory Structure
 
+This repo:
+
 ```
-.maestro/
-├── commands/           # Slash commands (maestro.*.md) — source of truth
-│   ├── maestro.init.md
-│   ├── maestro.specify.md
-│   ├── maestro.clarify.md
-│   ├── maestro.research.md
-│   ├── maestro.plan.md
-│   ├── maestro.tasks.md
-│   ├── maestro.implement.md
-│   ├── maestro.review.md
-│   ├── maestro.pm-validate.md
-│   ├── maestro.commit.md
-│   └── maestro.analyze.md
-├── templates/          # Templates for specs, plans, reviews, research
-│   ├── spec-template.md
-│   ├── plan-template.md
-│   ├── review-template.md
-│   ├── research-template.md
-│   └── constitution-template.md
-├── skills/             # SKILL.md files — source of truth (copied to agent dirs by init)
-│   ├── constitution/SKILL.md
-│   ├── review/SKILL.md
-│   └── pm-validation/SKILL.md
-├── scripts/            # Shell utilities (invoked by commands via bash)
-│   ├── init.sh              # Register commands and skills with agents
-│   ├── create-feature.sh    # Create numbered feature dir + branch
-│   ├── check-prerequisites.sh  # Verify pipeline stage completion
-│   ├── compile-gate.sh      # Run build+lint for the configured stack
-│   └── bd-helpers.sh        # bd CLI wrapper functions
-├── cookbook/            # Decision tables and patterns
-│   ├── review-routing.md
-│   └── post-epic-analysis.md
-├── reference/
-│   └── conventions.md       # Global review conventions
-├── config.yaml         # Project configuration
-├── constitution.md     # Project rules (generated from template)
-├── specs/              # Feature specifications (created by /maestro.specify)
-├── state/              # Pipeline state JSON files
-└── memory/             # Agent memory (learnings across sessions)
+spec-maestro/
+├── .maestro/              # Canonical source for commands, scripts, skills, templates
+├── .claude/commands/      # Mirror — Claude Code harness
+├── .opencode/commands/    # Mirror — OpenCode harness
+└── cmd/maestro-cli/       # Go CLI (the `maestro` binary)
+    └── pkg/embedded/resources/   # Auto-regenerated copy of all the above (gitignored)
+```
+
+A project that has run `maestro init`:
+
+```
+your-project/
+├── .maestro/
+│   ├── commands/           # Slash commands — maestro.*.md source of truth
+│   │   ├── maestro.init.md
+│   │   ├── maestro.specify.md
+│   │   ├── maestro.clarify.md
+│   │   ├── maestro.research.md
+│   │   ├── maestro.research.list.md
+│   │   ├── maestro.research.search.md
+│   │   ├── maestro.plan.md
+│   │   ├── maestro.tasks.md
+│   │   ├── maestro.implement.md
+│   │   ├── maestro.pm-validate.md
+│   │   ├── maestro.commit.md
+│   │   ├── maestro.analyze.md
+│   │   ├── maestro.list.md
+│   │   ├── maestro.fork.md
+│   │   └── maestro.respond.md
+│   ├── templates/          # Spec / plan / review / research / constitution templates
+│   ├── skills/             # SKILL.md files — review, constitution, pm-validation
+│   ├── scripts/            # Shell utilities invoked by commands via bash
+│   │   ├── init.sh                 # Legacy registration (CLI's `maestro init` is preferred)
+│   │   ├── create-feature.sh       # Create numbered feature dir + branch
+│   │   ├── check-prerequisites.sh  # Verify pipeline stage completion
+│   │   ├── compile-gate.sh         # Run build+lint for the configured stack
+│   │   ├── list-features.sh        # Backs /maestro.list
+│   │   ├── list-agents.sh          # Backs auto-selection in /maestro.plan
+│   │   ├── bd-helpers.sh / bd-preflight.sh   # bd CLI wrappers
+│   │   └── ...
+│   ├── cookbook/           # Decision tables and patterns
+│   ├── reference/          # Global review conventions
+│   ├── agents/             # Project-local agent definitions (optional)
+│   ├── config.yaml         # Project configuration
+│   ├── constitution.md     # Project rules (generated from template)
+│   ├── specs/              # Feature specifications (created by /maestro.specify)
+│   └── state/              # Pipeline state JSON files
+├── .claude/commands/       # Harness mirrors (copied by `maestro init`)
+├── .opencode/commands/
+└── .codex/commands/        # Optional — only if you use Codex
 ```
 
 ## Key Concepts
@@ -240,12 +254,13 @@ Plan output now includes annotations on every `Assignee:` line: `[harness: <name
 1. Create `.maestro/commands/maestro.your-command.md`
 2. Add the frontmatter (`description`, `argument-hint`)
 3. Write the steps
-4. Run `bash .maestro/scripts/init.sh .` to register it
+4. Mirror it to `.claude/commands/`, `.opencode/commands/`, and (if you use Codex) `.codex/commands/`. The three mirrors are plain copies of `.maestro/commands/` — keep them identical
+5. From `cmd/maestro-cli/`, run `make generate` so the embedded resources used by `maestro init` reflect the new command
 
 ### Adding a new skill
 
 1. Create `.maestro/skills/your-skill/SKILL.md` with `name` and `description` in frontmatter
-2. Run `bash .maestro/scripts/init.sh .` to copy it to agent directories
+2. Run `maestro init` (and choose `o` to overwrite) in any consumer project to copy it into the harness skill directories
 
 ### Customizing templates
 
@@ -253,11 +268,7 @@ Edit files in `.maestro/templates/`. Commands use these as starting points when 
 
 ### Re-syncing after edits
 
-If you edit any command or skill in `.maestro/`, re-run init to propagate changes:
-
-```bash
-bash .maestro/scripts/init.sh .
-```
+If you edit any command or skill in this repo's `.maestro/`, copy it to the harness mirrors (`.claude/`, `.opencode/`, `.codex/`) and run `make generate` from `cmd/maestro-cli/`. In a downstream project, re-run `maestro init` and choose overwrite to pull the latest embedded resources from your installed binary.
 
 ## License
 
