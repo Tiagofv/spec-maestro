@@ -29,10 +29,10 @@ This follows the [spec-kit](https://github.com/github/spec-kit) pattern: slash c
   - macOS: `brew install python3`
   - Linux: `apt-get install python3`
 - `git` — version control
-- An AI coding agent that supports slash commands:
+- An AI coding agent that can run markdown workflows:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
   - [OpenCode](https://opencode.ai)
-  - [Codex](https://github.com/openai/codex) (optional — gets `.codex/commands/` and `.codex/skills/` mirrored alongside the others)
+  - [Codex](https://github.com/openai/codex) (optional — gets `.codex/commands/` plus generated command skills in `.codex/skills/`)
 
 ## Installation
 
@@ -60,7 +60,9 @@ maestro init --with-opencode  # also installs .opencode/commands/ and .opencode/
 maestro init --with-codex     # also installs .codex/commands/ and .codex/skills/
 ```
 
-This installs the markdown commands and skills from the embedded resources into the harness directories your agent reads. After init, your project looks like this:
+This installs the markdown commands and skills from the embedded resources into the harness directories your agent reads. For Codex, `maestro init --with-codex` also generates one skill wrapper per command (for example `maestro-list` for `maestro.list`) because current Codex CLI builds do not dispatch custom slash commands from `.codex/commands/`.
+
+After init, your project looks like this:
 
 ```
 your-project/
@@ -73,7 +75,7 @@ your-project/
 │   └── skills/            # maestro-review/, maestro-constitution/, etc. (with --with-opencode)
 ├── .codex/
 │   ├── commands/          # maestro.*.md
-│   └── skills/            # maestro-review/, maestro-constitution/, etc. (with --with-codex)
+│   └── skills/            # maestro-list/, maestro-specify/, maestro-review/, etc. (with --with-codex)
 └── ...
 ```
 
@@ -111,12 +113,12 @@ See [QUICKSTART.md](./QUICKSTART.md) for a step-by-step walkthrough.
 
 ## How agents discover maestro
 
-Claude Code, OpenCode, and Codex all support slash commands but each looks in its own directory:
+Claude Code and OpenCode use slash-command markdown directly. Codex uses skills for command entry points; `.codex/commands/` is still installed as the command source that generated skills read.
 
 | Resource | Claude Code                                   | OpenCode                           | Codex                              |
 | -------- | --------------------------------------------- | ---------------------------------- | ---------------------------------- |
 | Commands | `.claude/commands/`                           | `.opencode/commands/`              | `.codex/commands/`                 |
-| Skills   | `.claude/skills/<name>/SKILL.md`              | `.opencode/skills/<name>/SKILL.md` | `.codex/skills/<name>/SKILL.md`    |
+| Skills   | `.claude/skills/<name>/SKILL.md`              | `.opencode/skills/<name>/SKILL.md` | `.codex/skills/<name>/SKILL.md` plus generated `maestro-*` command skills |
 | Scripts  | N/A — invoked via `bash .maestro/scripts/...` | Same — invoked via bash            | Same — invoked via bash            |
 
 The `maestro` CLI copies the embedded resources into the harness-specific directories on `init` (and on `update` when a new release lands). If you edit a command or skill directly in `.maestro/`, re-run `maestro init` (and choose `o` to overwrite) to propagate to the harness mirrors.
@@ -125,7 +127,11 @@ The `maestro` CLI copies the embedded resources into the harness-specific direct
 
 **Skills** are prefixed with `maestro-` when copied (e.g., `.maestro/skills/review/` becomes `.codex/skills/maestro-review/`) to avoid collisions with any agent-native skills you may have.
 
+For Codex command workflows, use `maestro.list`, `$maestro-list`, or natural language like "run Maestro list". Literal `/maestro.list` is rejected by current Codex CLI builds before it reaches the model.
+
 ## Commands
+
+Claude Code and OpenCode invoke these as slash commands. Codex invokes the same workflows through generated skills such as `$maestro-list` or prompt text such as `maestro.list`.
 
 | Command                          | What it does                                                                       |
 | -------------------------------- | ---------------------------------------------------------------------------------- |
@@ -257,7 +263,7 @@ Plan output now includes annotations on every `Assignee:` line: `[harness: <name
 2. Add the frontmatter (`description`, `argument-hint`)
 3. Write the steps
 4. Mirror it to `.claude/commands/`, `.opencode/commands/`, and (if you use Codex) `.codex/commands/`. The three mirrors are plain copies of `.maestro/commands/` — keep them identical
-5. From `cmd/maestro-cli/`, run `make generate` so the embedded resources used by `maestro init` reflect the new command
+5. From `cmd/maestro-cli/`, run `make generate` so the embedded resources used by `maestro init` reflect the new command. Codex command skill wrappers are generated automatically from `.codex/commands/maestro.*.md` during `maestro init` and agent refresh.
 
 ### Adding a new skill
 

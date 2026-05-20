@@ -240,6 +240,9 @@ func installEmbeddedAgentDirs(selected []string) error {
 		if err != nil {
 			return fmt.Errorf("reading embedded %s: %w", dir, err)
 		}
+		if dir == ".codex" {
+			content = agents.AddCodexCommandSkills(content)
+		}
 
 		if err := agents.WriteAgentDir(content, dir); err != nil {
 			return fmt.Errorf("writing %s: %w", dir, err)

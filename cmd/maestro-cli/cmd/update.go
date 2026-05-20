@@ -269,6 +269,9 @@ func fetchAndInstallAgentDirs(client *ghclient.Client, selected []string) error 
 		if err != nil {
 			return fmt.Errorf("fetching %s: %w", dir, err)
 		}
+		if dir == ".codex" {
+			content = agents.AddCodexCommandSkills(content)
+		}
 
 		// Write the content to the project root
 		if err := agents.WriteAgentDir(content, dir); err != nil {
