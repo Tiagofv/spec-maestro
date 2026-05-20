@@ -32,7 +32,7 @@ This follows the [spec-kit](https://github.com/github/spec-kit) pattern: slash c
 - An AI coding agent that supports slash commands:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
   - [OpenCode](https://opencode.ai)
-  - [Codex](https://github.com/openai/codex) (optional — gets `.codex/commands/` mirrored alongside the others)
+  - [Codex](https://github.com/openai/codex) (optional — gets `.codex/commands/` and `.codex/skills/` mirrored alongside the others)
 
 ## Installation
 
@@ -54,9 +54,10 @@ Or if you have the repo already, `make upgrade` builds from the local source ins
 From the root of any project:
 
 ```bash
-maestro init                  # installs .maestro/, .claude/commands/, .opencode/commands/
-maestro init --with-claude    # opt-in: also installs .claude/skills/, .claude/agents/
-maestro init --with-opencode  # opt-in: also installs .opencode/skills/
+maestro init                  # installs .maestro/ and prompts for harness mirrors
+maestro init --with-claude    # also installs .claude/commands/ and .claude/skills/
+maestro init --with-opencode  # also installs .opencode/commands/ and .opencode/skills/
+maestro init --with-codex     # also installs .codex/commands/ and .codex/skills/
 ```
 
 This installs the markdown commands and skills from the embedded resources into the harness directories your agent reads. After init, your project looks like this:
@@ -71,7 +72,8 @@ your-project/
 │   ├── commands/          # maestro.*.md
 │   └── skills/            # maestro-review/, maestro-constitution/, etc. (with --with-opencode)
 ├── .codex/
-│   └── commands/          # maestro.*.md (if you use Codex)
+│   ├── commands/          # maestro.*.md
+│   └── skills/            # maestro-review/, maestro-constitution/, etc. (with --with-codex)
 └── ...
 ```
 
@@ -111,17 +113,17 @@ See [QUICKSTART.md](./QUICKSTART.md) for a step-by-step walkthrough.
 
 Claude Code, OpenCode, and Codex all support slash commands but each looks in its own directory:
 
-| Resource | Claude Code                                   | OpenCode                           | Codex                  |
-| -------- | --------------------------------------------- | ---------------------------------- | ---------------------- |
-| Commands | `.claude/commands/`                           | `.opencode/commands/`              | `.codex/commands/`     |
-| Skills   | `.claude/skills/<name>/SKILL.md`              | `.opencode/skills/<name>/SKILL.md` | n/a (commands only)    |
-| Scripts  | N/A — invoked via `bash .maestro/scripts/...` | Same — invoked via bash            | Same — invoked via bash |
+| Resource | Claude Code                                   | OpenCode                           | Codex                              |
+| -------- | --------------------------------------------- | ---------------------------------- | ---------------------------------- |
+| Commands | `.claude/commands/`                           | `.opencode/commands/`              | `.codex/commands/`                 |
+| Skills   | `.claude/skills/<name>/SKILL.md`              | `.opencode/skills/<name>/SKILL.md` | `.codex/skills/<name>/SKILL.md`    |
+| Scripts  | N/A — invoked via `bash .maestro/scripts/...` | Same — invoked via bash            | Same — invoked via bash            |
 
 The `maestro` CLI copies the embedded resources into the harness-specific directories on `init` (and on `update` when a new release lands). If you edit a command or skill directly in `.maestro/`, re-run `maestro init` (and choose `o` to overwrite) to propagate to the harness mirrors.
 
 **Scripts** live only in `.maestro/scripts/` and are invoked by commands via `bash .maestro/scripts/compile-gate.sh`. All harnesses can run bash, so no registration is needed.
 
-**Skills** are prefixed with `maestro-` when copied (e.g., `.maestro/skills/review/` becomes `.claude/skills/maestro-review/`) to avoid collisions with any agent-native skills you may have.
+**Skills** are prefixed with `maestro-` when copied (e.g., `.maestro/skills/review/` becomes `.codex/skills/maestro-review/`) to avoid collisions with any agent-native skills you may have.
 
 ## Commands
 
@@ -220,7 +222,7 @@ your-project/
 │   └── state/              # Pipeline state JSON files
 ├── .claude/commands/       # Harness mirrors (copied by `maestro init`)
 ├── .opencode/commands/
-└── .codex/commands/        # Optional — only if you use Codex
+└── .codex/                 # Optional Codex mirror: commands/ and skills/
 ```
 
 ## Key Concepts
@@ -243,7 +245,7 @@ The `agent_routing` config maps task types to agent identifiers. By default ever
 
 ### Auto-Selection of Agents
 
-When `/maestro.plan` runs, it discovers the harness's actual agent inventory by invoking `bash .maestro/scripts/list-agents.sh --harness=auto`. The script walks per-runtime directories (Claude Code: `.claude/agents/`, `~/.claude/agents/`, `.claude/skills/`; OpenCode: `.opencode/agents/`, `~/.config/opencode/agents/`; Codex: `.codex/agents/`, `.agents/skills/`) and emits a normalized JSON inventory. The plan then scores each task against the inventory by file pattern + intent + harness and picks the best-fit assignee — falling back to `general` with a `[no-match: <reason>]` annotation when no specialized agent matches.
+When `/maestro.plan` runs, it discovers the harness's actual agent inventory by invoking `bash .maestro/scripts/list-agents.sh --harness=auto`. The script walks per-runtime directories (Claude Code: `.claude/agents/`, `~/.claude/agents/`, `.claude/skills/`; OpenCode: `.opencode/agents/`, `~/.config/opencode/agents/`; Codex: `.codex/agents/`, `.codex/skills/`, plus legacy `.agents/skills/`) and emits a normalized JSON inventory. The plan then scores each task against the inventory by file pattern + intent + harness and picks the best-fit assignee — falling back to `general` with a `[no-match: <reason>]` annotation when no specialized agent matches.
 
 Plan output now includes annotations on every `Assignee:` line: `[harness: <name>]`, `[no-match: <reason>]`, `[tie-broken]`, `[review-fallback]`, or `[divergence: ...]`. These make the selection rationale visible. The legacy `agent_routing` block in `config.yaml` remains for backwards compatibility but is no longer consulted.
 

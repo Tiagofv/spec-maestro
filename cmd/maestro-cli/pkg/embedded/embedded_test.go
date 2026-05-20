@@ -89,6 +89,12 @@ func TestNewAssetFetcher_AgentDirs(t *testing.T) {
 			wantFile: "commands/maestro.init.md",
 			minFiles: 1,
 		},
+		{
+			name:     "codex",
+			dir:      ".codex",
+			wantFile: "commands/maestro.init.md",
+			minFiles: 1,
+		},
 	}
 
 	for _, tt := range tests {
@@ -211,6 +217,7 @@ func TestListAgentDirs(t *testing.T) {
 	want := map[string]bool{
 		".claude":   false,
 		".opencode": false,
+		".codex":    false,
 	}
 
 	for _, d := range dirs {

@@ -2,7 +2,7 @@
 description: >
   Initialize Maestro in the current project. Creates .maestro/ directory structure,
   generates config.yaml, creates constitution from template, and registers commands
-  with AI agents (.claude/commands/, .opencode/commands/).
+  with AI agents (.claude/commands/, .opencode/commands/, .codex/commands/).
 argument-hint: [--force to overwrite existing config]
 ---
 
@@ -106,11 +106,13 @@ This registers:
 
 - `.claude/commands/` (for Claude Code)
 - `.opencode/commands/` (for OpenCode)
+- `.codex/commands/` (for Codex CLI)
 
 **Skills** — copies each `.maestro/skills/<name>/SKILL.md` to:
 
 - `.claude/skills/maestro-<name>/SKILL.md`
 - `.opencode/skills/maestro-<name>/SKILL.md`
+- `.codex/skills/maestro-<name>/SKILL.md`
 
 Skills are prefixed with `maestro-` to avoid collisions with agent-native skills.
 

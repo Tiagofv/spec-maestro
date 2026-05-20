@@ -27,12 +27,14 @@ var initCmd = &cobra.Command{
 var (
 	initWithOpenCode bool
 	initWithClaude   bool
+	initWithCodex    bool
 )
 
 func init() {
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVar(&initWithOpenCode, "with-opencode", false, "Install .opencode agent config directory")
 	initCmd.Flags().BoolVar(&initWithClaude, "with-claude", false, "Install .claude agent config directory")
+	initCmd.Flags().BoolVar(&initWithCodex, "with-codex", false, "Install .codex agent config directory")
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
@@ -108,7 +110,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("writing AGENTS.md: %w", err)
 	}
 
-	selectedAgentDirs, err := selectInitAgentDirs(initWithOpenCode, initWithClaude, os.Stdin, os.Stdout)
+	selectedAgentDirs, err := selectInitAgentDirs(initWithOpenCode, initWithClaude, initWithCodex, os.Stdin, os.Stdout)
 	if err != nil {
 		return fmt.Errorf("installing agent configs: selecting agent directories: %w", err)
 	}
@@ -134,13 +136,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func selectInitAgentDirs(withOpenCode, withClaude bool, r io.Reader, w io.Writer) ([]string, error) {
-	selected := make([]string, 0, 2)
+func selectInitAgentDirs(withOpenCode, withClaude, withCodex bool, r io.Reader, w io.Writer) ([]string, error) {
+	selected := make([]string, 0, 3)
 	if withOpenCode {
 		selected = append(selected, ".opencode")
 	}
 	if withClaude {
 		selected = append(selected, ".claude")
+	}
+	if withCodex {
+		selected = append(selected, ".codex")
 	}
 
 	if len(selected) > 0 {

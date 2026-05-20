@@ -22,6 +22,7 @@ const (
 var agentDescriptions = map[string]string{
 	".opencode": "slash commands and skills for OpenCode",
 	".claude":   "slash commands and skills for Claude Code",
+	".codex":    "slash commands and skills for Codex CLI",
 }
 
 // PromptAgentSelection presents a multi-select prompt listing available

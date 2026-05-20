@@ -8,12 +8,15 @@ set -euo pipefail
 
 # Detect if running from inside a worktree and resolve main repo path
 SCRIPT_SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CALLER_MAESTRO_MAIN_REPO="${MAESTRO_MAIN_REPO:-}"
 if [[ -f "$SCRIPT_SELF_DIR/worktree-detect.sh" ]]; then
   source "$SCRIPT_SELF_DIR/worktree-detect.sh" 2>/dev/null || true
 fi
 
-# If in a worktree, use the main repo path for lookups
-MAESTRO_BASE="${MAESTRO_MAIN_REPO:-.}"
+# If in a worktree, use the main repo path for lookups. Preserve an explicit
+# caller override because tests and wrapper scripts may run this copy of
+# Maestro against a separate fixture/project root.
+MAESTRO_BASE="${CALLER_MAESTRO_MAIN_REPO:-${MAESTRO_MAIN_REPO:-.}}"
 
 STAGE="${1:?Usage: check-prerequisites.sh <stage>}"
 FEATURE_DIR="${2:-}"

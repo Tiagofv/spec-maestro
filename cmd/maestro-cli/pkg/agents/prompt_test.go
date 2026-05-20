@@ -41,6 +41,25 @@ func TestPromptAgentSelection_MultipleSelection(t *testing.T) {
 	}
 }
 
+func TestPromptAgentSelection_CodexDescriptionAndSelection(t *testing.T) {
+	input := "3\n"
+	r := strings.NewReader(input)
+	w := &bytes.Buffer{}
+	available := []string{".opencode", ".claude", ".codex"}
+
+	selected, err := PromptAgentSelection(r, w, available)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(selected) != 1 || selected[0] != ".codex" {
+		t.Errorf("expected [.codex], got %v", selected)
+	}
+	if !strings.Contains(w.String(), "Codex CLI") {
+		t.Errorf("expected prompt to describe Codex CLI, got %q", w.String())
+	}
+}
+
 func TestPromptAgentSelection_EmptyInput(t *testing.T) {
 	input := "\n"
 	r := strings.NewReader(input)

@@ -1,3 +1,8 @@
+---
+name: pm-validation
+description: Final feature validation skill for checking regressions, acceptance criteria, implementation evidence, and scope discipline.
+---
+
 # PM Validation Skill
 
 Specialized skill for final feature validation.

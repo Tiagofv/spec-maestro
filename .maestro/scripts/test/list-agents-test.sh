@@ -272,12 +272,43 @@ EOF
 }
 
 # ============================================================================
-# T-6: Codex skill at .agents/skills/foo/SKILL.md discovered
+# T-5b: Codex AGENT.md subagent → parsed name + description
+# ============================================================================
+test_T5b_codex_agent_md_subagent() {
+  new_sandbox t5b >/dev/null
+  mkdir -p .codex/agents/refactor-tomes
+  cat > .codex/agents/refactor-tomes/AGENT.md <<'EOF'
+---
+name: refactor-tomes
+description: Plans refactors before applying.
+---
+Agent body.
+EOF
+
+  local out
+  out="$(run_script --harness=codex)"
+
+  if ! printf '%s' "$out" | jq -e '
+    .[] | select(.name == "refactor-tomes" and .harness == "codex" and .kind == "subagent")
+        | .description == "Plans refactors before applying."
+  ' >/dev/null 2>&1; then
+    local got
+    got="$(printf '%s' "$out" | jq -c '.[] | select(.name == "refactor-tomes")')"
+    fail "T-5b" "Codex AGENT.md subagent → parsed name + description" \
+         'name=refactor-tomes desc="Plans refactors before applying."' "$got"
+    return
+  fi
+
+  pass "T-5b" "Codex AGENT.md subagent → parsed name + description"
+}
+
+# ============================================================================
+# T-6: Codex skill at .codex/skills/foo/SKILL.md discovered
 # ============================================================================
 test_T6_codex_skill_discovered() {
   new_sandbox t6 >/dev/null
-  mkdir -p .agents/skills/foo
-  cat > .agents/skills/foo/SKILL.md <<'EOF'
+  mkdir -p .codex/skills/foo
+  cat > .codex/skills/foo/SKILL.md <<'EOF'
 ---
 name: foo
 description: Foo helper skill.
@@ -291,12 +322,12 @@ EOF
   if ! printf '%s' "$out" | jq -e '
     .[] | select(.name == "foo" and .harness == "codex" and .kind == "skill")
   ' >/dev/null 2>&1; then
-    fail "T-6" "Codex skill at .agents/skills/foo/SKILL.md discovered" \
+    fail "T-6" "Codex skill at .codex/skills/foo/SKILL.md discovered" \
          "skill foo present (codex/skill)" "$out"
     return
   fi
 
-  pass "T-6" "Codex skill at .agents/skills/foo/SKILL.md discovered"
+  pass "T-6" "Codex skill at .codex/skills/foo/SKILL.md discovered"
 }
 
 # ============================================================================
@@ -459,6 +490,7 @@ main() {
   test_T3_stack_inference
   test_T4_intent_inference_reviewer
   test_T5_codex_toml_subagent
+  test_T5b_codex_agent_md_subagent
   test_T6_codex_skill_discovered
   test_T7_codex_disabled_skill_filtered
   test_T8_opencode_subagent_review
