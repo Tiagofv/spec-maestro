@@ -14,7 +14,7 @@ echo "=== Initializing Maestro ===" >&2
 mkdir -p "$MAESTRO_DIR"/{commands,templates,scripts,skills,cookbook,reference,specs,state,memory,research}
 
 # Register commands and skills with each agent
-for agent_prefix in ".claude" ".opencode"; do
+for agent_prefix in ".claude" ".opencode" ".codex"; do
   cmd_target="$PROJECT_ROOT/$agent_prefix/commands"
   skill_target="$PROJECT_ROOT/$agent_prefix/skills"
 

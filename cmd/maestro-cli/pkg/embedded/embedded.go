@@ -9,7 +9,7 @@
 //
 // The embedded resources include .maestro/ configs (commands, scripts,
 // templates, skills, cookbook, reference, constitution) and agent configs
-// (.claude/, .opencode/). Total binary remains well under the 50 MB
+// (.claude/, .opencode/, .codex/). Total binary remains well under the 50 MB
 // threshold.
 package embedded
 
@@ -28,7 +28,7 @@ const embeddedRoot = "resources"
 
 // knownAgentDirs lists the agent configuration directories that may be
 // present in the embedded resources.
-var knownAgentDirs = []string{".claude", ".opencode"}
+var knownAgentDirs = []string{".claude", ".opencode", ".codex"}
 
 // NewAssetFetcher returns a function that walks a directory inside the
 // embedded FS and returns its file contents as a map.

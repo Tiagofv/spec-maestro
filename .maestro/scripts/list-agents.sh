@@ -18,7 +18,7 @@
 #   later tasks:
 #     T002 — list_claude   (.claude/agents, .claude/skills, builtins)
 #     T003 — list_opencode (.opencode/agents, .opencode/skills)
-#     T004 — list_codex    (.codex/agents *.toml, .agents/skills, ~/.codex/config.toml filter)
+#     T004 — list_codex    (.codex/agents, .codex/skills, ~/.codex/config.toml filter)
 #     T005 — shared inference helpers (infer_stacks, infer_intent) + sort/dedupe
 #
 # Inputs (CLI):
@@ -828,11 +828,10 @@ _codex_disabled_skills() {
   local home="${HOME:-}"
   local cfg="${home}/.codex/config.toml"
   [[ -f "$cfg" ]] || return 0
-  "${MAESTRO_PYTHON:-python3}" - "$cfg" <<'PY' 2> >(while IFS= read -r line; do
-    if [[ "${MAESTRO_QUIET:-0}" != "1" ]]; then
-      printf 'codex: %s\n' "$line" >&2
-    fi
-  done)
+  local err_file
+  err_file="$(mktemp "${TMPDIR:-/tmp}/maestro-codex-config.XXXXXX")" || return 0
+
+  "${MAESTRO_PYTHON:-python3}" - "$cfg" 2>"$err_file" <<'PY'
 import os, sys, tomllib
 path = sys.argv[1]
 try:
@@ -856,6 +855,14 @@ for entry in configs:
             except Exception:
                 print(p)
 PY
+
+  if [[ "${MAESTRO_QUIET:-0}" != "1" && -s "$err_file" ]]; then
+    while IFS= read -r line; do
+      printf 'codex: %s\n' "$line" >&2
+    done < "$err_file"
+  fi
+  rm -f "$err_file"
+  return 0
 }
 
 # ----------------------------------------------------------------------------
@@ -892,15 +899,19 @@ _codex_emit_entry() {
 # list_codex — enumerate Codex subagents (TOML) and skills (Markdown).
 #
 # Walk order (project-priority, name-collision dedup):
-#   Subagents (TOML):
-#     1. ${CWD}/.codex/agents/*.toml          kind=subagent (project)
-#     2. ${HOME}/.codex/agents/*.toml         kind=subagent (user)
+#   Subagents:
+#     1. ${CWD}/.codex/agents/*/AGENT.md      kind=subagent (project)
+#     2. ${CWD}/.codex/agents/*.toml          kind=subagent (project legacy)
+#     3. ${HOME}/.codex/agents/*/AGENT.md     kind=subagent (user)
+#     4. ${HOME}/.codex/agents/*.toml         kind=subagent (user legacy)
 #   Skills (SKILL.md, multi-source per Codex docs — P-4 mitigation):
-#     3. ${CWD}/.agents/skills/*/SKILL.md          kind=skill (project)
-#     4. ${CWD}/../.agents/skills/*/SKILL.md       kind=skill (parent dir)
-#     5. ${REPO_ROOT}/.agents/skills/*/SKILL.md    kind=skill (git toplevel)
-#     6. ${HOME}/.agents/skills/*/SKILL.md         kind=skill (user)
-#     7. /etc/codex/skills/*/SKILL.md              kind=skill (admin)
+#     5. ${CWD}/.codex/skills/*/SKILL.md           kind=skill (project)
+#     6. ${CWD}/.agents/skills/*/SKILL.md          kind=skill (project legacy)
+#     7. ${CWD}/../.agents/skills/*/SKILL.md       kind=skill (parent dir legacy)
+#     8. ${REPO_ROOT}/.agents/skills/*/SKILL.md    kind=skill (git toplevel legacy)
+#     9. ${HOME}/.codex/skills/*/SKILL.md          kind=skill (user)
+#    10. ${HOME}/.agents/skills/*/SKILL.md         kind=skill (user legacy)
+#    11. /etc/codex/skills/*/SKILL.md              kind=skill (admin)
 #
 # Skill enable filter (P-8 mitigation):
 #   Read ~/.codex/config.toml `[[skills.config]]` entries; any skill whose
@@ -954,7 +965,25 @@ list_codex() {
     entries+=("$(_codex_emit_entry "$n" "$d" "$k" "$s")")
   }
 
-  # ---- Walk TOML subagent dirs ----
+  # ---- Walk subagent dirs ----
+  # _walk_codex_agent_markdown <root>
+  _walk_codex_agent_markdown() {
+    local root="$1"
+    [[ -d "$root" ]] || return 0
+    local file
+    while IFS= read -r file; do
+      [[ -f "$file" ]] || continue
+      local fm name desc
+      fm="$(_claude_parse_frontmatter "$file")"
+      name="$(printf '%s\n' "$fm" | sed -n '1p')"
+      desc="$(printf '%s\n' "$fm" | sed -n '2p')"
+      if [[ -z "$name" ]]; then
+        name="$(basename "$(dirname "$file")")"
+      fi
+      _add_codex_entry_if_new "$name" "$desc" "subagent" "$file"
+    done < <(find "$root" -maxdepth 2 -name 'AGENT.md' -type f 2>/dev/null | sort)
+  }
+
   # _walk_codex_subagents <root>
   _walk_codex_subagents() {
     local root="$1"
@@ -976,8 +1005,10 @@ list_codex() {
     done < <(find "$root" -maxdepth 1 -name '*.toml' -type f 2>/dev/null | sort)
   }
 
+  _walk_codex_agent_markdown "${cwd}/.codex/agents"
   _walk_codex_subagents "${cwd}/.codex/agents"
   if [[ -n "$home" && "$home" != "$cwd" ]]; then
+    _walk_codex_agent_markdown "${home}/.codex/agents"
     _walk_codex_subagents "${home}/.codex/agents"
   fi
 
@@ -1000,6 +1031,7 @@ list_codex() {
     done < <(find "$root" -maxdepth 2 -name 'SKILL.md' -type f 2>/dev/null | sort)
   }
 
+  _walk_codex_skills "${cwd}/.codex/skills"
   _walk_codex_skills "${cwd}/.agents/skills"
   # Parent directory (one above CWD).
   local parent_skills
@@ -1015,6 +1047,7 @@ list_codex() {
     fi
   fi
   if [[ -n "$home" && "$home" != "$cwd" ]]; then
+    _walk_codex_skills "${home}/.codex/skills"
     _walk_codex_skills "${home}/.agents/skills"
   fi
   _walk_codex_skills "/etc/codex/skills"

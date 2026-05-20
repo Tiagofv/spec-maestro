@@ -1,8 +1,6 @@
 ---
 name: constitution
-description: >
-  Constitution enforcement skill for understanding and applying
-  project constraints during specification, planning, implementation, and review.
+description: Constitution enforcement skill for understanding and applying project constraints during specification, planning, implementation, and review.
 ---
 
 # Constitution Skill

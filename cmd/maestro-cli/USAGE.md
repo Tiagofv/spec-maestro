@@ -23,6 +23,7 @@ maestro init
 
 - `--with-opencode` - install `.opencode/` during init (non-interactive)
 - `--with-claude` - install `.claude/` during init (non-interactive)
+- `--with-codex` - install `.codex/` during init (non-interactive)
 
 `GITHUB_TOKEN` or `GH_TOKEN` are optional and only needed for higher GitHub API limits.
 

@@ -32,6 +32,7 @@ done
 [[ -f "$REPO_ROOT/.maestro/constitution.md" ]] || MISSING+=(".maestro/constitution.md")
 [[ -d "$REPO_ROOT/.claude" ]]                  || MISSING+=(".claude")
 [[ -d "$REPO_ROOT/.opencode" ]]                || MISSING+=(".opencode")
+[[ -d "$REPO_ROOT/.codex" ]]                   || MISSING+=(".codex")
 
 if [[ ${#MISSING[@]} -gt 0 ]]; then
   echo "FAIL: missing source(s):" >&2
@@ -103,6 +104,13 @@ echo "  copied .claude/ (excluding .git, node_modules)" >&2
 copy_dir "$REPO_ROOT/.opencode" "$TARGET_DIR/.opencode" "node_modules" "bun.lock"
 COPIED=$((COPIED + 1))
 echo "  copied .opencode/ (excluding node_modules, bun.lock)" >&2
+
+# ---------------------------------------------------------------------------
+# 5. Copy .codex/ (exclude transient state)
+# ---------------------------------------------------------------------------
+copy_dir "$REPO_ROOT/.codex" "$TARGET_DIR/.codex" ".git" "node_modules" ".tmp" "sessions" "log"
+COPIED=$((COPIED + 1))
+echo "  copied .codex/ (excluding .git, node_modules, .tmp, sessions, log)" >&2
 
 # ---------------------------------------------------------------------------
 # Summary
