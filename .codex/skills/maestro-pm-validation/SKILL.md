@@ -1,5 +1,5 @@
 ---
-name: pm-validation
+name: maestro-pm-validation
 description: Final feature validation skill for checking regressions, acceptance criteria, implementation evidence, and scope discipline.
 ---
 

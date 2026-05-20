@@ -1,5 +1,5 @@
 ---
-name: constitution
+name: maestro-constitution
 description: Constitution enforcement skill for understanding and applying project constraints during specification, planning, implementation, and review.
 ---
 

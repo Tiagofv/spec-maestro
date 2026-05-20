@@ -1,5 +1,5 @@
 ---
-name: review
+name: maestro-review
 description: Code review skill providing patterns, conventions, and structured output for reviewer agents inline during /maestro.implement.
 ---
 

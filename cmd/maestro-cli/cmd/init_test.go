@@ -373,6 +373,37 @@ func TestInitInstallEmbeddedAgentDirs(t *testing.T) {
 	assertDirNotEmpty(t, ".claude")
 }
 
+func TestInitInstallEmbeddedCodexGeneratesCommandSkills(t *testing.T) {
+	dir := t.TempDir()
+	origDir := chdir(t, dir)
+	defer os.Chdir(origDir)
+
+	err := installEmbeddedAgentDirs([]string{".codex"})
+	if err != nil {
+		t.Fatalf("installEmbeddedAgentDirs returned error: %v", err)
+	}
+
+	assertFileExists(t, filepath.Join(".codex", "commands", "maestro.list.md"))
+	assertFileExists(t, filepath.Join(".codex", "skills", "maestro-list", "SKILL.md"))
+	assertFileExists(t, filepath.Join(".codex", "skills", "maestro-research-list", "SKILL.md"))
+
+	content, err := os.ReadFile(filepath.Join(".codex", "skills", "maestro-list", "SKILL.md"))
+	if err != nil {
+		t.Fatalf("reading generated skill: %v", err)
+	}
+	text := string(content)
+	for _, want := range []string{
+		"name: maestro-list",
+		"`maestro.list`",
+		"`.codex/commands/maestro.list.md`",
+		"Do not run `maestro list`",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("generated skill missing %q:\n%s", want, text)
+		}
+	}
+}
+
 // TestInitInstallEmbeddedAgentDirsEmpty verifies that passing an empty slice
 // does nothing and does not error.
 func TestInitInstallEmbeddedAgentDirsEmpty(t *testing.T) {
