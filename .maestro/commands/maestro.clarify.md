@@ -102,11 +102,15 @@ Write the updated spec back to the same file.
 
 ## Step 6: Update State
 
-Update `.maestro/state/{feature_id}.json`:
+Update state via the helper — **never hand-write timestamps** (fabricated times corrupt
+`/maestro.analyze`). The script stamps real UTC time and appends history:
 
-- Set `stage` to `clarify`
-- Update `clarification_count` to remaining markers (should be 0)
-- Add history entry: `{"stage": "clarify", "timestamp": "...", "action": "resolved N markers"}`
+```bash
+bash .maestro/scripts/update-state.sh {feature_id} clarify "resolved {N} markers" \
+  clarification_count={remaining_markers}
+```
+
+`{remaining_markers}` should be 0.
 
 ## Step 7: Report and Next Steps
 

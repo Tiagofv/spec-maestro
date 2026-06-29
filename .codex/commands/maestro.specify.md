@@ -244,25 +244,18 @@ If any check fails, revise the spec before proceeding.
 
 ## Step 5b: Update State
 
-Create or update the state file at `.maestro/state/{feature_id}.json`:
+Stamp the state file via the helper — do **NOT** hand-write `created_at`/`updated_at`/
+`timestamp`. A model has no clock, so hand-written times are fabricated and corrupt
+`/maestro.analyze` metrics. The script stamps real UTC time and appends history:
 
-```json
-{
-  "feature_id": "{feature_id}",
-  "created_at": "{ISO timestamp}",
-  "updated_at": "{ISO timestamp}",
-  "stage": "specify",
-  "repos": ["{repos_value}"],
-  "worktrees": {},
-  "spec_path": ".maestro/specs/{feature_id}/spec.md",
-  "branch": "feat/{feature_slug}",
-  "worktree_required": true,
-  "worktree_created": false,
-  "clarification_count": 0,
-  "user_stories": 0,
-  "research_ids": [],
-  "history": [{ "stage": "specify", "timestamp": "{ISO}", "action": "created" }]
-}
+```bash
+bash .maestro/scripts/update-state.sh {feature_id} specify "created" \
+  repos='["{repos_value}"]' \
+  worktrees='{}' \
+  spec_path=".maestro/specs/{feature_id}/spec.md" \
+  branch="feat/{feature_slug}" \
+  worktree_required=true worktree_created=false \
+  clarification_count={N_markers} user_stories={N_stories} research_ids='[]'
 ```
 
 Where:
@@ -270,8 +263,10 @@ Where:
 - `{feature_id}`, `{spec_dir}`, and `{branch}` come from Step 1 scaffold output
 - `clarification_count` is the number of `[NEEDS CLARIFICATION]` markers in the generated spec
 - `user_stories` is the number of user stories in the generated spec
-- `research_ids` is an array of linked research IDs from Step 0b
-- If the state file already exists (refine mode), append to the `history` array with action `"refined"` and update `updated_at`
+- `research_ids` is a JSON array of linked research IDs from Step 0b (e.g. `'["r1","r2"]'`)
+- The helper creates the file on first call and, on later calls, sets `stage`/`updated_at`
+  and appends a real-timestamped history entry. In refine mode, call it again with action
+  `"refined"`.
 
 ### 5b.1: Link Research to Feature
 

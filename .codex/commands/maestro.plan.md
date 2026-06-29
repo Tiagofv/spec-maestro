@@ -348,22 +348,20 @@ Write the completed plan to `.maestro/specs/{feature_id}/plan.md`.
 
 ## Step 8: Update State
 
-Update `.maestro/state/{feature_id}.json`:
+Update state via the helper — **never hand-write timestamps**. The script stamps real UTC
+time, appends history, and is additive (it never removes or renames existing fields, so
+research metadata and legacy fields are preserved automatically):
 
-- Set `stage` to `plan`
-- Add `plan_path` field
-- Add `phases` count
-- Add `task_count` field: total number of tasks in the plan, including both impl tasks and review tasks (T### + R### + PM-VAL)
-- Add `components_new` and `components_modified` counts
-- Preserve any existing research metadata fields (`research_path`, `research_artifacts`, `research_artifact_pointers`, `research_ready`, `research_parallel_agents_default`, `research_parallel_agents_max`, `research_parallel_agents_used`)
-- If bypass path was used, set `research_bypass_acknowledged` to `true`
-- Add history entry
+```bash
+bash .maestro/scripts/update-state.sh {feature_id} plan \
+  "plan generated: {task_count} tasks, {phases} phases" \
+  plan_path=".maestro/specs/{feature_id}/plan.md" \
+  phases={phases} task_count={task_count} \
+  components_new={N_new} components_modified={N_modified}
+```
 
-State safety requirements:
-
-- Additive only: never remove or rename existing fields
-- Preserve history integrity: append entries only
-- Keep compatibility with legacy state files that do not yet contain research fields
+- `task_count` = total tasks incl. impl + review + PM-VAL (T### + R### + PM-VAL).
+- If the bypass path was used, also pass `research_bypass_acknowledged=true`.
 
 ## Step 9: Report and Next Steps
 
