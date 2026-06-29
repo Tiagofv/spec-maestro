@@ -113,17 +113,31 @@ code actually is (in the worktree — see #2).
 | plan | 14 | $0.37 | 165s | correct but 346 lines |
 | tasks | 24 | $0.62 | 208s | clean 12-issue DAG; bd auto-init ✅ |
 | implement | 49* | $2.46 | 651s | built all 5 tasks in a worktree, green gate; *halted at PM-VAL by API **credit limit**, not a maestro bug |
-| pm-validate | — | — | — | not reached (credit) |
-| commit | — | — | — | not reached (credit) |
-| analyze | — | — | — | not reached (credit) |
+| pm-validate | 5 | (sub) | 240s | ran on subscription; reported 19/19 PM requirements |
+| commit | 4 | (sub) | 23s | committed **into the worktree** (5 layered commits w/ `[bd:…]` trailers); **main untouched**, no auto-merge/PR — solo dev on main still sees nothing |
+| analyze | 6 | (sub) | 116s | reported "PM-VAL 32m actual", "estimates 100–360× over actual" as if real — timing source (bd-real vs state-fabricated) needs confirming |
 
-**Front half (specify→tasks): $1.47 / ~9 min.** Implement alone: $2.46 / 11 min.
-Full pipeline would be ~$4–5 / ~25 min headless for a trivial feature.
+**Front half (specify→tasks): $1.47 / ~9 min (API).** Tail ran on the **subscription** after
+switching auth (see below). Full pipeline ≈ $4–5 / ~25 min if billed via API.
 
-> Run caveat: the implement "error" was `Credit balance is too low` — the API account ran dry
-> mid-run. The harness didn't crash. Re-run pm-validate/commit/analyze after topping up to
-> observe those three (esp. whether `commit` copes with the split-brain and whether `analyze`
-> reports real or fabricated-timestamp metrics).
+> The implement "error" was `Credit balance is too low` (API dollars exhausted), not a maestro
+> crash. **Fix applied:** the runner now defaults to the claude.ai **subscription** (unsets
+> `ANTHROPIC_API_KEY` for the child `claude -p`; opt back into API with `USE_API_KEY=1`).
+> The tail (pm-validate→commit→analyze) then ran clean on the plan quota.
+
+## 🔴 8. Editing `.maestro/` doesn't reach the agent — mirror drift (demonstrated live)
+
+While validating fix #1, I edited canonical `.maestro/commands/maestro.specify.md` to call a
+state helper — and the change **had no effect**, because Claude Code reads `.claude/commands/`,
+not `.maestro/`. The mirror was stale, so the agent ran the old command and still fabricated
+timestamps. Measured drift in the repo itself: `.claude` and `.opencode` each had **4** command
+files differing from `.maestro/`, `.codex` **2** (plus an extra file) — *before* any of my edits.
+So "the source of truth isn't" — five copies (`.maestro/`, the three mirrors, embedded
+resources in the binary) drift silently. **This is the version-drift pain directly.**
+
+**Fix:** a sync/doctor command — `--check` (report drift, usable as a pre-commit/CI gate) and
+`--fix` (reconcile `.maestro/` → mirrors + regenerate Codex skills + `make generate`), with the
+enforced convention "edit only `.maestro/`." (Tracked as a follow-up goal.)
 
 ---
 

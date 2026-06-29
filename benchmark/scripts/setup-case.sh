@@ -70,7 +70,19 @@ for d in commands skills templates scripts cookbook reference; do
     rm -rf "$TARGET/.maestro/$d"; cp -R "$REPO_ROOT/.maestro/$d" "$TARGET/.maestro/$d"
   fi
 done
-[ -d "$REPO_ROOT/.claude/commands" ] && { rm -rf "$TARGET/.claude/commands"; cp -R "$REPO_ROOT/.claude/commands" "$TARGET/.claude/commands"; }
+# Claude Code reads .claude/commands, NOT .maestro/commands. Make the mirror authoritative
+# from CANONICAL .maestro/commands so edits to the source always reach the agent — copying
+# the repo's .claude/commands would propagate any drift it already carries.
+if [ -d "$REPO_ROOT/.maestro/commands" ]; then
+  mkdir -p "$TARGET/.claude/commands"
+  rm -f "$TARGET/.claude/commands"/maestro.*.md
+  cp "$REPO_ROOT/.maestro/commands"/maestro.*.md "$TARGET/.claude/commands"/ 2>/dev/null || true
+fi
+# skills too (Claude Code reads .claude/skills)
+if [ -d "$REPO_ROOT/.maestro/skills" ]; then
+  rm -rf "$TARGET/.claude/skills"; mkdir -p "$TARGET/.claude/skills"
+  for s in "$REPO_ROOT/.maestro/skills"/*/; do [ -d "$s" ] && cp -R "$s" "$TARGET/.claude/skills/maestro-$(basename "$s")"; done
+fi
 # start clean
 rm -rf "$TARGET/.maestro/specs" "$TARGET/.maestro/state"
 mkdir -p "$TARGET/.maestro/specs" "$TARGET/.maestro/state"

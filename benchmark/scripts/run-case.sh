@@ -123,8 +123,17 @@ for stage in $STAGES; do
   out=".bench/${stage}.json"
   echo ">> [$stage] running..."
   start=$(date +%s)
-  # isolated headless process; --verbose off; json envelope carries cost/turns
-  claude -p "$prompt" \
+  # Auth: default to the claude.ai SUBSCRIPTION (unset ANTHROPIC_API_KEY/AUTH_TOKEN for the
+  # child) so runs count against the plan quota, not metered API dollars. The API key
+  # otherwise takes precedence and bills credits ("Credit balance is too low"). Opt back in
+  # to API billing with USE_API_KEY=1.
+  if [ "${USE_API_KEY:-0}" = "1" ]; then
+    AUTH_ENV=(env)
+  else
+    AUTH_ENV=(env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN)
+  fi
+  # isolated headless process; json envelope carries cost/turns
+  "${AUTH_ENV[@]}" claude -p "$prompt" \
     --output-format json \
     --model "$MODEL" \
     --max-turns "$MAX_TURNS" \
