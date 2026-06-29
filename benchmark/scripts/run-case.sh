@@ -92,6 +92,32 @@ echo ">> Stages: $STAGES"
 
 prob() { echo "- **$1**: $2" >> "$PROBLEMS"; }
 
+# static checks that don't need a model — cheap, run against current disk state.
+# DETECT_ONLY=1 runs ONLY these (no claude calls), to re-check a sandbox for free.
+static_checks() {
+  base=$(awk -F: '/^[[:space:]]+base_branch:/{gsub(/[" ]/,"",$2); print $2; exit}' .maestro/config.yaml 2>/dev/null)
+  [ -z "${base:-}" ] && base="main"
+  branch=$(git branch --show-current 2>/dev/null || echo "")
+  specdir=$(ls -dt .maestro/specs/*/ 2>/dev/null | head -1 || echo "")
+  if [ -n "$specdir" ] && [ "$branch" = "$base" ]; then
+    prob "branch" "after specify the repo is still on base branch '$base' (no feature branch) so downstream commit/PR-diff compares base-to-base. The plain (non-worktree) flow never creates the branch that specify.md says it creates."
+  fi
+  if [ -n "$specdir" ]; then
+    slug=$(basename "$specdir" | sed -E 's/^[0-9]+-//')
+    segs=$(printf '%s' "$slug" | tr '-' '\n' | grep -c .)
+    if printf '%s' "$slug" | grep -qiE '(^|-)(the|a|an|users|can|and|with|to|for|of)(-|$)' || [ "${segs:-0}" -gt 6 ]; then
+      prob "slug" "feature dir slug '$slug' looks greedy (raw description words / stop-words, ${segs} segments). A concise slug reads better and shortens branch names."
+    fi
+  fi
+}
+
+if [ "${DETECT_ONLY:-0}" = "1" ]; then
+  echo ">> DETECT_ONLY: static checks against existing sandbox (no model calls)"
+  static_checks
+  if [ -s "$PROBLEMS" ]; then echo "===== PROBLEMS ====="; cat "$PROBLEMS"; else echo "no problems detected"; fi
+  exit 0
+fi
+
 for stage in $STAGES; do
   prompt="$(stage_prompt "$stage")"
   out=".bench/${stage}.json"
@@ -136,6 +162,8 @@ for stage in $STAGES; do
     no-artifact) prob "$stage" "expected artifact '$art_glob' not created in $specdir" ;;
   esac
 done
+
+static_checks   # branch + slug checks the per-stage artifact check can't see
 
 echo
 echo "===== REPORT ====="

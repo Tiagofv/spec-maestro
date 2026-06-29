@@ -59,10 +59,21 @@ if [ ! -d "$TARGET/.maestro" ]; then
   [ -d "$REPO_ROOT/.maestro" ] || die "no maestro binary on PATH and no .maestro in repo root"
   cp -R "$REPO_ROOT/.maestro" "$TARGET/.maestro"
   [ -d "$REPO_ROOT/.claude" ] && cp -R "$REPO_ROOT/.claude" "$TARGET/.claude"
-  # strip any inherited specs/state so the sandbox starts clean
-  rm -rf "$TARGET/.maestro/specs" "$TARGET/.maestro/state"
-  mkdir -p "$TARGET/.maestro/specs" "$TARGET/.maestro/state"
 fi
+
+# Always overlay the repo's CANONICAL maestro assets on top of whatever `maestro init`
+# installed. The binary installs from EMBEDDED resources, which lag local edits — without
+# this overlay the benchmark would silently test stale commands/scripts, not your changes.
+echo ">> Overlaying canonical .maestro assets from $REPO_ROOT (so local edits are what's tested)"
+for d in commands skills templates scripts cookbook reference; do
+  if [ -d "$REPO_ROOT/.maestro/$d" ]; then
+    rm -rf "$TARGET/.maestro/$d"; cp -R "$REPO_ROOT/.maestro/$d" "$TARGET/.maestro/$d"
+  fi
+done
+[ -d "$REPO_ROOT/.claude/commands" ] && { rm -rf "$TARGET/.claude/commands"; cp -R "$REPO_ROOT/.claude/commands" "$TARGET/.claude/commands"; }
+# start clean
+rm -rf "$TARGET/.maestro/specs" "$TARGET/.maestro/state"
+mkdir -p "$TARGET/.maestro/specs" "$TARGET/.maestro/state"
 
 # ---- generic, AltPay-free config.yaml ---------------------------------------
 mkdir -p "$TARGET/.maestro"
