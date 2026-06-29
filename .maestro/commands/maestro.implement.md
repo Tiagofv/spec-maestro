@@ -525,17 +525,13 @@ Next Up: {next_task_ids}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-**Update the state file** with current progress:
+**Update the state file** with current progress via the helper (real timestamps — never
+hand-write them):
 
-```json
-{
-  "stage": "implement",
-  "progress": {
-    "completed": 0,
-    "total": 0,
-    "percentage": 0
-  }
-}
+```bash
+bash .maestro/scripts/update-state.sh {feature_id} implement \
+  "progress: {completed}/{total} tasks" \
+  progress="{\"completed\":{completed},\"total\":{total},\"percentage\":{pct}}"
 ```
 
 **Then go back to Step 2.**
@@ -605,13 +601,12 @@ If `state.worktrees` is set in state.json:
 3. Add to Next Steps:
    - "Open PR per repo: run `bash .maestro/scripts/list-feature-branches.sh --feature {feature_id}` to get `<repo>:<branch>` pairs."
 
-**Update the state file** to reflect completion:
+**Update the state file** to reflect completion via the helper (it stamps a real
+`updated_at`; pass `completed=true` rather than a hand-written `completed_at`):
 
-```json
-{
-  "stage": "complete",
-  "completed_at": "{ISO timestamp}"
-}
+```bash
+bash .maestro/scripts/update-state.sh {feature_id} complete "implementation complete" \
+  completed=true
 ```
 
 ---

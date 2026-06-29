@@ -15,7 +15,7 @@ SPECS_DIR=".maestro/specs"
 
 # --- Derive slug from description ---
 # Extract key words (remove articles, prepositions), then generate slug
-STOP_WORDS='^(a|an|the|and|or|but|for|nor|on|at|to|from|in|into|with|by|of|is|are|was|were|be|been|being|over|under|above|below|through|about|around|before|after|since|until|while|during|we|our|i|this|that|need|build|tauri)$'
+STOP_WORDS='^(a|an|the|and|or|but|for|nor|on|at|to|from|in|into|with|by|of|is|are|was|were|be|been|being|can|could|should|would|will|over|under|above|below|through|about|around|before|after|since|until|while|during|we|our|i|you|users|user|this|that|need|build|tauri)$'
 
 SLUG=$(echo "$DESCRIPTION" \
   | tr '[:upper:]' '[:lower:]' \
@@ -26,6 +26,10 @@ SLUG=$(echo "$DESCRIPTION" \
   | sed 's/[^a-z0-9]/-/g' \
   | sed 's/--*/-/g' \
   | sed 's/^-//;s/-$//')
+
+# Cap to the first 5 segments so a multi-sentence description yields a concise
+# slug (e.g. "add-command-line-task-tracker") rather than a sentence fragment.
+SLUG=$(printf '%s' "$SLUG" | cut -d- -f1-5 | sed 's/-$//')
 
 # --- Word-boundary truncation (10-40 chars) ---
 DUPLICATE_INFO=""
