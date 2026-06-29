@@ -252,7 +252,7 @@ Use `bd show <id> --json` to read the existing status and assignee.
 
 Read the `**Repos:**` line from the spec header — this is the authoritative set of repositories for this feature. Store it as `repos_set`; every generated task in Step 5 must carry a matching `**Repo:**` field whose value is a member of this set.
 
-Example header line: `**Repos:** svc-accounts-receivable, alt-front-end`
+Example header line: `**Repos:** svc-api, web-app`
 
 If the `**Repos:**` line is absent from the spec, stop and instruct the user to run `/maestro.specify` again (T017 added this field — its absence means the spec predates multi-repo support or was written incorrectly).
 

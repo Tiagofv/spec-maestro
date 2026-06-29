@@ -170,7 +170,7 @@ Determine which repos this feature touches and lock the value into `**Repos:**` 
 
 **Inference (do this first):**
 
-1. Read `$ARGUMENTS` and any problem-statement file paths mentioned for repo names or service names (e.g., `svc-accounts-receivable`, `alt-front-end`).
+1. Read `$ARGUMENTS` and any problem-statement file paths mentioned for repo names or service names (e.g., `svc-api`, `web-app`).
 2. If none are found, default to the basename of the current `MAESTRO_BASE` directory (single-repo default).
 
 **Confirmation:**
@@ -184,7 +184,7 @@ Wait for the user's response. Accept the corrected value if they provide one; ot
 **Examples of the final header line:**
 
 - Single-repo: `**Repos:** spec-maestro`
-- Multi-repo: `**Repos:** svc-accounts-receivable, alt-front-end`
+- Multi-repo: `**Repos:** svc-api, web-app`
 
 Store the confirmed value as `repos_value` for use in Step 3.
 
