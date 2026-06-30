@@ -22,21 +22,20 @@ Before starting, verify the project has been initialized:
 
 If the user's query references a feature explicitly, extract that feature ID. Otherwise, infer the active feature to associate this research with using the following rules.
 
-**Resolving the feature ID (AI inference):**
+**Resolve the feature** — run the shared resolver (replaces the old inline inference):
 
-1. If the user supplied an explicit feature ID or number (e.g., `070`, `070-improve-...`), use it directly.
-2. Otherwise, infer from context using these signals in priority order:
-   a. **Recent state activity**: List `.maestro/state/*.json` files, read their `updated_at` field, pick the most recently updated non-`complete` feature.
-   b. **Current git branch**: Run `git branch --show-current`. If the branch matches `feat/NNN-...` or `NNN-...`, extract and use that feature ID.
-   c. **Conversation context**: If the current conversation referenced a feature earlier, use that feature.
-3. Surface the inferred feature ID to the user BEFORE taking any action:
-   ```
-   Inferred feature: 070-improve-maestro-tasks-command-speed (from: recent state activity)
-   Proceeding… (reply with a different feature ID to override)
-   ```
-4. **On signal conflict** (e.g., state recency says 070 but branch says 069): Ask the user which to use.
-5. **On no signals**: Ask the user for an explicit feature ID.
-6. **Exclude from inference**: Empty feature directories (spec.md missing or 0 bytes).
+```bash
+bash .maestro/scripts/resolve-feature.sh "$ARGUMENTS"
+```
+
+It emits JSON `{feature_id, spec_dir, branch, source, conflict, conflict_with}` (empty
+feature dirs are already excluded). Then act on the result:
+
+- `conflict: true` — surface both candidates (`feature_id` from recent state vs
+  `conflict_with` from the git branch) and ask the user which to use.
+- `source: none` — no usable feature found. If this command CREATES a feature (specify),
+  treat it as new and proceed to scaffold; otherwise ask the user for an explicit feature ID.
+- otherwise — surface the resolved `feature_id` and its `source`, then proceed.
 
 The inferred `feature_id` is used when linking research to a feature in Step 7.
 
@@ -135,7 +134,7 @@ These patterns indicate the user wants to search within project artifacts:
 ```
 function classifyQuery(query: string): IntentClassification {
   const normalizedQuery = query.toLowerCase().trim();
-
+  
   // Priority 1: Codebase patterns (most specific)
   for (const pattern of CODEBASE_PATTERNS) {
     if (pattern.regex.test(normalizedQuery)) {
@@ -147,7 +146,7 @@ function classifyQuery(query: string): IntentClassification {
       };
     }
   }
-
+  
   // Priority 2: External patterns
   for (const pattern of EXTERNAL_PATTERNS) {
     if (pattern.regex.test(normalizedQuery)) {
@@ -159,7 +158,7 @@ function classifyQuery(query: string): IntentClassification {
       };
     }
   }
-
+  
   // Priority 3: Artifact patterns
   for (const pattern of ARTIFACT_PATTERNS) {
     if (pattern.regex.test(normalizedQuery)) {
@@ -171,7 +170,7 @@ function classifyQuery(query: string): IntentClassification {
       };
     }
   }
-
+  
   // Fallback: Keyword-based classification
   return classifyByKeywords(normalizedQuery);
 }
@@ -180,15 +179,15 @@ function classifyByKeywords(query: string): IntentClassification {
   const codebaseScore = countKeywords(query, CODEBASE_KEYWORDS);
   const externalScore = countKeywords(query, EXTERNAL_KEYWORDS);
   const artifactScore = countKeywords(query, ARTIFACT_KEYWORDS);
-
+  
   const scores = [
     { type: 'codebase', score: codebaseScore },
     { type: 'external', score: externalScore },
     { type: 'artifact', score: artifactScore }
   ];
-
+  
   scores.sort((a, b) => b.score - a.score);
-
+  
   if (scores[0].score === 0) {
     // No clear classification - default to external for open-ended questions
     return {
@@ -198,7 +197,7 @@ function classifyByKeywords(query: string): IntentClassification {
       reasoning: 'No clear pattern match, defaulting to external research'
     };
   }
-
+  
   return {
     type: scores[0].type,
     confidence: scores[0].score === scores[1].score ? 'medium' : 'medium',
@@ -253,11 +252,11 @@ When a query could match multiple patterns:
 2. **Confidence threshold**: If confidence is 'low', ask user for clarification:
    ```
    I'm not sure what type of research you want:
-
+   
    [1] Search the codebase for existing implementations
    [2] Research external libraries and approaches
    [3] Search project specs and plans
-
+   
    Please reply with 1, 2, or 3.
    ```
 
@@ -547,9 +546,9 @@ Research documents for external sources should follow this structure:
 ```markdown
 # Research: {Query Title}
 
-**Research ID:** YYYYMMDD-{slug}
-**Date:** YYYY-MM-DD
-**Source Type:** external
+**Research ID:** YYYYMMDD-{slug}  
+**Date:** YYYY-MM-DD  
+**Source Type:** external  
 **Domain:** {technology domain}
 
 ## Query
@@ -566,8 +565,8 @@ Research documents for external sources should follow this structure:
 
 **Overview**: {Brief description of what it is and does}
 
-**Latest Version**: {version number}
-**Maturity**: {experimental/beta/stable/legacy}
+**Latest Version**: {version number}  
+**Maturity**: {experimental/beta/stable/legacy}  
 **License**: {license type}
 
 #### Pros
@@ -677,9 +676,9 @@ Fill in the template based on the query and research findings.
 ```markdown
 # Research: {Query Title}
 
-**Research ID:** YYYYMMDD-{slug}
-**Date:** YYYY-MM-DD
-**Source Type:** codebase | external | artifacts
+**Research ID:** YYYYMMDD-{slug}  
+**Date:** YYYY-MM-DD  
+**Source Type:** codebase | external | artifacts  
 **Tags:** tag1, tag2, tag3
 
 ## Query

@@ -9,6 +9,13 @@
 
 ---
 
+<!--
+SCALE TO THE FEATURE. This is a maximal checklist, not a required shape. For small
+features, keep it tight: a couple of focused user stories beat ten padded ones, and
+sections that don't apply (e.g. heavy Dependencies/Risks for a self-contained change)
+should be a line or omitted rather than filled with boilerplate. Don't pad to look thorough.
+-->
+
 ## 1. Problem Statement
 
 {One to three paragraphs describing the problem from the user's perspective. What pain point exists? Why does it matter? Who is affected?}
