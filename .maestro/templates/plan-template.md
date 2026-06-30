@@ -8,6 +8,16 @@
 
 ---
 
+<!--
+SCALE TO THE FEATURE. This template is a maximal checklist, not a required shape.
+For XS/S features, OMIT sections that don't apply instead of padding them with "N/A":
+  - No new or changed persistent data  → drop §3 Data Model.
+  - No API / RPC / CLI surface change   → drop §4 API Contracts.
+  - Single-component change             → collapse §1–§2 to a few lines.
+Always keep §5 Tasks, §6 Sizing, §7 Testing. Delete a heading rather than leave it empty.
+A handful-of-files feature should yield a short plan, not 300+ lines.
+-->
+
 ## 1. Architecture Overview
 
 ### 1.1 High-Level Design
