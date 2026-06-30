@@ -1,11 +1,14 @@
 # Test Plan: Valid Plan
 
+**Repos:** test-repo
+
 ## Implementation Tasks
 
 <!-- TASK:BEGIN id=T001 -->
 ### T001: First Task
 
 **Metadata:**
+- **Repo:** test-repo
 - **Label:** setup
 - **Size:** XS
 - **Assignee:** developer1
@@ -26,6 +29,7 @@ A valid task with all required fields.
 ### T002: Second Task
 
 **Metadata:**
+- **Repo:** test-repo
 - **Label:** feature
 - **Size:** S
 - **Assignee:** developer2
@@ -47,6 +51,7 @@ Another valid task depending on T001.
 ### T003: Third Task
 
 **Metadata:**
+- **Repo:** test-repo
 - **Label:** cleanup
 - **Size:** XS
 - **Assignee:** developer3
