@@ -272,7 +272,31 @@ Edit files in `.maestro/templates/`. Commands use these as starting points when 
 
 ### Re-syncing after edits
 
-If you edit any command or skill in this repo's `.maestro/`, copy it to the harness mirrors (`.claude/`, `.opencode/`, `.codex/`) and run `make generate` from `cmd/maestro-cli/`. In a downstream project, re-run `maestro init` and choose overwrite to pull the latest embedded resources from your installed binary.
+`.maestro/` is the source of truth. Agents actually read the per-harness mirrors
+(`.claude/`, `.opencode/`, `.codex/`), so an edit to `.maestro/` has **no effect** until the
+mirror is refreshed — and the mirrors drift silently if you forget. Use the helper instead of
+copying by hand:
+
+```bash
+# report drift between .maestro/ and every mirror (read-only; exits non-zero if any drift)
+bash .maestro/scripts/sync-mirrors.sh --check
+
+# reconcile .maestro/ -> mirrors (SAFE: skips a mirror that is >1.25x larger than its
+# source and flags it NEEDS-REVIEW, so it never silently clobbers unmerged content)
+bash .maestro/scripts/sync-mirrors.sh --fix
+
+# also overwrite the NEEDS-REVIEW (larger) mirrors — only after you've confirmed the
+# source is the version you want
+bash .maestro/scripts/sync-mirrors.sh --fix --force
+```
+
+`--check` is CI/pre-commit friendly. After a `--fix`, run `make generate` from
+`cmd/maestro-cli/` (then reinstall) so the binary's embedded resources match too. In a
+downstream project, re-run `maestro init` and choose overwrite to pull the latest embedded
+resources from your installed binary.
+
+> Convention: **edit only `.maestro/`**; treat the mirrors as generated. `sync-mirrors.sh`
+> reconciles in the `.maestro/ → mirror` direction.
 
 ## License
 
