@@ -602,7 +602,7 @@ Files Modified: {total unique files}
 
 Next Steps:
   1. Review the code:    cd {worktree_path}   (or: git checkout {branch})
-  2. Create PR:          /maestro.commit, then open a PR from {branch}
+  2. Create PR:          commit your changes, then open a PR from {branch}
   3. Start next feature: /maestro.specify <next feature>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

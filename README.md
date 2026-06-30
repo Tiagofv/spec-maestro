@@ -145,11 +145,9 @@ Claude Code and OpenCode invoke these as slash commands. Codex invokes the same 
 | `/maestro.tasks`                 | Break the plan into bd issues with dependencies                                    |
 | `/maestro.implement`             | Loop through ready tasks — implement, inline review (assignee subagent + review skill), then PM-validate when all tasks are done |
 | `/maestro.pm-validate`           | Final validation gate — regression scan + acceptance criteria                      |
-| `/maestro.commit`                | Layer-separated atomic commits                                                     |
 | `/maestro.analyze`               | Post-epic learning — metrics, patterns, improvement proposals                      |
 | `/maestro.list [--all]`          | Feature dashboard. Default shows active features only; `--all` includes completed and cancelled |
 | `/maestro.fork <feature>`        | Branch a new feature off an existing one, copying spec/plan/research               |
-| `/maestro.respond`               | Answer PR review comments with learning memory; replies in threads + records findings |
 
 ### Pipeline flow
 
@@ -203,11 +201,9 @@ your-project/
 │   │   ├── maestro.tasks.md
 │   │   ├── maestro.implement.md
 │   │   ├── maestro.pm-validate.md
-│   │   ├── maestro.commit.md
 │   │   ├── maestro.analyze.md
 │   │   ├── maestro.list.md
 │   │   ├── maestro.fork.md
-│   │   └── maestro.respond.md
 │   ├── templates/          # Spec / plan / review / research / constitution templates
 │   ├── skills/             # SKILL.md files — review, constitution, pm-validation
 │   ├── scripts/            # Shell utilities invoked by commands via bash
