@@ -112,6 +112,14 @@ After the loop, update state.json:
 1. Set `worktree_created: true` for each successfully provisioned repo.
 2. Append history action `"worktrees provisioned: {repos}"`.
 
+Then tell the user, up front, where implementation will happen so the split between their
+current branch and the worktree is never a surprise:
+
+```
+Implementing in worktree {worktree_path} on branch {branch}.
+Your current branch stays unchanged — the code lands in the worktree.
+```
+
 **Empty `state.repos` guard:**
 
 If `state.repos` is present but is an empty array (`[]`):
@@ -570,11 +578,19 @@ This collects metrics, computes patterns, and proposes improvements for human ap
 
 ## Step 9: Report Completion
 
+If the feature ran in a worktree (`state.worktrees` is set), the code is **not** on the
+user's current checkout — it lives in the worktree on `{branch}`. State this loudly so the
+user does not look at their current branch, see an unchanged tree, and assume nothing happened.
+
 ```
 ━━━ Feature Complete ━━━━━━━━━━━━━━━━━━━━
 
 Feature: {feature_id} — {feature_title}
-Branch: {branch}
+Branch:  {branch}
+
+⚠ Your code is on branch {branch}, in worktree {worktree_path} —
+  NOT on your current checkout. Your current branch is unchanged; you will not
+  see these files until you enter the worktree or check out / merge {branch}.
 
 Metrics
   Total Tasks:         {count}
@@ -585,12 +601,15 @@ Metrics
 Files Modified: {total unique files}
 
 Next Steps:
-  1. Create PR:          /maestro.commit then create PR
-  2. Deploy to staging:  (manual)
+  1. Review the code:    cd {worktree_path}   (or: git checkout {branch})
+  2. Create PR:          /maestro.commit, then open a PR from {branch}
   3. Start next feature: /maestro.specify <next feature>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+Omit the ⚠ block and the "Review the code" worktree line only when the run was
+`worktree_required=false` (work happened on the current branch).
 
 **Worktree Cleanup (if worktree-enabled feature):**
 
