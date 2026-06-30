@@ -8,7 +8,7 @@ The verbatim prompt is worded to invite vague, free-prose, happy-path-only crite
 validator exits 0. A bad one writes the malformed criteria and proceeds on red.
 
 **Stresses:** `validate-spec-format.sh` (EARS shape + failure-path pairing + vague-term
-denylist), `specify` iterate-to-valid, `clarify`, `plan`.
+denylist + solution-leakage / right-altitude), `specify` iterate-to-valid, `clarify`, `plan`.
 
 ## Domain
 A small config-file loader/validator: read a config file at startup, validate the declared
@@ -20,6 +20,7 @@ fields, refuse to start on a bad file. No network/DB/auth.
 ## Specify (verbatim — worded to invite malformed criteria)
 > Add a config loader. It should read the config file at startup and be fast. It should handle
 > bad files gracefully and support several config formats. Make the whole thing easy to use.
+> Cache the parsed config in memory and expose a refresh endpoint so other components can re-read it.
 
 ## Clarify answers to give
 - **Config format:** a single fixed-name file `config.json` in the working directory.
@@ -39,7 +40,11 @@ fields, refuse to start on a bad file. No network/DB/auth.
   `If …, then …` for every `When …`, removing vague terms or marking
   `[NEEDS CLARIFICATION]` — until `validate-spec-format.sh` **exits 0** on the written spec
   (EARS shapes valid, every `When` paired with an `If…then`, no vague terms survive, ≥1
-  `[NEEDS CLARIFICATION]`).
+  `[NEEDS CLARIFICATION]`). The validator ALSO initially fails on solution-leakage
+  (`names implementation detail` — `cache`/`endpoint` from the seeded prompt); the agent
+  iterates by restating at WHAT level (e.g. "the configuration loader shall make the current
+  parsed settings available to other components" instead of "cache … in memory"; "shall
+  re-read the config on request" instead of "expose a /refresh endpoint") until exit 0.
 - **clarify**: resolves the format/bad-file/fields questions, writes each answer back **as an
   EARS criterion**, and re-runs the validator to 0 before stamping state.
 - **plan**: concrete loader/validator files + JSON decoding; no invented DB/HTTP layer.
@@ -47,5 +52,6 @@ fields, refuse to start on a bad file. No network/DB/auth.
 ## Watch for
 agent ignoring the validator output and proceeding on red · happy-path-only criteria (no
 `If …, then …`) · vague terms (`fast`, `gracefully`, `easy`, `several`) surviving into the
-final spec · specify/clarify proceeding while `validate-spec-format.sh` still reports
-violations (validator output ignored).
+final spec · implementation nouns (Redis/endpoint/table/cache) surviving into the final spec
+instead of being raised to WHAT/WHY level · specify/clarify proceeding while
+`validate-spec-format.sh` still reports violations (validator output ignored).
