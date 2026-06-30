@@ -47,6 +47,10 @@ Coverage (✅ = exercised, ✅✅ = primary stressor): every one of the 15 comma
 Each invoked command is scored 0–3 on the dimensions that apply (mark others N/A):
 
 - **Artifact** — output correct & well-shaped? (0 missing/wrong … 3 complete)
+  - For `specify`/`clarify`, "well-shaped" **requires EARS acceptance criteria**: each
+    criterion is one atomic When/While/If…then/Where/shall sentence, and every `When …`
+    happy path has a matching `If …, then …` failure/edge path. Free-prose criteria, or
+    happy paths with no failure criterion, cap the Artifact score at ≤2. See cases 01 & 05.
 - **Faithfulness** — true to constitution + prior artifact, no drift/invention?
 - **Autonomy** — proceeds without stalls, loops, or redundant questions?
 - **Cost** — turns + wall-clock vs. the work? (the runner records this automatically)
