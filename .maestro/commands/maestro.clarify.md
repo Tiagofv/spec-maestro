@@ -20,21 +20,20 @@ Otherwise, find the most recent feature:
 - List directories in `.maestro/specs/` sorted by name (highest number first)
 - Use the most recent one
 
-**Resolving the feature ID (AI inference):**
+**Resolve the feature** — run the shared resolver (replaces the old inline inference):
 
-1. If the user supplied an explicit feature ID or number (e.g., `070`, `070-improve-...`), use it directly.
-2. Otherwise, infer from context using these signals in priority order:
-   a. **Recent state activity**: List `.maestro/state/*.json` files, read their `updated_at` field, pick the most recently updated non-`complete` feature.
-   b. **Current git branch**: Run `git branch --show-current`. If the branch matches `feat/NNN-...` or `NNN-...`, extract and use that feature ID.
-   c. **Conversation context**: If the current conversation referenced a feature earlier, use that feature.
-3. Surface the inferred feature ID to the user BEFORE taking any action:
-   ```
-   Inferred feature: 070-improve-maestro-tasks-command-speed (from: recent state activity)
-   Proceeding… (reply with a different feature ID to override)
-   ```
-4. **On signal conflict** (e.g., state recency says 070 but branch says 069): Ask the user which to use.
-5. **On no signals**: Ask the user for an explicit feature ID.
-6. **Exclude from inference**: Empty feature directories (spec.md missing or 0 bytes).
+```bash
+bash .maestro/scripts/resolve-feature.sh "$ARGUMENTS"
+```
+
+It emits JSON `{feature_id, spec_dir, branch, source, conflict, conflict_with}` (empty
+feature dirs are already excluded). Then act on the result:
+
+- `conflict: true` — surface both candidates (`feature_id` from recent state vs
+  `conflict_with` from the git branch) and ask the user which to use.
+- `source: none` — no usable feature found. If this command CREATES a feature (specify),
+  treat it as new and proceed to scaffold; otherwise ask the user for an explicit feature ID.
+- otherwise — surface the resolved `feature_id` and its `source`, then proceed.
 
 If no spec is found, tell the user to run `/maestro.specify` first and stop.
 
