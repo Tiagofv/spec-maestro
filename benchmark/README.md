@@ -67,7 +67,7 @@ Cases 1–5 cover the core pipeline across stacks and feature shapes. Cases 6–
 | Constitution enforcement → review **CRITICAL** → fix chain → `analyze` bug/fix metrics | 8 |
 | `implement` compile-gate failure loop + `pm-validate` regression detection | 9 |
 | Idempotency guards: `tasks` re-run, `specify` refine, `implement` resume / worktree guard | 10 |
-| Acceptance-criteria EARS quality gate (validate-spec-format.sh): shape + failure-path pairing + vague-term denylist | 11 |
+| Acceptance-criteria EARS quality gate (validate-spec-format.sh): EARS shape + failure-path pairing + vague-term denylist + solution-leakage / right-altitude (implementation-free) check | 11 |
 
 ## Scoring
 
@@ -78,8 +78,10 @@ Each invoked command is scored 0–3 on the dimensions that apply (mark others N
     criterion is one atomic When/While/If…then/Where/shall sentence, and every `When …`
     happy path has a matching `If …, then …` failure/edge path. The cap is **deterministic**:
     whenever `validate-spec-format.sh` would report a violation on the produced spec (non-EARS
-    shape, a `When …` with no paired `If …, then …`, or a vague term), the Artifact score is
-    capped at ≤2 — not a reviewer judgment call. See cases 01, 05 & 11.
+    shape, an unpaired `When …`, a vague term, or a solution-leakage / implementation-detail
+    noun), the Artifact score is capped at ≤2 — not a reviewer judgment call. Solution-leakage
+    is the ISO/IEC/IEEE 29148 "Appropriate" (implementation-free) property — orthogonal to EARS
+    shape, explicitly NOT part of EARS. See cases 01, 05 & 11.
 - **Faithfulness** — true to constitution + prior artifact, no drift/invention?
 - **Autonomy** — proceeds without stalls, loops, or redundant questions?
 - **Cost** — turns + wall-clock vs. the work? (the runner records this automatically)
