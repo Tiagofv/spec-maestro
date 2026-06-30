@@ -208,20 +208,32 @@ Fill in the template based on the feature description provided in `$ARGUMENTS`.
    - Each story must be testable — a QA engineer should be able to verify it
    - Avoid vague stories ("improve performance", "better UX")
 
-3. **Mark uncertainty explicitly**
+3. **Write acceptance criteria in EARS** (Easy Approach to Requirements Syntax)
+   - Every criterion is ONE atomic sentence in a fixed shape, verb always "shall":
+     - Ubiquitous: `The <system> shall <response>.`
+     - Event-driven: `When <trigger>, the <system> shall <response>.`
+     - State-driven: `While <state>, the <system> shall <response>.`
+     - Unwanted behavior: `If <condition>, then the <system> shall <response>.`
+     - Optional feature: `Where <feature is included>, the <system> shall <response>.`
+   - One trigger → one response per line; split "and also" into separate criteria
+   - Pair every `When …` happy-path criterion with an `If …, then …` failure/edge criterion
+   - Stay at WHAT/WHY level — `<system>` is the feature, never a class, table, or endpoint
+   - If a criterion cannot be written in an EARS shape without guessing, mark it `[NEEDS CLARIFICATION: …]`
+
+4. **Mark uncertainty explicitly**
    - Use `[NEEDS CLARIFICATION: specific question]` for anything ambiguous
    - It is BETTER to mark something as needing clarification than to guess
    - At least 2-3 clarification markers are expected for any non-trivial feature
 
-4. **Define success criteria as observable outcomes**
+5. **Define success criteria as observable outcomes**
    - Each criterion must be verifiable without reading code
    - Use measurable language: "loads in under 2 seconds", "shows error message", "sends notification"
 
-5. **Explicitly state what is out of scope**
+6. **Explicitly state what is out of scope**
    - Prevent scope creep by naming related things that are NOT included
    - Be specific: "OAuth integration is out of scope" not "advanced auth"
 
-6. **Keep it concise**
+7. **Keep it concise**
    - The spec should be 1-3 pages, not a novel
    - If a section needs more than a paragraph, the feature may need splitting
 
@@ -235,6 +247,9 @@ After writing the spec, do a self-check:
 
 - [ ] No technology or implementation details mentioned
 - [ ] At least 2 user stories defined
+- [ ] Every acceptance criterion follows an EARS shape (When/While/If…then/Where, or a plain "The <system> shall …")
+- [ ] Each acceptance criterion is atomic (one trigger → one response; no "and also")
+- [ ] Every `When …` happy-path criterion has a matching `If …, then …` failure/edge criterion
 - [ ] At least 2 success criteria defined
 - [ ] At least 1 `[NEEDS CLARIFICATION]` marker present
 - [ ] Out of scope section is not empty
