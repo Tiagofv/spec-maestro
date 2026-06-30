@@ -46,6 +46,11 @@ Rules: one trigger → one response per line (split "and also" into two criteria
 `When …` happy path with an `If …, then …` for the failure/edge path; <system> is the
 feature/component, not a class or table. A criterion you cannot phrase this way is ambiguous —
 mark it [NEEDS CLARIFICATION: …] instead of guessing.
+
+**Every When/While happy-path criterion MUST have a matching If…then criterion for the
+failure/edge case. EARS exists to remove ambiguity — any criterion that does not fit one of
+these five shapes is ambiguous: rewrite it or mark [NEEDS CLARIFICATION]. /maestro.specify runs
+validate-spec-format.sh and will block on violations.**
 -->
 
 ### Story 1: {SHORT_NAME}
