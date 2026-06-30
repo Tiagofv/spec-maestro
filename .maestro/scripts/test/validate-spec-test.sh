@@ -203,6 +203,50 @@ EOF
     return 0
 }
 
+# Test: Solution-leakage criteria rejected (rule G)
+test_solution_leakage() {
+    local output
+    local exit_code=0
+
+    output=$(run_validator "$FIXTURES_DIR/invalid-spec-solution-leakage.md") || exit_code=$?
+
+    if [[ $exit_code -ne 1 ]]; then
+        echo "Expected exit code 1, got $exit_code"
+        echo "Output: $output"
+        return 1
+    fi
+
+    if [[ ! "$output" == *"names implementation detail"* ]]; then
+        echo "Missing 'names implementation detail' error message"
+        echo "Output: $output"
+        return 1
+    fi
+
+    return 0
+}
+
+# Test: Implementation-neutral spec passes the leakage check (rule G no false-fire)
+test_solution_leakage_passes() {
+    local output
+    local exit_code=0
+
+    output=$(run_validator "$FIXTURES_DIR/valid-spec-ears.md") || exit_code=$?
+
+    if [[ $exit_code -ne 0 ]]; then
+        echo "Expected exit code 0, got $exit_code"
+        echo "Output: $output"
+        return 1
+    fi
+
+    if [[ ! "$output" == *"Validation PASSED"* ]]; then
+        echo "Missing 'Validation PASSED' message"
+        echo "Output: $output"
+        return 1
+    fi
+
+    return 0
+}
+
 # Test: No file argument provided
 test_no_file_argument() {
     local output
@@ -271,6 +315,8 @@ main() {
     run_test "Non-EARS criteria rejected" test_non_ears
     run_test "Missing failure-path pairing rejected" test_missing_failure_paths
     run_test "Zero markers under --strict rejected" test_strict_zero_markers
+    run_test "Solution-leakage criteria rejected" test_solution_leakage
+    run_test "Implementation-neutral spec passes leakage check" test_solution_leakage_passes
     run_test "No file argument provided" test_no_file_argument
     run_test "Non-existent file handled" test_nonexistent_file
 

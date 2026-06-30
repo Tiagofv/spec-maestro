@@ -82,6 +82,11 @@ After all explicit markers are resolved, scan the spec for implicit gaps:
    criterion, is there a matching `If <that trigger fails / bad input>, then … shall …`
    criterion? Missing failure/edge criteria are the most common gap EARS exposes — surface
    each one as a question.
+7. **Solution leakage / wrong altitude**: Does any acceptance criterion name a technology
+   or implementation artifact in its response (Redis, Postgres, JWT, regex, endpoint, table,
+   index, cache, queue, cron)? That over-specifies HOW. Surface it as a question — what
+   observable WHAT/WHY behavior is intended? — and rewrite the answer at that level, or move
+   a truly-mandated constraint to a Constraints section.
 
 Present any new questions found:
 
@@ -115,9 +120,10 @@ bash .maestro/scripts/validate-spec-format.sh {spec_dir}/spec.md
 If it fails, a resolution landed as a non-EARS, unpaired, or vague criterion.
 Report to the user **which resolved criterion is still malformed** (cite the
 `spec validation failed:` line), then fix it — rewrite into an EARS shape, add
-the missing `If …, then …` failure path, or remove the vague term — or re-ask
-the question if you would be guessing. Re-run the validator and do not proceed
-to Step 6 until it exits 0.
+the missing `If …, then …` failure path, remove the vague term, or restate a
+leaked implementation detail (e.g. "in Redis", "a /refresh endpoint") as
+observable behavior — or re-ask the question if you would be guessing. Re-run
+the validator and do not proceed to Step 6 until it exits 0.
 
 ## Step 6: Update State
 

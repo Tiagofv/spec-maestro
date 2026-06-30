@@ -246,6 +246,7 @@ Write the completed specification to `{spec_dir}/spec.md` (where `{spec_dir}` is
 After writing the spec, do a self-check:
 
 - [ ] No technology or implementation details mentioned
+  - [ ] Acceptance criteria state observable WHAT/WHY only — no technology/implementation nouns in the response (Redis, Postgres, JWT, regex, endpoint, table, index, cache, queue, cron); move hard technical constraints to a Constraints/Non-Functional section
 - [ ] At least 2 user stories defined
 - [ ] Every acceptance criterion follows an EARS shape (When/While/If…then/Where, or a plain "The <system> shall …")
 - [ ] Each acceptance criterion is atomic (one trigger → one response; no "and also")
@@ -279,6 +280,13 @@ a criterion, never its implementation:
   threshold) or mark `[NEEDS CLARIFICATION: …]`.
 - **chains two responses** → split the criterion into one atomic
   trigger→response per line.
+- **names implementation detail** → the criterion prescribes HOW (e.g. names
+  Redis/an endpoint/a table). Restate it as the observable behavior (the
+  WHAT/WHY) — what the operator/user can see — and move any genuinely-mandated
+  technology to a Constraints section, or mark `[NEEDS CLARIFICATION]` if it is
+  undecided. A criterion can be perfectly EARS-shaped and still leak HOW; this
+  is orthogonal to the shape rule (ISO/IEC/IEEE 29148 "Appropriate" —
+  implementation-free).
 
 Re-run the validator after each fix and only continue once it exits 0.
 

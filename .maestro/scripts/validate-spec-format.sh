@@ -60,6 +60,10 @@ echo "=== Validating Spec Format: $SPEC_FILE ===" >&2
 #       requires >=1 `If ..., then ...` criterion in the SAME story.
 #   (F) NEEDS CLARIFICATION presence: count markers spec-wide; 0 markers is a
 #       non-fatal WARNING (or a failure under --strict).
+#   (G) right-altitude / implementation-free check — scans only the RESPONSE
+#       clause (text after `shall`, or after `then the … shall`) of each
+#       non-marker criterion for technology/implementation HOW-nouns; cites
+#       ISO/IEC/IEEE 29148 Appropriate, not EARS.
 # ----------------------------------------------------------------------------
 
 # The criteria-parsing slurp uses awk to isolate the `## 3. User Stories`
@@ -156,6 +160,15 @@ STRICT="$STRICT" perl -0777 -e '
         "several", "a few", "most",
     );
 
+    # --- (G) Solution-leakage / right-altitude denylist ---------------------
+    # High-signal technology/implementation HOW-nouns. Curated for precision:
+    # only scanned against each criterion RESPONSE clause (post-shall), so
+    # domain nouns in triggers/preconditions do not false-fire.
+    my @leak_terms = qw(
+        Redis Postgres PostgreSQL JWT regex endpoint
+        table index cache queue cron
+    );
+
     # Per-story event/failure tallies for rule (E).
     my %story_when;   # story => count of "When ..." criteria
     my %story_if;     # story => count of "If ..., then ..." criteria
@@ -208,6 +221,24 @@ STRICT="$STRICT" perl -0777 -e '
                 "spec validation failed: criterion (line $line) chains two"
                 . " responses (\" and also \" / \" / \"); split it into one"
                 . " atomic trigger→response criterion per line: \"$text\"";
+        }
+
+        # (G) Solution-leakage / right-altitude: scan ONLY the response clause
+        # (text after `shall`) so domain nouns in triggers/preconditions
+        # ("When the user joins the queue, …") do not false-fire.
+        my $resp = $text;
+        if ($resp =~ /\bshall\b/i) {
+            $resp = substr($text, $+[0]);   # substring after `shall`
+        }
+        for my $term (@leak_terms) {
+            if ($resp =~ /\b\Q$term\E\b/i) {
+                push @errors,
+                    "spec validation failed: criterion (line $line) names"
+                    . " implementation detail \"$term\" — describe the"
+                    . " observable behavior (the WHAT/WHY), not the technology;"
+                    . " move any hard technical constraint to the Constraints/"
+                    . "Non-Functional section or mark [NEEDS CLARIFICATION]";
+            }
         }
     }
 
