@@ -35,7 +35,12 @@ case "$CASE_ID" in
   03) SLUG="static-site-generator-py";  STACK="python" ;;
   04) SLUG="notes-api-pagination-node"; STACK="node" ;;
   05) SLUG="rate-limiter-go";           STACK="go" ;;
-  *)  die "unknown case id '$CASE_ID' (expected 01..05)" ;;
+  06) SLUG="multi-repo-go";             STACK="go" ;;
+  07) SLUG="agent-routing-node";        STACK="node" ;;
+  08) SLUG="constitution-review-go";    STACK="go" ;;
+  09) SLUG="gate-failure-regression-node"; STACK="node" ;;
+  10) SLUG="idempotency-resume-go";     STACK="go" ;;
+  *)  die "unknown case id '$CASE_ID' (expected 01..10)" ;;
 esac
 
 TARGET="${2:-${TMPDIR:-/tmp}/maestro-bench-${CASE_ID}-$$}"
@@ -289,6 +294,98 @@ EOF
   05)
     seed_go_module "example.com/ratelimit" "ratelimit.go" \
 'package ratelimit'
+    ;;
+
+  06)  # multi-repo: two Go modules (api depends on store)
+    mkdir -p api store
+    printf 'module example.com/api\n\ngo 1.21\n' > api/go.mod
+    printf 'package main\n\nfunc main() {}\n' > api/main.go
+    printf 'module example.com/store\n\ngo 1.21\n' > store/go.mod
+    printf 'package store\n' > store/store.go
+    ;;
+
+  07)  # agent auto-selection: TS app + two seeded project agents
+    cat > package.json <<'EOF'
+{ "name":"bench-agent-routing","private":true,"type":"module",
+  "scripts":{"build":"tsc -p tsconfig.json","test:run":"node --test"},
+  "devDependencies":{"typescript":"^5.4.0","@types/node":"^20.0.0"} }
+EOF
+    cat > tsconfig.json <<'EOF'
+{ "compilerOptions":{"target":"ES2022","module":"NodeNext","moduleResolution":"NodeNext","strict":true,"outDir":"dist","rootDir":"src"},"include":["src"] }
+EOF
+    mkdir -p src/ui src/server .claude/agents
+    printf 'export function App() { return null; }\n' > src/ui/App.tsx
+    printf 'export function routes() {}\n' > src/server/routes.ts
+    cat > .claude/agents/react-ui-specialist.md <<'EOF'
+---
+name: react-ui-specialist
+description: Implements React/TypeScript UI components. Use for *.tsx files and frontend work.
+tools: ["*"]
+---
+You build React UI components in TypeScript.
+EOF
+    cat > .claude/agents/express-api-specialist.md <<'EOF'
+---
+name: express-api-specialist
+description: Implements Express/TypeScript API routes. Use for src/server/*.ts and backend work.
+tools: ["*"]
+---
+You build Express API routes in TypeScript.
+EOF
+    ;;
+
+  08)  # constitution enforcement: Go lib + strict constitution
+    seed_go_module "example.com/safejson" "safejson.go" 'package safejson'
+    mkdir -p .maestro
+    cat > .maestro/constitution.md <<'EOF'
+# Project Constitution
+
+## Forbidden patterns
+- FORBIDDEN: `panic()` anywhere in library code — return an `error` instead.
+- FORBIDDEN: ignoring an error (no `_ = f()` on a fallible call).
+
+## Required
+- REQUIRED: every exported function has a table-driven test.
+- REQUIRED: exported APIs return `error` for any operation that can fail.
+EOF
+    ;;
+
+  09)  # gate-failure + regression: brownfield money lib with passing tests
+    cat > package.json <<'EOF'
+{ "name":"bench-money","private":true,"type":"module",
+  "scripts":{"build":"tsc -p tsconfig.json","test:run":"node --test"},
+  "devDependencies":{"typescript":"^5.4.0","@types/node":"^20.0.0"} }
+EOF
+    cat > tsconfig.json <<'EOF'
+{ "compilerOptions":{"target":"ES2022","module":"NodeNext","moduleResolution":"NodeNext","strict":true,"outDir":"dist","rootDir":"src"},"include":["src"] }
+EOF
+    mkdir -p src
+    cat > src/money.ts <<'EOF'
+export function round(cents: number, step: number): number {
+  return Math.round(cents / step) * step;
+}
+export function format(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+EOF
+    cat > src/money.test.ts <<'EOF'
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { round, format } from "./money.js";
+
+test("format renders dollars and cents", () => {
+  assert.equal(format(123), "$1.23");
+  assert.equal(format(100), "$1.00");
+});
+test("round snaps to the nearest step", () => {
+  assert.equal(round(127, 5), 125);
+  assert.equal(round(128, 5), 130);
+});
+EOF
+    ;;
+
+  10)  # idempotency / resume: trivial Go util
+    seed_go_module "example.com/textutil" "textutil.go" 'package textutil'
     ;;
 esac
 

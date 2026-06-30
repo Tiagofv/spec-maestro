@@ -40,6 +40,11 @@ specify_text() {
     03) echo "Build a static site generator. It reads every .md file under content/, converts the Markdown to HTML, inserts the HTML into the {{content}} placeholder of templates/base.html, and writes the result to dist/<name>.html. Headings, paragraphs, bold, italic, and links must convert correctly. Running it twice produces identical output. Print the count of files generated." ;;
     04) echo "Add pagination to GET /notes on the existing notes API. Accept ?limit (default 20, max 100) and ?offset (default 0). Return { items, total, limit, offset }. Invalid params return 400. Existing POST /notes behavior and the existing tests must be unchanged." ;;
     05) echo "Add a rate limiter so callers don't get overwhelmed. It should limit how often something can happen and say no when there's too much." ;;
+    06) echo "Add two endpoints to the API: GET /health returns {\"ok\":true}, and GET /items returns the list of items from the store. The store module gains an in-memory Items() []Item function the API calls. This work spans the api and store modules." ;;
+    07) echo "Add a counter widget: a React component Counter.tsx that shows a number and an increment button, backed by a GET /count and POST /count/increment API in src/server. The component calls the API." ;;
+    08) echo "Add Parse(data []byte) (Config, error) to safejson: parse JSON config into a Config struct, returning a useful error on malformed input. Also add MustParse(data []byte) Config for tests." ;;
+    09) echo "Add formatWithCurrency(cents, code) that formats an amount with a currency symbol (USD->dollar, EUR->euro, GBP->pound), reusing the existing format. Unknown codes return an error value. Do not change existing format/round behavior or their tests." ;;
+    10) echo "Add Slugify(s string) string: lowercase, replace runs of non-alphanumerics with a single hyphen, trim leading and trailing hyphens." ;;
   esac
 }
 
