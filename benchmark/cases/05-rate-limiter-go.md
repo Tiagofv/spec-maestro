@@ -35,12 +35,16 @@ goroutine-safe, return allowed bool + remaining tokens.** Must land in spec.md.
 
 ## What good looks like
 - **clarify**: ≥4 substantive questions (algorithm, scope key, concurrency, deny shape);
-  answers written back; no filler.
+  answers written back **as EARS criteria** — e.g. "When `Allow(key)` is called and the
+  bucket has ≥1 token, the system shall return `true` and decrement the bucket"; "If
+  `rate <= 0` at construction, then the system shall return an error". Clarify should also
+  flag the vague spec's *missing* `If …, then …` paths (empty bucket, unknown/zero rate).
 - **research**: short real comparison (token bucket vs sliding window), ends at the choice.
 - **implement**: correct refill math, mutex/finer safety, tests exercising concurrency (`-race`).
 - **respond**: addresses **all three** comments with real code changes; replies per thread; logs learnings.
 - **analyze**: proposals reference real friction in this run (heavy clarify, the contention fix).
 
 ## Watch for
-clarify accepting the vague spec with one token question · non-thread-safe limiter or wrong
-refill math · respond acknowledging without changing code (or fixing 1 of 3) · generic analyze.
+clarify accepting the vague spec with one token question · clarify answers written back as
+free prose instead of EARS criteria · non-thread-safe limiter or wrong refill math · respond
+acknowledging without changing code (or fixing 1 of 3) · generic analyze.

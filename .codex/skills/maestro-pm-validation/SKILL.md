@@ -31,6 +31,12 @@ Every requirement check must cite specific evidence:
 
 "It should work" is not evidence. "Line 42 of handler.go calls SendNotification()" is evidence.
 
+Acceptance criteria are written in EARS (When/While/If…then/Where/shall), so each criterion
+is a literal, atomic assertion — validate them **1:1**. Read each criterion as `<condition> →
+<system> shall <response>` and cite the code (and test) that makes that exact response happen.
+Pay special attention to `If …, then …` (unwanted-behavior) criteria: a happy path that works
+while its failure/edge criterion is unhandled is GAPS_FOUND, not COMPLETE.
+
 ### Scope Discipline
 
 The validator checks that the implementation matches the spec — no more, no less:

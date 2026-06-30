@@ -75,6 +75,13 @@ After all explicit markers are resolved, scan the spec for implicit gaps:
 2. **Missing actors**: Who triggers this action? Who is notified?
 3. **Ambiguous quantities**: "Multiple" — how many? "Fast" — how fast?
 4. **Unstated assumptions**: Does this require authentication? What timezone?
+5. **Non-EARS / untestable acceptance criteria**: Any acceptance criterion not expressible
+   in an EARS shape (When/While/If…then/Where, or "The <system> shall …") is ambiguous —
+   rewrite it into EARS, or raise a clarification question if you'd be guessing.
+6. **Missing unwanted-behavior paths**: For every `When <trigger>, … shall …` happy-path
+   criterion, is there a matching `If <that trigger fails / bad input>, then … shall …`
+   criterion? Missing failure/edge criteria are the most common gap EARS exposes — surface
+   each one as a question.
 
 Present any new questions found:
 

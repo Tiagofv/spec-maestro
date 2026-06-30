@@ -30,16 +30,34 @@ should be a line or omitted rather than filled with boilerplate. Don't pad to lo
 
 ## 3. User Stories
 
+<!--
+ACCEPTANCE CRITERIA USE EARS (Easy Approach to Requirements Syntax). Each criterion is
+ONE atomic sentence in one of these five shapes — keyword order is fixed and the verb is
+always "shall". This stays at the WHAT/WHY level: describe observable behavior, never HOW.
+
+  Ubiquitous (always active):  The <system> shall <response>.
+  Event-driven:                When <trigger>, the <system> shall <response>.
+  State-driven:                While <state>, the <system> shall <response>.
+  Unwanted behavior:           If <condition>, then the <system> shall <response>.
+  Optional feature:            Where <feature is included>, the <system> shall <response>.
+  Complex (combine):           While <state>, when <trigger>, the <system> shall <response>.
+
+Rules: one trigger → one response per line (split "and also" into two criteria); pair every
+`When …` happy path with an `If …, then …` for the failure/edge path; <system> is the
+feature/component, not a class or table. A criterion you cannot phrase this way is ambiguous —
+mark it [NEEDS CLARIFICATION: …] instead of guessing.
+-->
+
 ### Story 1: {SHORT_NAME}
 
 **As a** {ROLE},
 **I want** {ACTION},
 **so that** {BENEFIT}.
 
-**Acceptance Criteria:**
+**Acceptance Criteria (EARS):**
 
-- [ ] {Observable outcome 1}
-- [ ] {Observable outcome 2}
+- [ ] When {trigger}, the {system} shall {observable response}.
+- [ ] If {error or edge condition}, then the {system} shall {response}.
 
 ### Story 2: {SHORT_NAME}
 
@@ -47,13 +65,13 @@ should be a line or omitted rather than filled with boilerplate. Don't pad to lo
 **I want** {ACTION},
 **so that** {BENEFIT}.
 
-**Acceptance Criteria:**
+**Acceptance Criteria (EARS):**
 
-- [ ] {Observable outcome 1}
-- [ ] {Observable outcome 2}
+- [ ] While {precondition holds}, the {system} shall {response}.
+- [ ] The {system} shall {ubiquitous, always-active response}.
 - [ ] [NEEDS CLARIFICATION: {Specific question about ambiguous acceptance criterion}]
 
-{Add more stories as needed. Use [NEEDS CLARIFICATION: ...] markers on any criterion where requirements are ambiguous.}
+{Add more stories as needed. Use [NEEDS CLARIFICATION: ...] markers on any criterion that cannot be written in an EARS shape without guessing.}
 
 ---
 
