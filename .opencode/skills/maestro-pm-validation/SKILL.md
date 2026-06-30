@@ -37,6 +37,27 @@ is a literal, atomic assertion — validate them **1:1**. Read each criterion as
 Pay special attention to `If …, then …` (unwanted-behavior) criteria: a happy path that works
 while its failure/edge criterion is unhandled is GAPS_FOUND, not COMPLETE.
 
+#### EARS Criterion Validation Checklist
+
+Each EARS shape points to a *specific kind* of evidence. Map every criterion 1:1 to
+**file:line of code AND a test** that exercises it:
+
+| EARS shape | Criterion form | Evidence to find |
+| --- | --- | --- |
+| Ubiquitous | `The … shall …` | the code path that **always** enforces it (no guard) + a test |
+| Event-driven | `When … shall …` | the **trigger handler** + the observable **response** it produces + a test |
+| State-driven | `While … shall …` | the **guarded/conditional path** active only in that state + a test |
+| Optional | `Where … shall …` | the **feature-flag/config gate** that enables it + a test |
+| Unwanted behavior | `If … then … shall …` | the **error/edge handler** AND a test that **exercises** that failure |
+
+Emphasis:
+
+- Cite each criterion **1:1** — one criterion, one `file:line` (plus its test). A criterion
+  with no cited code or no cited test is not satisfied.
+- An `If …, then …` criterion with **no matching error-handling code AND test** is
+  **GAPS_FOUND**, even if the happy path is fully implemented and tested. A green happy
+  path never covers for an unhandled failure path.
+
 ### Scope Discipline
 
 The validator checks that the implementation matches the spec — no more, no less:

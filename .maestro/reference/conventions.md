@@ -282,6 +282,62 @@ The following folder names exist in `.maestro/specs/`:
 
 ---
 
+# Specification Quality
+
+Acceptance criteria in `spec.md` are written in **EARS** (Easy Approach to Requirements
+Syntax). EARS exists to remove ambiguity: every criterion is one atomic sentence in a fixed
+shape, so it reads as a literal, testable assertion. `validate-spec-format.sh` enforces the
+rules below during `/maestro.specify` and `/maestro.clarify` and **blocks** on violations.
+
+## 1. The five EARS shapes
+
+Keyword order is fixed and the verb is always **shall**. The `<system>` slot is the feature or
+component (WHAT/WHY) — never a class, table, endpoint, or other implementation detail.
+
+| Shape | Template |
+| --- | --- |
+| Ubiquitous (always active) | `The <system> shall <response>.` |
+| Event-driven | `When <trigger>, the <system> shall <response>.` |
+| State-driven | `While <state>, the <system> shall <response>.` |
+| Unwanted behavior | `If <condition>, then the <system> shall <response>.` |
+| Optional feature | `Where <feature is included>, the <system> shall <response>.` |
+| Complex (combine) | `While <state>, when <trigger>, the <system> shall <response>.` |
+
+## 2. Failure-path pairing rule
+
+Every `When …` (and `While …`) **happy-path** criterion MUST have a matching
+`If …, then …` criterion in the **same story** for the failure/edge case. A happy path with
+no paired failure path is the most common gap EARS exposes, and the validator fails on it.
+
+## 3. Atomicity rule
+
+One trigger → one response per criterion. A single criterion that chains two responses (via
+` and also ` or ` / `) must be split into one criterion per line.
+
+## 4. Vague-term denylist
+
+The following words are not allowed in a criterion — quantify them with an observable
+threshold or mark `[NEEDS CLARIFICATION]`:
+
+> fast, quick, quickly, easy, intuitive, user-friendly, robust, seamless, scalable,
+> appropriate, reasonable, efficiently, properly, gracefully, nice, good, several, a few, most
+
+## 5. When `[NEEDS CLARIFICATION]` is mandatory
+
+Mark `[NEEDS CLARIFICATION: <specific question>]` on **any** criterion you cannot phrase in an
+EARS shape without guessing. It is always better to mark a clarification than to invent a
+behavior. (A spec with zero markers triggers a non-blocking warning — and a hard failure under
+the validator's `--strict` mode — to confirm nothing was guessed.)
+
+## 6. Enforcement
+
+`validate-spec-format.sh` parses the `**Acceptance Criteria (EARS):**` bullets under
+`## 3. User Stories`, runs the shape check, the failure-path pairing rule, the atomicity check,
+and the vague-term scan, and exits non-zero on any violation. `/maestro.specify` (Step 5) and
+`/maestro.clarify` (Step 5) call it and will not proceed until it exits 0.
+
+---
+
 # Commit Attribution Convention
 
 Maestro uses a `[bd:ISSUE_ID]` suffix in commit messages to attribute commits to specific tasks. This enables the `/maestro.diff` command to reconstruct the full diff for any task by finding all commits that belong to it.

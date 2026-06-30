@@ -257,6 +257,31 @@ After writing the spec, do a self-check:
 
 If any check fails, revise the spec before proceeding.
 
+### Automated gate (blocking)
+
+The self-check above is a human review; this gate is deterministic. Run the
+acceptance-criteria validator and do **NOT** proceed to Step 5b until it exits 0:
+
+```bash
+bash .maestro/scripts/validate-spec-format.sh {spec_dir}/spec.md
+```
+
+If it exits non-zero, read the `spec validation failed:` lines and fix each
+flagged criterion at the WHAT/WHY level — the validator enforces the *shape* of
+a criterion, never its implementation:
+
+- **not EARS-shaped** → rewrite into one of the five EARS shapes (When/While/
+  If…then/Where, or a plain "The <system> shall …"), or mark
+  `[NEEDS CLARIFICATION: …]` if you would be guessing.
+- **no matching If…then** → add the missing `If …, then the <system> shall …`
+  failure/edge criterion for that story's `When …` happy path.
+- **uses vague term** → quantify it (replace the vague word with an observable
+  threshold) or mark `[NEEDS CLARIFICATION: …]`.
+- **chains two responses** → split the criterion into one atomic
+  trigger→response per line.
+
+Re-run the validator after each fix and only continue once it exits 0.
+
 ## Step 5b: Update State
 
 Stamp the state file via the helper — do **NOT** hand-write `created_at`/`updated_at`/

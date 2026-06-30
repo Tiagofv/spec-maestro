@@ -106,7 +106,24 @@ For each answered question:
 
 Write the updated spec back to the same file.
 
+After writing the updated spec, run the acceptance-criteria validator:
+
+```bash
+bash .maestro/scripts/validate-spec-format.sh {spec_dir}/spec.md
+```
+
+If it fails, a resolution landed as a non-EARS, unpaired, or vague criterion.
+Report to the user **which resolved criterion is still malformed** (cite the
+`spec validation failed:` line), then fix it — rewrite into an EARS shape, add
+the missing `If …, then …` failure path, or remove the vague term — or re-ask
+the question if you would be guessing. Re-run the validator and do not proceed
+to Step 6 until it exits 0.
+
 ## Step 6: Update State
+
+Only stamp the clarification count **after** the validator passes — every marker
+resolution must land as a valid EARS criterion before finalizing. At this point
+`remaining_markers` should be 0 **and** the spec is EARS-valid.
 
 Update state via the helper — **never hand-write timestamps** (fabricated times corrupt
 `/maestro.analyze`). The script stamps real UTC time and appends history:

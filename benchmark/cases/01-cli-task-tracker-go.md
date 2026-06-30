@@ -26,7 +26,9 @@ A single-binary CLI task tracker storing tasks as JSON in a local file. No netwo
 - **specify**: 4 op stories + persistence; **every acceptance criterion is EARS-shaped**
   (e.g. "When the user runs `add <title>`, the system shall append a task with a new id";
   "If the id is unknown on `done`/`delete`, then the system shall report an error and exit
-  non-zero"). Each happy-path `When …` has a matching `If …, then …`. No free-prose criteria.
+  non-zero"). Each happy-path `When …` has a matching `If …, then …`. No free-prose criteria,
+  and `validate-spec-format.sh` exits 0 on the written spec (EARS shapes valid, every `When`
+  paired with an `If…then`, no vague terms).
 - **clarify**: 3–6 *real* ambiguities (file name, id scheme, missing-id behavior), each
   written back into spec.md as an EARS criterion.
 - **plan**: concrete files (store, cmd wiring), JSON encoding; no invented DB/HTTP layer.
@@ -41,4 +43,5 @@ A single-binary CLI task tracker storing tasks as JSON in a local file. No netwo
 specify emitting free-prose criteria instead of EARS, or `When …` paths with no matching
 `If …, then …` · clarify asking cosmetics or not persisting answers · plan over-engineering
 (DB/HTTP) · implement declaring done on a red/skipped gate · pm-validate passing while an
-`If …` failure criterion is unhandled · analyze emitting generic advice.
+`If …` failure criterion is unhandled · analyze emitting generic advice · specify/clarify
+proceeding while validate-spec-format.sh still reports violations (validator output ignored).

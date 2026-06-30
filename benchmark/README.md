@@ -20,9 +20,9 @@ benchmark/scripts/fix-loop.sh   01 plan [dir] # re-run ONE stage, diff status/tu
 
 `run-case.sh` env: `STAGES="specify clarify plan"` (default slice), `MAX_TURNS`, `MODEL`.
 
-## The 10 cases
+## The 11 cases
 
-Cases 1–5 cover the core pipeline across stacks and feature shapes. Cases 6–10 are
+Cases 1–5 cover the core pipeline across stacks and feature shapes. Cases 6–11 are
 **complementary** — each targets a spec-maestro mechanism the first five never exercise.
 
 | # | Case | Stack | Shape | Stresses |
@@ -37,25 +37,26 @@ Cases 1–5 cover the core pipeline across stacks and feature shapes. Cases 6–
 | 8 | [Constitution + review](cases/08-constitution-review-go.md) | Go | strict constitution | constitution enforcement → **CRITICAL** → fix chain → `analyze` |
 | 9 | [Gate failure + regression](cases/09-gate-failure-regression-node.md) | Node | brownfield trap | `implement` gate-loop + `pm-validate` regression scan |
 | 10 | [Idempotency & resume](cases/10-idempotency-resume-go.md) | Go | re-run stages | `tasks` idempotency, `specify` refine, `implement` resume |
+| 11 | [Acceptance-criteria validation](cases/11-acceptance-criteria-validation-go.md) | Go | greenfield, malformed-AC trap | validate-spec-format.sh EARS gate + iterate-to-valid |
 
 ### Command coverage (13 commands; `commit`/`respond` were removed from maestro)
 
 ✅ = exercised, ✅✅ = primary stressor. Every command is hit by ≥1 case.
 
-| Command | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
-|---------|--|--|--|--|--|--|--|--|--|--|
-|`init`|✅|✅|✅|✅|✅|✅|✅|✅|✅|✅|
-|`specify`|✅|✅|✅|✅|✅|✅|✅|✅|✅|✅✅|
-|`clarify`|✅|✅|–|✅|✅✅|✅|✅|✅|✅|✅|
-|`research`|–|✅✅|–|–|✅|–|–|–|–|–|
-|`research.list/search`|–|✅✅|–|–|–|–|–|–|–|–|
-|`plan`|✅|✅|✅|✅|✅|✅|✅✅|✅|✅|✅|
-|`tasks`|✅|✅|✅|✅|✅|✅✅|✅|✅|✅|✅✅|
-|`implement`|✅|✅|✅|✅|✅|✅|–|✅|✅✅|✅|
-|`pm-validate`|✅|–|✅|–|✅|–|–|✅|✅✅|–|
-|`analyze`|✅|–|–|–|✅|–|–|✅✅|–|–|
-|`list`|✅|–|–|✅|–|–|–|–|–|–|
-|`fork`|–|–|–|✅✅|–|–|–|–|–|–|
+| Command | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
+|---------|--|--|--|--|--|--|--|--|--|--|--|
+|`init`|✅|✅|✅|✅|✅|✅|✅|✅|✅|✅|✅|
+|`specify`|✅|✅|✅|✅|✅|✅|✅|✅|✅|✅✅|✅✅|
+|`clarify`|✅|✅|–|✅|✅✅|✅|✅|✅|✅|✅|✅|
+|`research`|–|✅✅|–|–|✅|–|–|–|–|–|–|
+|`research.list/search`|–|✅✅|–|–|–|–|–|–|–|–|–|
+|`plan`|✅|✅|✅|✅|✅|✅|✅✅|✅|✅|✅|✅|
+|`tasks`|✅|✅|✅|✅|✅|✅✅|✅|✅|✅|✅✅|–|
+|`implement`|✅|✅|✅|✅|✅|✅|–|✅|✅✅|✅|–|
+|`pm-validate`|✅|–|✅|–|✅|–|–|✅|✅✅|–|–|
+|`analyze`|✅|–|–|–|✅|–|–|✅✅|–|–|–|
+|`list`|✅|–|–|✅|–|–|–|–|–|–|–|
+|`fork`|–|–|–|✅✅|–|–|–|–|–|–|–|
 
 ### Mechanism coverage (what the complementary cases add)
 
@@ -66,6 +67,7 @@ Cases 1–5 cover the core pipeline across stacks and feature shapes. Cases 6–
 | Constitution enforcement → review **CRITICAL** → fix chain → `analyze` bug/fix metrics | 8 |
 | `implement` compile-gate failure loop + `pm-validate` regression detection | 9 |
 | Idempotency guards: `tasks` re-run, `specify` refine, `implement` resume / worktree guard | 10 |
+| Acceptance-criteria EARS quality gate (validate-spec-format.sh): shape + failure-path pairing + vague-term denylist | 11 |
 
 ## Scoring
 
@@ -74,8 +76,10 @@ Each invoked command is scored 0–3 on the dimensions that apply (mark others N
 - **Artifact** — output correct & well-shaped? (0 missing/wrong … 3 complete)
   - For `specify`/`clarify`, "well-shaped" **requires EARS acceptance criteria**: each
     criterion is one atomic When/While/If…then/Where/shall sentence, and every `When …`
-    happy path has a matching `If …, then …` failure/edge path. Free-prose criteria, or
-    happy paths with no failure criterion, cap the Artifact score at ≤2. See cases 01 & 05.
+    happy path has a matching `If …, then …` failure/edge path. The cap is **deterministic**:
+    whenever `validate-spec-format.sh` would report a violation on the produced spec (non-EARS
+    shape, a `When …` with no paired `If …, then …`, or a vague term), the Artifact score is
+    capped at ≤2 — not a reviewer judgment call. See cases 01, 05 & 11.
 - **Faithfulness** — true to constitution + prior artifact, no drift/invention?
 - **Autonomy** — proceeds without stalls, loops, or redundant questions?
 - **Cost** — turns + wall-clock vs. the work? (the runner records this automatically)
