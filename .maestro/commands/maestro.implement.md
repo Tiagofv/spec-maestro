@@ -585,7 +585,7 @@ Metrics
 Files Modified: {total unique files}
 
 Next Steps:
-  1. Create PR:          /maestro.commit then create PR
+  1. Create PR:          commit your changes, then open a PR
   2. Deploy to staging:  (manual)
   3. Start next feature: /maestro.specify <next feature>
 

@@ -55,7 +55,6 @@ Resolve every [NEEDS CLARIFICATION] marker. Pick the simplest reasonable answer 
     tasks) echo "/maestro.tasks" ;;
     implement) echo "/maestro.implement" ;;
     pm-validate) echo "/maestro.pm-validate" ;;
-    commit) echo "/maestro.commit" ;;
     analyze) echo "/maestro.analyze" ;;
     *) echo "/maestro.$1" ;;
   esac
