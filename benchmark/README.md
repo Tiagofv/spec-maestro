@@ -1,6 +1,6 @@
 # Maestro Feature Benchmark
 
-Runs 5 generic feature-building scenarios through the maestro pipeline with **Claude Code**
+Runs 10 generic feature-building scenarios through the maestro pipeline with **Claude Code**
 and scores each command, so you can see **what works and what breaks** across stacks and
 feature shapes. All cases are toy projects with **no proprietary code** (safe for a public repo).
 
@@ -20,7 +20,10 @@ benchmark/scripts/fix-loop.sh   01 plan [dir] # re-run ONE stage, diff status/tu
 
 `run-case.sh` env: `STAGES="specify clarify plan"` (default slice), `MAX_TURNS`, `MODEL`.
 
-## The 5 cases
+## The 10 cases
+
+Cases 1–5 cover the core pipeline across stacks and feature shapes. Cases 6–10 are
+**complementary** — each targets a spec-maestro mechanism the first five never exercise.
 
 | # | Case | Stack | Shape | Stresses |
 |---|------|-------|-------|----------|
@@ -28,19 +31,41 @@ benchmark/scripts/fix-loop.sh   01 plan [dir] # re-run ONE stage, diff status/tu
 | 2 | [URL shortener](cases/02-url-shortener-node.md) | Node | design choices | `research`, `research.list/search` |
 | 3 | [Static site gen](cases/03-static-site-generator-python.md) | Python | well-specified | Python gate, `clarify` restraint |
 | 4 | [Notes pagination](cases/04-notes-api-pagination-node.md) | Node | **brownfield** | `fork`, editing existing code |
-| 5 | [Rate limiter](cases/05-rate-limiter-go.md) | Go | **ambiguous** | `clarify` reach, `respond`, `analyze` |
+| 5 | [Rate limiter](cases/05-rate-limiter-go.md) | Go | **ambiguous** | `clarify` reach, `analyze` |
+| 6 | [Multi-repo feature](cases/06-multi-repo-go.md) | Go ×2 | **multi-repo** | `**Repos:**` header + per-task `**Repo:**` (feat-062) |
+| 7 | [Agent auto-selection](cases/07-agent-routing-node.md) | Node | seeded agents | `plan` inventory scoring + assignee annotations |
+| 8 | [Constitution + review](cases/08-constitution-review-go.md) | Go | strict constitution | constitution enforcement → **CRITICAL** → fix chain → `analyze` |
+| 9 | [Gate failure + regression](cases/09-gate-failure-regression-node.md) | Node | brownfield trap | `implement` gate-loop + `pm-validate` regression scan |
+| 10 | [Idempotency & resume](cases/10-idempotency-resume-go.md) | Go | re-run stages | `tasks` idempotency, `specify` refine, `implement` resume |
 
-Coverage (✅ = exercised, ✅✅ = primary stressor): every one of the 15 commands is hit by ≥1 case.
+### Command coverage (13 commands; `commit`/`respond` were removed from maestro)
 
-| | C1 | C2 | C3 | C4 | C5 |  | | C1 | C2 | C3 | C4 | C5 |
-|--|--|--|--|--|--|--|--|--|--|--|--|--|
-|`specify`|✅|✅|✅|✅|✅| |`pm-validate`|✅|–|✅|–|✅|
-|`clarify`|✅|✅|–|✅|✅✅| |`commit`|✅|✅|✅|✅|✅|
-|`research`|–|✅✅|–|–|✅| |`analyze`|✅|–|–|–|✅|
-|`research.list/search`|–|✅✅|–|–|–| |`list`|✅|–|–|✅|–|
-|`plan`|✅|✅|✅|✅|✅| |`fork`|–|–|–|✅✅|–|
-|`tasks`|✅|✅|✅|✅|✅| |`respond`|–|–|–|–|✅✅|
-|`implement`|✅|✅|✅|✅|✅| | | | | | | |
+✅ = exercised, ✅✅ = primary stressor. Every command is hit by ≥1 case.
+
+| Command | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---------|--|--|--|--|--|--|--|--|--|--|
+|`init`|✅|✅|✅|✅|✅|✅|✅|✅|✅|✅|
+|`specify`|✅|✅|✅|✅|✅|✅|✅|✅|✅|✅✅|
+|`clarify`|✅|✅|–|✅|✅✅|✅|✅|✅|✅|✅|
+|`research`|–|✅✅|–|–|✅|–|–|–|–|–|
+|`research.list/search`|–|✅✅|–|–|–|–|–|–|–|–|
+|`plan`|✅|✅|✅|✅|✅|✅|✅✅|✅|✅|✅|
+|`tasks`|✅|✅|✅|✅|✅|✅✅|✅|✅|✅|✅✅|
+|`implement`|✅|✅|✅|✅|✅|✅|–|✅|✅✅|✅|
+|`pm-validate`|✅|–|✅|–|✅|–|–|✅|✅✅|–|
+|`analyze`|✅|–|–|–|✅|–|–|✅✅|–|–|
+|`list`|✅|–|–|✅|–|–|–|–|–|–|
+|`fork`|–|–|–|✅✅|–|–|–|–|–|–|
+
+### Mechanism coverage (what the complementary cases add)
+
+| Mechanism | Case |
+|-----------|------|
+| Multi-repo `**Repos:**` header + per-task `**Repo:**` (feature 062) | 6 |
+| `plan` agent auto-selection (inventory scoring + `[harness]`/`[no-match]` annotations) | 7 |
+| Constitution enforcement → review **CRITICAL** → fix chain → `analyze` bug/fix metrics | 8 |
+| `implement` compile-gate failure loop + `pm-validate` regression detection | 9 |
+| Idempotency guards: `tasks` re-run, `specify` refine, `implement` resume / worktree guard | 10 |
 
 ## Scoring
 
